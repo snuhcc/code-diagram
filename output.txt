@@ -61,19 +61,34 @@
   17:     main()
 --- END FILE: main.py ---
 
---- FILE: processor.py (310 bytes) ---
+--- FILE: processor.py (703 bytes) ---
    1: # File: poc/processor.py
-   2: def process_data(data):
-   3:     print("Processing data...")
-   4:     result = []
-   5:     for num in data:
-   6:         if num % 2 == 0:
-   7:             transformed = num / 2
-   8:         else:
-   9:             transformed = num * 3 + 1
-  10:         result.append(transformed)
-  11:     print("Data processed")
-  12:     return result
+   2: 
+   3: def process_data(data):
+   4:     print("Processing data with branching handlers...")
+   5:     result = []
+   6:     for num in data:
+   7:         if num % 3 == 0:
+   8:             transformed = handle_div3(num)
+   9:         elif num % 2 == 0:
+  10:             transformed = handle_even(num)
+  11:         else:
+  12:             transformed = handle_other(num)
+  13:         result.append(transformed)
+  14:     print("Data processed with branching handlers")
+  15:     return result
+  16: 
+  17: def handle_div3(num):
+  18:     print(f"Handling {num}: divisible by 3")
+  19:     return num // 3
+  20: 
+  21: def handle_even(num):
+  22:     print(f"Handling {num}: even number")
+  23:     return num / 2
+  24: 
+  25: def handle_other(num):
+  26:     print(f"Handling {num}: other case")
+  27:     return num * 3 + 1
 --- END FILE: processor.py ---
 
 --- FILE: reporter.py (655 bytes) ---
