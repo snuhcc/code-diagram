@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from dotenv import load_dotenv
+from pathlib import Path
 
 
 # .env file loading
@@ -9,29 +10,15 @@ load_dotenv()
 # FastAPI app initialization
 app = FastAPI(title="Code-Diagram API")
 
+# Define the path to the HTML template
+HTML_PATH = Path(__file__).parent / "html" / "root.html"
 
 # API Endpoint
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    html_content = """
-    <html>
-        <head>
-            <title>Code-Diagram API</title>
-        </head>
-        <body>
-            <h1>Welcome to the Code-Diagram API</h1>
-            <p>This API provides endpoints for generating and interacting with code diagrams.</p>
-
-            <h2>Useful Links:</h2>
-            <ul>
-                <li><a href="/docs">Swagger UI</a> - Interactive API documentation</li>
-                <li><a href="/redoc">ReDoc</a> - Static API documentation</li>
-            </ul>
-            
-            <p>API Version: 0.0.1</p>
-            <p>For more information or support, contact: <a href="mailto:artechne@snu.ac.kr">artechne@snu.ac.kr</a></p>
-        </body>
-    </html>
-    """
-
-    return html_content
+    try:
+        # Read the HTML content from the file
+        html_content = HTML_PATH.read_text(encoding="utf-8")
+        return HTMLResponse(content=html_content)
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>Template not found</h1>", status_code=404)
