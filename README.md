@@ -16,3 +16,8 @@ conda activate <env-name>
 
 # Install dependencies
 pip install -r requirements.txt
+```
+
+## System Sketch (Last updated 250429)
+
+![](./image/250429_sketch.png)
