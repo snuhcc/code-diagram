@@ -1,0 +1,101 @@
+=== DIRECTORY TREE ===
+├── analyzer.py
+├── fetcher.py
+├── main.py
+├── processor.py
+└── reporter.py
+=== END DIRECTORY TREE ===
+
+--- FILE: analyzer.py (396 bytes) ---
+   1: # File: poc/analyzer.py
+   2: from statistics import mean, median
+   3: 
+   4: def analyze_data(data):
+   5:     print("Analyzing data...")
+   6:     avg = mean(data)
+   7:     med = median(data)
+   8:     high = [x for x in data if x > avg]
+   9:     low = [x for x in data if x <= avg]
+  10:     print("Data analysis complete")
+  11:     return {
+  12:         "average": avg,
+  13:         "median": med,
+  14:         "high_values": high,
+  15:         "low_values": low
+  16:     }
+--- END FILE: analyzer.py ---
+
+--- FILE: fetcher.py (450 bytes) ---
+   1: # File: poc/fetcher.py
+   2: import random
+   3: 
+   4: def fetch_data(retries=3):
+   5:     for attempt in range(1, retries+1):
+   6:         print(f"Attempt {attempt} to fetch data")
+   7:         if random.random() < 0.7:
+   8:             data = [random.randint(1, 100) for _ in range(10)]
+   9:             print("Data fetched successfully")
+  10:             return data
+  11:         else:
+  12:             print("Fetch failed, retrying...")
+  13:     raise ConnectionError("Failed to fetch data after 3 attempts")
+--- END FILE: fetcher.py ---
+
+--- FILE: main.py (429 bytes) ---
+   1: # File: poc/main.py
+   2: from fetcher import fetch_data
+   3: from processor import process_data
+   4: from analyzer import analyze_data
+   5: from reporter import generate_report
+   6: 
+   7: def main():
+   8:     try:
+   9:         data = fetch_data()
+  10:         processed = process_data(data)
+  11:         analysis = analyze_data(processed)
+  12:         generate_report(analysis)
+  13:     except Exception as e:
+  14:         print(f"Error in workflow: {e}")
+  15: 
+  16: if __name__ == "__main__":
+  17:     main()
+--- END FILE: main.py ---
+
+--- FILE: processor.py (310 bytes) ---
+   1: # File: poc/processor.py
+   2: def process_data(data):
+   3:     print("Processing data...")
+   4:     result = []
+   5:     for num in data:
+   6:         if num % 2 == 0:
+   7:             transformed = num / 2
+   8:         else:
+   9:             transformed = num * 3 + 1
+  10:         result.append(transformed)
+  11:     print("Data processed")
+  12:     return result
+--- END FILE: processor.py ---
+
+--- FILE: reporter.py (655 bytes) ---
+   1: # File: poc/reporter.py
+   2: def generate_report(analysis):
+   3:     print("Generating report...")
+   4:     avg = analysis["average"]
+   5:     med = analysis["median"]
+   6:     high = analysis["high_values"]
+   7:     low = analysis["low_values"]
+   8: 
+   9:     print("---- Report ----")
+  10:     print(f"Average: {avg:.2f}")
+  11:     print(f"Median: {med:.2f}")
+  12:     print("High values count:", len(high))
+  13:     print("Low values count:", len(low))
+  14: 
+  15:     if len(high) > len(low):
+  16:         print("More high values than low values.")
+  17:     elif len(high) < len(low):
+  18:         print("More low values than high values.")
+  19:     else:
+  20:         print("High and low values are equal in count.")
+  21:     print("----------------")
+--- END FILE: reporter.py ---
