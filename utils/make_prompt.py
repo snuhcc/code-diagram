@@ -5,18 +5,28 @@ TEXT_EXTS = {".py", ".md", ".txt", ".json", ".toml", ".yaml", ".yml", ".cfg", ".
 # 건너뛸 디렉토리 이름
 IGNORE_DIRS = {"__pycache__", ".pytest_cache"}
 
-def build_tree(root: Path, prefix: str = "") -> str:
+def build_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:
+    """
+    tree 스타일 디렉토리 구조 문자열 생성.
+    첫 호출 시, root 디렉토리 이름도 포함합니다.
+    """
+    lines = []
+    if not is_sub:
+        # 최상위 root 이름 추가
+        lines.append(f"{root.name}")
     entries = sorted(
         [e for e in root.iterdir() if e.name not in IGNORE_DIRS],
         key=lambda e: (e.is_file(), e.name.lower())
     )
-    lines = []
     for idx, entry in enumerate(entries):
         connector = "└── " if idx == len(entries) - 1 else "├── "
         lines.append(f"{prefix}{connector}{entry.name}")
         if entry.is_dir():
             extension = "    " if idx == len(entries) - 1 else "│   "
-            lines.append(build_tree(entry, prefix + extension))
+            # 하위 디렉토리는 is_sub=True로 재귀 호출
+            sub_lines = build_tree(entry, prefix + extension, is_sub=True).splitlines()
+            # 최상위 이름 제외한 부분만 추가
+            lines.extend(sub_lines[1:])
     return "\n".join(lines)
 
 def format_file_block(path: Path, root: Path) -> str:
