@@ -1,0 +1,39 @@
+{
+    "nodes": [
+        {
+            "id": "n0",
+            "file": "poc/main.py",
+            "line_start": 1,
+            "line_end": 17,
+            "label": "main"
+        },
+        {
+            "id": "n1",
+            "file": "poc/fetcher.py",
+            "line_start": 1,
+            "line_end": 13,
+            "label": "fetch_data"
+        },
+        {
+            "id": "n2",
+            "file": "poc/processor.py",
+            "line_start": 1,
+            "line_end": 16,
+            "label": "process_data"
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "n0",
+            "target": "n1",
+            "type": "call"
+        },
+        {
+            "id": "e1",
+            "source": "n0",
+            "target": "n2",
+            "type": "call"
+        }
+    ]
+}
