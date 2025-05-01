@@ -5,21 +5,24 @@
             "file": "poc/main.py",
             "line_start": 1,
             "line_end": 17,
-            "label": "main"
+            "label": "main",
+            "description": "Main function that orchestrates the data fetching and processing."
         },
         {
             "id": "n1",
             "file": "poc/fetcher.py",
             "line_start": 1,
             "line_end": 13,
-            "label": "fetch_data"
+            "label": "fetch_data",
+            "description": "Function to fetch data from a given source."
         },
         {
             "id": "n2",
             "file": "poc/processor.py",
             "line_start": 1,
             "line_end": 16,
-            "label": "process_data"
+            "label": "process_data",
+            "description": "Function to process the fetched data."
         }
     ],
     "edges": [
