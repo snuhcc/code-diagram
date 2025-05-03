@@ -1,26 +1,39 @@
-@import "tailwindcss";
+/* src/app/globals.css */
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ─── 라이트 팔레트 ─── */
+:root{
+  --background:#ffffff;
+  --foreground:#171717;
+  --panel:#f3f3f3;
+  --border:#e5e5e5;
+  --side:#eeeeee;
+  --accent:#0078d4;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ─── 다크 팔레트 ─── */
+@media (prefers-color-scheme:dark){
+  :root{
+    --background:#1e1e1e;
+    --foreground:#ededed;
+    --panel:#252526;
+    --border:#3c3c3c;
+    --side:#333337;
+    --accent:#569cd6;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* 기본 레이아웃 */
+html,body{height:100%}
+body{
+  background:var(--background);
+  color:var(--foreground);
+  font-family:system-ui,Arial,Helvetica,sans-serif;
+  font-size:14px;
+}
+
+/* 선택 행 하이라이트 */
+.vscode-tree-active{
+  background:var(--side);
+  color:var(--accent);
 }
