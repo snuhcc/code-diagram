@@ -1,0 +1,9 @@
+{
+	"dependencies": {
+		"@monaco-editor/react": "^4.7.0",
+		"monaco-editor": "^0.52.2",
+		"mermaid": "^11.6.0",
+		"react-resizable-panels": "^3.0.0",
+		"@heroicons/react": "^2.2.0"
+	}
+}
