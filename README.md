@@ -18,6 +18,15 @@ conda activate <env-name>
 pip install -r requirements.txt
 ```
 
+## Frontend
+```bash
+cd frontend
+pnpm install
+pnpm dev
+
+http://localhost:3000/
+```
+
 ## System Sketch (Last updated 250429)
 
 ![](./image/250429_sketch.png)
