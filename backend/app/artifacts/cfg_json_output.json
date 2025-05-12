@@ -1,0 +1,119 @@
+{
+    "nodes": [
+        {
+            "id": "n0",
+            "file": "poc/main.py",
+            "line_start": 1,
+            "line_end": 17,
+            "label": "main",
+            "description": "Main function that orchestrates fetching, processing, analysis, and reporting."
+        },
+        {
+            "id": "n1",
+            "file": "poc/fetcher.py",
+            "line_start": 1,
+            "line_end": 13,
+            "label": "fetch_data",
+            "description": "Attempts to fetch data up to a given number of retries, returns a list or raises on failure."
+        },
+        {
+            "id": "n2",
+            "file": "poc/processor.py",
+            "line_start": 3,
+            "line_end": 15,
+            "label": "process_data",
+            "description": "Iterates over data and dispatches each element to appropriate handler based on value."
+        },
+        {
+            "id": "n3",
+            "file": "poc/processor.py",
+            "line_start": 17,
+            "line_end": 20,
+            "label": "handle_div3",
+            "description": "Handles numbers divisible by 3: divides by 3."
+        },
+        {
+            "id": "n4",
+            "file": "poc/processor.py",
+            "line_start": 21,
+            "line_end": 23,
+            "label": "handle_even",
+            "description": "Handles even numbers (not divisible by 3): divides by 2."
+        },
+        {
+            "id": "n5",
+            "file": "poc/processor.py",
+            "line_start": 25,
+            "line_end": 27,
+            "label": "handle_other",
+            "description": "Handles all other numbers: applies 3n+1 transform."
+        },
+        {
+            "id": "n6",
+            "file": "poc/analyzer.py",
+            "line_start": 4,
+            "line_end": 16,
+            "label": "analyze_data",
+            "description": "Computes mean, median and splits values into high/low relative to the mean."
+        },
+        {
+            "id": "n7",
+            "file": "poc/reporter.py",
+            "line_start": 2,
+            "line_end": 21,
+            "label": "generate_report",
+            "description": "Prints a formatted report of analysis results and compares high vs low counts."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "n0",
+            "target": "n1",
+            "type": "call",
+            "description": "main calls fetch_data"
+        },
+        {
+            "id": "e1",
+            "source": "n0",
+            "target": "n2",
+            "type": "call",
+            "description": "main calls process_data"
+        },
+        {
+            "id": "e2",
+            "source": "n0",
+            "target": "n6",
+            "type": "call",
+            "description": "main calls analyze_data"
+        },
+        {
+            "id": "e3",
+            "source": "n0",
+            "target": "n7",
+            "type": "call",
+            "description": "main calls generate_report"
+        },
+        {
+            "id": "e4",
+            "source": "n2",
+            "target": "n3",
+            "type": "call",
+            "description": "process_data calls handle_div3 when num % 3 == 0"
+        },
+        {
+            "id": "e5",
+            "source": "n2",
+            "target": "n4",
+            "type": "call",
+            "description": "process_data calls handle_even when num % 2 == 0 and not div3"
+        },
+        {
+            "id": "e6",
+            "source": "n2",
+            "target": "n5",
+            "type": "call",
+            "description": "process_data calls handle_other for all other nums"
+        }
+    ]
+}
