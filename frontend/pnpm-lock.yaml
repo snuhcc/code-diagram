@@ -14,12 +14,18 @@ dependencies:
   clsx:
     specifier: ^2.1.1
     version: 2.1.1
+  immer:
+    specifier: ^10.1.1
+    version: 10.1.1
   mermaid:
     specifier: ^11.6.0
     version: 11.6.0
   monaco-editor:
     specifier: ^0.52.2
     version: 0.52.2
+  nanoid:
+    specifier: ^5.1.5
+    version: 5.1.5
   next:
     specifier: 15.3.1
     version: 15.3.1(react-dom@19.1.0)(react@19.1.0)
@@ -32,9 +38,12 @@ dependencies:
   react-resizable-panels:
     specifier: ^3.0.0
     version: 3.0.0(react-dom@19.1.0)(react@19.1.0)
+  svg-pan-zoom:
+    specifier: ^3.6.2
+    version: 3.6.2
   zustand:
     specifier: ^5.0.4
-    version: 5.0.4(@types/react@19.1.2)(react@19.1.0)
+    version: 5.0.4(@types/react@19.1.2)(immer@10.1.1)(react@19.1.0)
 
 devDependencies:
   '@eslint/eslintrc':
@@ -2870,6 +2879,10 @@ packages:
     engines: {node: '>= 4'}
     dev: true
 
+  /immer@10.1.1:
+    resolution: {integrity: sha512-s2MPrmjovJcoMaHtx6K11Ra7oD05NT97w1IC5zpMkT6Atjr7H8LjaDd81iIxUYpMKSRRNMJE703M1Fhr/TctHw==}
+    dev: false
+
   /import-fresh@3.3.1:
     resolution: {integrity: sha512-TR3KfrTZTYLPB6jUjfx6MF9WcWrHL9su5TObK4ZkYgBdWKPOFoSoQIdEuTuR82pmtxH2spWG9h6etwfr1pLBqQ==}
     engines: {node: '>=6'}
@@ -3476,6 +3489,12 @@ packages:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
+
+  /nanoid@5.1.5:
+    resolution: {integrity: sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+    dev: false
 
   /napi-postinstall@0.2.3:
     resolution: {integrity: sha512-Mi7JISo/4Ij2tDZ2xBE2WH+/KvVlkhA6juEjpEeRAVPNCpN3nxJo/5FhDNKgBcdmcmhaH6JjgST4xY/23ZYK0w==}
@@ -4282,6 +4301,10 @@ packages:
     engines: {node: '>= 0.4'}
     dev: true
 
+  /svg-pan-zoom@3.6.2:
+    resolution: {integrity: sha512-JwnvRWfVKw/Xzfe6jriFyfey/lWJLq4bUh2jwoR5ChWQuQoOH8FEh1l/bEp46iHHKHEJWIyFJETbazraxNWECg==}
+    dev: false
+
   /tailwindcss@4.1.5:
     resolution: {integrity: sha512-nYtSPfWGDiWgCkwQG/m+aX83XCwf62sBgg3bIlNiiOcggnS1x3uVRDAuyelBFL+vJdOPPCGElxv9DjHJjRHiVA==}
     dev: true
@@ -4590,7 +4613,7 @@ packages:
     resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
     dev: true
 
-  /zustand@5.0.4(@types/react@19.1.2)(react@19.1.0):
+  /zustand@5.0.4(@types/react@19.1.2)(immer@10.1.1)(react@19.1.0):
     resolution: {integrity: sha512-39VFTN5InDtMd28ZhjLyuTnlytDr9HfwO512Ai4I8ZABCoyAj4F1+sr7sD1jP/+p7k77Iko0Pb5NhgBFDCX0kQ==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
@@ -4609,5 +4632,6 @@ packages:
         optional: true
     dependencies:
       '@types/react': 19.1.2
+      immer: 10.1.1
       react: 19.1.0
     dev: false

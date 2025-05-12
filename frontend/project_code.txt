@@ -1,0 +1,487 @@
+[ChatUI.tsx]
+// src/components/ChatUI.tsx
+'use client';
+
+import { useState, useRef, useEffect, FormEvent } from 'react';
+
+export default function ChatUI() {
+  const [input, setInput] = useState('');
+  const [log, setLog] = useState<{ role: 'user' | 'bot'; t: string }[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  async function send(e: FormEvent) {
+    e.preventDefault();
+    if (!input.trim()) return;
+    setLog(l => [...l, { role: 'user', t: input }]);
+    const prompt = input;
+    setInput('');
+
+    /* TODO: 실제 LLM 호출 */
+    const res  = await fetch('/api/chat', { method: 'POST', body: prompt });
+    const text = await res.text();
+    setLog(l => [...l, { role: 'bot', t: text }]);
+  }
+
+  useEffect(() => {
+    listRef.current?.scrollTo(0, listRef.current.scrollHeight);
+  }, [log]);
+
+  return (
+    <div className="flex flex-col h-full bg-[--color-panel] border-t border-[--color-border]">
+      <div ref={listRef} className="flex-1 overflow-y-auto p-2 text-xs space-y-1">
+        {log.map((m, i) => (
+          <div key={i} className={m.role === 'user' ? 'text-[--color-accent]' : ''}>
+            {m.t}
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={send} className="flex border-t border-[--color-border] p-1">
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          className="flex-1 bg-[--color-background] text-xs p-2 resize-none outline-none"
+          rows={1}
+          placeholder="Ask…"
+        />
+        <button className="px-3">▶︎</button>
+      </form>
+    </div>
+  );
+}
+
+
+[CodeViewer.tsx]
+// src/components/CodeViewer.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import Editor from '@monaco-editor/react';
+
+export default function CodeViewer({ filePath }: { filePath: string }) {
+  const [code, setCode] = useState('// loading…');
+
+  useEffect(() => {
+    (async () => {
+      /* TODO: fetch(`/api/code?path=${filePath}`) */
+      setCode(`// Demo ${filePath}\n\nconsole.log('Hello');`);
+    })();
+  }, [filePath]);
+
+  const lang =
+    filePath.endsWith('.tsx') || filePath.endsWith('.ts')
+      ? 'typescript'
+      : filePath.endsWith('.md')
+      ? 'markdown'
+      : 'plaintext';
+
+  return (
+    <div className="h-full bg-[--color-background]">
+      <div className="h-8 flex items-center text-xs px-3 bg-[--color-panel] border-b border-[--color-border] select-none">
+        {filePath.split('/').pop()}
+      </div>
+      <Editor
+        height="calc(100% - 2rem)"
+        defaultLanguage={lang}
+        value={code}
+        theme="vs-dark"
+        options={{
+          readOnly: false,
+          minimap: { enabled: true },
+          fontSize: 14,
+          folding: true,
+          automaticLayout: true,
+        }}
+      />
+    </div>
+  );
+}
+
+
+[DiagramViewer.tsx]
+'use client';
+
+import { useEffect, useRef } from 'react';
+import mermaid from 'mermaid';
+import svgPanZoom from 'svg-pan-zoom';
+
+let mermaidReady = false;
+
+export default function DiagramViewer({ filePath }: { filePath: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!mermaidReady) {
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+      mermaidReady = true;
+    }
+
+    const id    = filePath.replace(/[^\w]/g, '_');
+    const graph = `graph TD; Root[${id}] --> A; Root --> B;`;
+
+    mermaid.render(id, graph).then(({ svg }) => {
+      if (ref.current) ref.current.innerHTML = svg;
+
+      // ▶︎ pan-zoom 활성화
+      const svgEl = ref.current?.querySelector('svg');
+      if (svgEl) svgPanZoom(svgEl as unknown as SVGSVGElement, { controlIconsEnabled: true });
+    });
+  }, [filePath]);
+
+  return <div ref={ref} className="h-full bg-[--color-panel] overflow-auto" />;
+}
+
+
+[EditorTabs.tsx]
+'use client';
+
+import { useEffect, useState } from 'react';
+import Editor from '@monaco-editor/react';
+import { useEditor } from '@/store/editor';
+
+function CodePane({ path }: { path: string }) {
+  const [code, setCode] = useState('// loading…');
+
+  useEffect(() => {
+    (async () => {
+      /* TODO: fetch(`/api/code?path=${path}`) */
+      setCode(`// Demo ${path}\n\nconsole.log('Hello');`);
+    })();
+  }, [path]);
+
+  const lang =
+    path.endsWith('.tsx') || path.endsWith('.ts')
+      ? 'typescript'
+      : path.endsWith('.md')
+      ? 'markdown'
+      : 'plaintext';
+
+  return (
+    <Editor
+      height="calc(100% - 2rem)"
+      defaultLanguage={lang}
+      value={code}
+      theme="vs-dark"
+      options={{
+        minimap: { enabled: true },
+        fontSize: 14,
+        automaticLayout: true,
+      }}
+    />
+  );
+}
+
+export default function EditorTabs() {
+  const { tabs, activeId, setActive, close } = useEditor();
+
+  if (!tabs.length)
+    return (
+      <div className="h-full flex items-center justify-center text-sm text-[--color-foreground]/60">
+        Open a file to begin
+      </div>
+    );
+
+  const active = tabs.find((t) => t.id === activeId) ?? tabs[0];
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* 탭바 */}
+      <div className="h-8 flex items-center bg-[--color-panel] border-b border-[--color-border] select-none">
+        {tabs.map((t) => (
+          <div
+            key={t.id}
+            onClick={() => setActive(t.id)}
+            className={`h-full flex items-center px-3 text-xs cursor-pointer border-r border-[--color-border]
+                        ${t.id === active.id ? 'bg-[--color-background]' : 'hover:bg-[--color-side]/40'}`}
+          >
+            {t.name}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                close(t.id);
+              }}
+              className="ml-2 text-[--color-foreground]/50 hover:text-[--color-foreground]"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* 활성 에디터 */}
+      <div className="flex-1">
+        <CodePane path={active.path} />
+      </div>
+    </div>
+  );
+}
+
+
+[FileExplorer.tsx]
+'use client';
+
+import { useEffect, useState } from 'react';
+import clsx from 'clsx';
+import { useFS, FileNode } from '@/store/files';
+import { useEditor } from '@/store/editor';
+import { nanoid } from 'nanoid';
+
+export default function FileExplorer() {
+  const { tree, current, setCurrent, load } = useFS();
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+
+  /* DEMO 트리 – 추후 fetch('/api/files') 로 교체 */
+  useEffect(() => {
+    load([
+      {
+        id: 'src',
+        name: 'src',
+        path: '/src',
+        children: [
+          { id: 'index', name: 'index.tsx', path: '/src/index.tsx' },
+          { id: 'app',   name: 'App.tsx',   path: '/src/App.tsx'   },
+        ],
+      },
+      { id: 'readme', name: 'README.md', path: '/README.md' },
+    ]);
+    setOpen({ '/src': true });
+  }, [load]);
+
+  const render = (nodes: FileNode[], depth = 0) =>
+    nodes.map((n) => {
+      const isDir    = !!n.children;
+      const isOpen   = open[n.path];
+      const isActive = current?.path === n.path;
+
+      return (
+        <div key={n.path}>
+          <div
+            style={{ paddingLeft: depth * 12 }}
+            className={clsx(
+              'cursor-pointer select-none text-xs py-[2px] px-1',
+              'hover:bg-[--color-side]/40',
+              isActive && 'vscode-tree-active'
+            )}
+            onClick={() => {
+              if (isDir) {
+                setOpen((o) => ({ ...o, [n.path]: !o[n.path] }));
+              } else {
+                setCurrent(n.id);
+
+                // ▶︎ 탭 열기
+                useEditor
+                  .getState()
+                  .open({ id: nanoid(), path: n.path, name: n.name });
+              }
+            }}
+          >
+            {isDir ? (isOpen ? '▾ ' : '▸ ') : '  '}
+            {n.name}
+          </div>
+
+          {isDir && isOpen && n.children && render(n.children, depth + 1)}
+        </div>
+      );
+    });
+
+  return (
+    <aside className="w-56 h-full vscode-sidebar overflow-y-auto">
+      {render(tree)}
+    </aside>
+  );
+}
+
+
+[IconBar.tsx]
+'use client';
+import {
+  FolderIcon,
+  Squares2X2Icon,
+  ChatBubbleLeftRightIcon,
+} from '@heroicons/react/24/outline';
+import type { ComponentType, SVGProps } from 'react';
+
+type IconType = ComponentType<SVGProps<SVGSVGElement>>;
+
+interface Props {
+  states: { exp: boolean; dia: boolean; chat: boolean };
+  toggle: { exp: () => void; dia: () => void; chat: () => void };
+}
+
+export default function IconBar({ states, toggle }: Props) {
+  const Btn = ({ on, click, Icon }: {
+    on: boolean;
+    click: () => void;
+    Icon: IconType;
+  }) => (
+    <button
+      onClick={click}
+      className={`w-10 h-10 flex items-center justify-center
+                  ${on ? 'bg-[--color-side]' : 'hover:bg-[--color-side]/70'}`}
+    >
+      <Icon className="w-6 stroke-[--color-foreground]/70" />
+    </button>
+  );
+
+  return (
+    <div className="vscode-activity">
+      <Btn on={states.exp}  click={toggle.exp}  Icon={FolderIcon} />
+      <Btn on={states.dia}  click={toggle.dia}  Icon={Squares2X2Icon} />
+      <Btn on={states.chat} click={toggle.chat} Icon={ChatBubbleLeftRightIcon} />
+    </div>
+  );
+}
+
+
+[page.tsx]
+// src/app/page.tsx
+'use client';
+
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useFS } from '@/store/files';
+import { Panel, PanelGroup } from 'react-resizable-panels';
+
+import IconBar      from '@/components/IconBar';
+import FileExplorer from '@/components/FileExplorer';
+
+const EditorTabs    = dynamic(() => import('@/components/EditorTabs'),    { ssr: false });
+const DiagramViewer = dynamic(() => import('@/components/DiagramViewer'), { ssr: false });
+const ChatUI        = dynamic(() => import('@/components/ChatUI'),        { ssr: false });
+
+export default function Home() {
+  const { current } = useFS();
+
+  // 패널 표시 토글
+  const [showExp,  setExp]  = useState(true);
+  const [showDia,  setDia]  = useState(true);
+  const [showChat, setChat] = useState(true);
+
+  return (
+    <div className="flex h-full">
+      {/* 왼쪽 아이콘바 */}
+      <IconBar
+        states={{ exp: showExp, dia: showDia, chat: showChat }}
+        toggle={{
+          exp:  () => setExp(!showExp),
+          dia:  () => setDia(!showDia),
+          chat: () => setChat(!showChat),
+        }}
+      />
+
+      {/* ───────────── 수평 패널 그룹 ───────────── */}
+      <PanelGroup direction="horizontal" className="flex-1">
+
+        {/* ① 파일 탐색기 */}
+        {showExp && (
+          <Panel defaultSize={20} minSize={14}>
+            <FileExplorer />
+          </Panel>
+        )}
+
+        {/* ② Monaco 에디터 영역 */}
+        <Panel defaultSize={50} minSize={30} className="border-x border-[--color-border]">
+          <EditorTabs />
+        </Panel>
+
+        {/* ③ 다이어그램 + 채팅 컨테이너 */}
+        {(showDia || showChat) && (
+          <Panel defaultSize={30} minSize={18}>
+            {/* ───── 내부 세로 패널 그룹 ───── */}
+            <PanelGroup direction="vertical">
+              
+              {/* ③-1 다이어그램 */}
+              {showDia && (
+                <Panel defaultSize={70} minSize={30}>
+                  {current && <DiagramViewer filePath={current.path} />}
+                </Panel>
+              )}
+
+              {/* ③-2 채팅 */}
+              {showChat && (
+                <Panel defaultSize={30} minSize={20}>
+                  <ChatUI />
+                </Panel>
+              )}
+
+            </PanelGroup>
+          </Panel>
+        )}
+      </PanelGroup>
+    </div>
+  );
+}
+
+
+[editor.ts]
+'use client';
+
+import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
+
+export interface TabMeta {
+  id: string;    // nanoid()
+  path: string;  // '/src/App.tsx'
+  name: string;  // 'App.tsx'
+}
+
+interface State {
+  tabs: TabMeta[];
+  activeId?: string;
+  open:  (file: TabMeta) => void;
+  close: (id: string)    => void;
+  setActive: (id: string) => void;
+}
+
+export const useEditor = create<State>()(
+  immer((set) => ({
+    tabs: [],
+    activeId: undefined,
+
+    open: (file) =>
+      set((s) => {
+        if (!s.tabs.find((t) => t.path === file.path)) s.tabs.push(file);
+        s.activeId = s.tabs.find((t) => t.path === file.path)?.id ?? file.id;
+      }),
+
+    close: (id) =>
+      set((s) => {
+        s.tabs = s.tabs.filter((t) => t.id !== id);
+        if (s.activeId === id) s.activeId = s.tabs.at(-1)?.id;
+      }),
+
+    setActive: (id) => set({ activeId: id }),
+  }))
+);
+
+
+[files.ts]
+import { create } from 'zustand'
+
+export type FileNode = { id: string; name: string; path: string; children?: FileNode[] }
+
+interface FSState {
+  tree: FileNode[]
+  current?: FileNode
+  setCurrent: (id: string) => void
+  load: (t: FileNode[]) => void
+}
+
+export const useFS = create<FSState>(set => ({
+  tree: [],
+  current: undefined,
+  setCurrent: id => set(s => ({ current: find(s.tree, id) })),
+  load: tree => set({ tree })
+}))
+
+function find(nodes: FileNode[], id: string): FileNode | undefined {
+  for (const n of nodes) {
+    if (n.id === id) return n
+    if (n.children) {
+      const r = find(n.children, id)
+      if (r) return r
+    }
+  }
+}
+
+

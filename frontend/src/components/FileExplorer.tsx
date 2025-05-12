@@ -1,9 +1,10 @@
-// src/components/FileExplorer.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { useFS, FileNode } from '@/store/files';
+import { useEditor } from '@/store/editor';
+import { nanoid } from 'nanoid';
 
 export default function FileExplorer() {
   const { tree, current, setCurrent, load } = useFS();
@@ -43,9 +44,14 @@ export default function FileExplorer() {
             )}
             onClick={() => {
               if (isDir) {
-                setOpen(o => ({ ...o, [n.path]: !o[n.path] }));
+                setOpen((o) => ({ ...o, [n.path]: !o[n.path] }));
               } else {
                 setCurrent(n.id);
+
+                // ▶︎ 탭 열기
+                useEditor
+                  .getState()
+                  .open({ id: nanoid(), path: n.path, name: n.name });
               }
             }}
           >
