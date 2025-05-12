@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
 from schemas.common import DiagramRequest, DiagramResponse
@@ -11,6 +12,14 @@ load_dotenv()
 
 # FastAPI app initialization
 app = FastAPI(title="Code-Diagram API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 프론트엔드 도메인으로 제한 가능
+    allow_credentials=True,
+    allow_methods=["*"],  # 모든 HTTP 메서드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
+)
 
 # Define the path to the HTML template
 HTML_PATH = Path(__file__).parent / "html" / "root.html"
