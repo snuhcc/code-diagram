@@ -1,8 +1,15 @@
-[ChatUI.tsx]
-// src/components/ChatUI.tsx
+[frontend/src/components/ChatUI.tsx]
 'use client';
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
+
+function SendIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M2 21L23 12L2 3L2 10L17 12L2 14L2 21Z" />
+    </svg>
+  );
+}
 
 export default function ChatUI() {
   const [input, setInput] = useState('');
@@ -12,47 +19,60 @@ export default function ChatUI() {
   async function send(e: FormEvent) {
     e.preventDefault();
     if (!input.trim()) return;
-    setLog(l => [...l, { role: 'user', t: input }]);
-    const prompt = input;
-    setInput('');
 
-    /* TODO: 실제 LLM 호출 */
-    const res  = await fetch('/api/chat', { method: 'POST', body: prompt });
+    setLog((l) => [...l, { role: 'user', t: input }]);
+
+    const res = await fetch('/api/chat', { method: 'POST', body: input });
     const text = await res.text();
-    setLog(l => [...l, { role: 'bot', t: text }]);
+
+    setLog((l) => [...l, { role: 'bot', t: text }]);
+    setInput('');
   }
 
   useEffect(() => {
-    listRef.current?.scrollTo(0, listRef.current.scrollHeight);
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
   }, [log]);
 
   return (
-    <div className="flex flex-col h-full bg-[--color-panel] border-t border-[--color-border]">
-      <div ref={listRef} className="flex-1 overflow-y-auto p-2 text-xs space-y-1">
+    <div className="flex flex-col h-full bg-slate-50 border-t border-slate-300">
+      <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-2">
         {log.map((m, i) => (
-          <div key={i} className={m.role === 'user' ? 'text-[--color-accent]' : ''}>
-            {m.t}
+          <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+            <div
+              className={
+                m.role === 'user'
+                  ? 'bg-sky-100 text-sky-800 rounded-md px-3 py-2 max-w-[70%] whitespace-pre-wrap'
+                  : 'bg-gray-200 text-gray-800 rounded-md px-3 py-2 max-w-[70%] whitespace-pre-wrap'
+              }
+            >
+              {m.t}
+            </div>
           </div>
         ))}
       </div>
 
-      <form onSubmit={send} className="flex border-t border-[--color-border] p-1">
+      <form onSubmit={send} className="flex items-center border-t border-slate-300 p-2">
         <textarea
           value={input}
-          onChange={e => setInput(e.target.value)}
-          className="flex-1 bg-[--color-background] text-xs p-2 resize-none outline-none"
+          onChange={(e) => setInput(e.target.value)}
+          className="flex-1 bg-white text-sm p-2 resize-none outline-none rounded border border-slate-300"
           rows={1}
-          placeholder="Ask…"
+          placeholder="Ask something…"
         />
-        <button className="px-3">▶︎</button>
+
+        <button
+          type="submit"
+          className="ml-2 w-10 h-10 flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white rounded transition-colors"
+        >
+          <SendIcon />
+        </button>
       </form>
     </div>
   );
 }
 
 
-[CodeViewer.tsx]
-// src/components/CodeViewer.tsx
+[frontend/src/components/CodeViewer.tsx]
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -61,23 +81,28 @@ import Editor from '@monaco-editor/react';
 export default function CodeViewer({ filePath }: { filePath: string }) {
   const [code, setCode] = useState('// loading…');
 
+  /* ① 실제 파일 내용 가져오기 -------------------------------------- */
   useEffect(() => {
     (async () => {
-      /* TODO: fetch(`/api/code?path=${filePath}`) */
-      setCode(`// Demo ${filePath}\n\nconsole.log('Hello');`);
+      const c = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`).then((r) =>
+        r.text()
+      );
+      setCode(c);
     })();
   }, [filePath]);
 
-  const lang =
-    filePath.endsWith('.tsx') || filePath.endsWith('.ts')
-      ? 'typescript'
-      : filePath.endsWith('.md')
-      ? 'markdown'
-      : 'plaintext';
+  /* ② 확장자로 언어 결정 ----------------------------------------- */
+  const lang = (() => {
+    if (filePath.endsWith('.tsx') || filePath.endsWith('.ts')) return 'typescript';
+    if (filePath.endsWith('.py')) return 'python';
+    if (filePath.endsWith('.md')) return 'markdown';
+    return 'plaintext';
+  })();
 
+  /* ③ 에디터 + 제목 바 ------------------------------------------- */
   return (
-    <div className="h-full bg-[--color-background]">
-      <div className="h-8 flex items-center text-xs px-3 bg-[--color-panel] border-b border-[--color-border] select-none">
+    <div className="h-full bg-slate-100 rounded-md shadow-sm overflow-hidden">
+      <div className="h-8 flex items-center px-3 bg-slate-200 border-b border-slate-300 text-xs">
         {filePath.split('/').pop()}
       </div>
       <Editor
@@ -86,11 +111,10 @@ export default function CodeViewer({ filePath }: { filePath: string }) {
         value={code}
         theme="vs-dark"
         options={{
-          readOnly: false,
           minimap: { enabled: true },
           fontSize: 14,
-          folding: true,
           automaticLayout: true,
+          readOnly: true,
         }}
       />
     </div>
@@ -98,117 +122,172 @@ export default function CodeViewer({ filePath }: { filePath: string }) {
 }
 
 
-[DiagramViewer.tsx]
+[frontend/src/components/DiagramViewer.tsx]
+// src/components/DiagramViewer.tsx
 'use client';
 
-import { useEffect, useRef } from 'react';
-import mermaid from 'mermaid';
-import svgPanZoom from 'svg-pan-zoom';
+import { useMemo } from 'react';
+import {
+  ReactFlow,          // ⬅️ default → named import
+  Background,
+  Controls,
+  MiniMap,
+  type Edge,
+  type Node,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
-let mermaidReady = false;
+/** 간단 예시: 선택된 파일 경로를 루트 노드로 삼아 두 개의 자식으로 연결 */
+function makeGraph(filePath: string): { nodes: Node[]; edges: Edge[] } {
+  const idRoot = filePath.replace(/[^\w]/g, '_');
+
+  const nodes: Node[] = [
+    {
+      id: idRoot,
+      data: { label: idRoot },
+      position: { x: 0, y: 0 },
+      style: { padding: 6, borderRadius: 4, border: '1px solid #3b82f6' },
+    },
+    { id: 'A', data: { label: 'A' }, position: { x: -120, y: 120 } },
+    { id: 'B', data: { label: 'B' }, position: { x: 120, y: 120 } },
+  ];
+
+  const edges: Edge[] = [
+    { id: 'e1', source: idRoot, target: 'A', animated: true },
+    { id: 'e2', source: idRoot, target: 'B', animated: true },
+  ];
+
+  return { nodes, edges };
+}
 
 export default function DiagramViewer({ filePath }: { filePath: string }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const { nodes, edges } = useMemo(() => makeGraph(filePath), [filePath]);
 
-  useEffect(() => {
-    if (!mermaidReady) {
-      mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
-      mermaidReady = true;
-    }
-
-    const id    = filePath.replace(/[^\w]/g, '_');
-    const graph = `graph TD; Root[${id}] --> A; Root --> B;`;
-
-    mermaid.render(id, graph).then(({ svg }) => {
-      if (ref.current) ref.current.innerHTML = svg;
-
-      // ▶︎ pan-zoom 활성화
-      const svgEl = ref.current?.querySelector('svg');
-      if (svgEl) svgPanZoom(svgEl as unknown as SVGSVGElement, { controlIconsEnabled: true });
-    });
-  }, [filePath]);
-
-  return <div ref={ref} className="h-full bg-[--color-panel] overflow-auto" />;
+  return (
+    <div className="relative h-full w-full border-l border-slate-300">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        fitView
+        className="bg-gray-50"
+        minZoom={0.2}
+        maxZoom={2}
+      >
+        <Background variant="dots" gap={16} size={1} />
+        <MiniMap pannable zoomable />
+        <Controls />
+      </ReactFlow>
+    </div>
+  );
 }
 
 
-[EditorTabs.tsx]
+[frontend/src/components/EditorTabs.tsx]
 'use client';
 
 import { useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { useEditor } from '@/store/editor';
 
+/* ─── 개별 코드 탭 ─────────────────────────────────────────── */
 function CodePane({ path }: { path: string }) {
   const [code, setCode] = useState('// loading…');
+  const [err, setErr] = useState<string>();
 
   useEffect(() => {
+    let active = true;
     (async () => {
-      /* TODO: fetch(`/api/code?path=${path}`) */
-      setCode(`// Demo ${path}\n\nconsole.log('Hello');`);
+      const res = await fetch(`/api/file?path=${encodeURIComponent(path)}`);
+      if (!active) return;
+
+      if (res.ok) {
+        setCode(await res.text());
+      } else {
+        const { error } = await res.json().catch(() => ({ error: res.statusText }));
+        setErr(`${res.status}: ${error}`);
+      }
     })();
+    return () => {
+      active = false;
+    };
   }, [path]);
 
-  const lang =
-    path.endsWith('.tsx') || path.endsWith('.ts')
-      ? 'typescript'
-      : path.endsWith('.md')
-      ? 'markdown'
-      : 'plaintext';
+  const lang = (() => {
+    if (path.endsWith('.py')) return 'python';
+    if (path.endsWith('.tsx') || path.endsWith('.ts')) return 'typescript';
+    if (path.endsWith('.md')) return 'markdown';
+    return 'plaintext';
+  })();
+
+  if (err) {
+    return (
+      <pre className="p-4 text-sm text-red-600 whitespace-pre-wrap">{err}</pre>
+    );
+  }
 
   return (
     <Editor
-      height="calc(100% - 2rem)"
+      height="calc(100% - 2rem)" // 상단 탭바 높이 제외
       defaultLanguage={lang}
       value={code}
       theme="vs-dark"
       options={{
-        minimap: { enabled: true },
+        readOnly: true,
         fontSize: 14,
+        minimap: { enabled: true },
         automaticLayout: true,
       }}
     />
   );
 }
 
+/* ─── 탭 컨테이너 ─────────────────────────────────────────── */
 export default function EditorTabs() {
   const { tabs, activeId, setActive, close } = useEditor();
 
-  if (!tabs.length)
+  if (!tabs.length) {
     return (
-      <div className="h-full flex items-center justify-center text-sm text-[--color-foreground]/60">
+      <div className="h-full flex items-center justify-center text-sm text-slate-500">
         Open a file to begin
       </div>
     );
+  }
 
   const active = tabs.find((t) => t.id === activeId) ?? tabs[0];
 
   return (
     <div className="flex flex-col h-full">
-      {/* 탭바 */}
-      <div className="h-8 flex items-center bg-[--color-panel] border-b border-[--color-border] select-none">
-        {tabs.map((t) => (
-          <div
-            key={t.id}
-            onClick={() => setActive(t.id)}
-            className={`h-full flex items-center px-3 text-xs cursor-pointer border-r border-[--color-border]
-                        ${t.id === active.id ? 'bg-[--color-background]' : 'hover:bg-[--color-side]/40'}`}
-          >
-            {t.name}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                close(t.id);
-              }}
-              className="ml-2 text-[--color-foreground]/50 hover:text-[--color-foreground]"
+      {/* 탭 헤더 */}
+      <div className="h-8 flex items-center bg-slate-200 border-b border-slate-300 select-none">
+        {tabs.map((t) => {
+          const on = t.id === active.id;
+          return (
+            <div
+              key={t.id}
+              onClick={() => setActive(t.id)}
+              className={
+                'h-full flex items-center px-3 text-xs cursor-pointer border-r border-slate-300 transition-colors ' +
+                (on
+                  ? 'bg-white text-sky-700 font-semibold border-b-2 border-b-sky-600'
+                  : 'text-slate-600 hover:bg-slate-100 border-b-2 border-b-transparent')
+              }
             >
-              ×
-            </button>
-          </div>
-        ))}
+              {t.name}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  close(t.id);
+                }}
+                className="ml-2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
       </div>
 
-      {/* 활성 에디터 */}
+      {/* 코드 영역 */}
       <div className="flex-1">
         <CodePane path={active.path} />
       </div>
@@ -217,7 +296,7 @@ export default function EditorTabs() {
 }
 
 
-[FileExplorer.tsx]
+[frontend/src/components/FileExplorer.tsx]
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -226,74 +305,87 @@ import { useFS, FileNode } from '@/store/files';
 import { useEditor } from '@/store/editor';
 import { nanoid } from 'nanoid';
 
+/* 배열/객체/undefined → 배열 */
+const arr = (x: FileNode[] | FileNode | undefined): FileNode[] =>
+  Array.isArray(x) ? x : x ? [x] : [];
+
+/* 한 줄 UI */
+function Row({
+  n, depth, isDir, isOpen, isActive, onClick,
+}: {
+  n: FileNode; depth: number; isDir: boolean; isOpen: boolean;
+  isActive: boolean; onClick: () => void;
+}) {
+  return (
+    <div
+      style={{ paddingLeft: depth * 12 }}
+      className={clsx(
+        'cursor-pointer select-none text-xs py-[2px] px-1',
+        'hover:bg-slate-100 transition-colors',
+        isActive && 'bg-sky-100 text-sky-700'
+      )}
+      onClick={onClick}
+    >
+      {isDir ? (isOpen ? '▾ ' : '▸ ') : '  '}
+      {n.name}
+    </div>
+  );
+}
+
 export default function FileExplorer() {
   const { tree, current, setCurrent, load } = useFS();
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [open, setOpen] = useState<Record<string, boolean>>({ poc: true });
 
-  /* DEMO 트리 – 추후 fetch('/api/files') 로 교체 */
+  /* 트리 로드 */
   useEffect(() => {
-    load([
-      {
-        id: 'src',
-        name: 'src',
-        path: '/src',
-        children: [
-          { id: 'index', name: 'index.tsx', path: '/src/index.tsx' },
-          { id: 'app',   name: 'App.tsx',   path: '/src/App.tsx'   },
-        ],
-      },
-      { id: 'readme', name: 'README.md', path: '/README.md' },
-    ]);
-    setOpen({ '/src': true });
+    (async () => {
+      const data: FileNode[] = await fetch('/api/files').then(r => r.json());
+      load(data);
+    })();
   }, [load]);
 
-  const render = (nodes: FileNode[], depth = 0) =>
-    nodes.map((n) => {
-      const isDir    = !!n.children;
-      const isOpen   = open[n.path];
-      const isActive = current?.path === n.path;
+  /* 클릭 동작 */
+  const click = (n: FileNode) => {
+    if (Array.isArray(n.children)) {
+      setOpen(o => ({ ...o, [n.path ?? '']: !o[n.path ?? ''] }));
+    } else if (n.path) {
+      /* 경로는 “poc/…” 포함 → API가 자동으로 잘라 줌 */
+      setCurrent(n.id);
+      useEditor
+        .getState()
+        .open({ id: nanoid(), path: n.path, name: n.name });
+    }
+  };
+
+  /* 재귀 렌더 */
+  const render = (nodes: FileNode[] | FileNode | undefined, depth = 0): JSX.Element[] =>
+    arr(nodes).map(n => {
+      const isDir    = Array.isArray(n.children);
+      const isOpen   = !!open[n.path ?? ''];
+      const isActive = current?.id === n.id;
 
       return (
-        <div key={n.path}>
-          <div
-            style={{ paddingLeft: depth * 12 }}
-            className={clsx(
-              'cursor-pointer select-none text-xs py-[2px] px-1',
-              'hover:bg-[--color-side]/40',
-              isActive && 'vscode-tree-active'
-            )}
-            onClick={() => {
-              if (isDir) {
-                setOpen((o) => ({ ...o, [n.path]: !o[n.path] }));
-              } else {
-                setCurrent(n.id);
-
-                // ▶︎ 탭 열기
-                useEditor
-                  .getState()
-                  .open({ id: nanoid(), path: n.path, name: n.name });
-              }
-            }}
-          >
-            {isDir ? (isOpen ? '▾ ' : '▸ ') : '  '}
-            {n.name}
-          </div>
-
-          {isDir && isOpen && n.children && render(n.children, depth + 1)}
+        <div key={n.id}>
+          <Row
+            n={n} depth={depth} isDir={isDir} isOpen={isOpen}
+            isActive={isActive} onClick={() => click(n)}
+          />
+          {isDir && isOpen && render(n.children, depth + 1)}
         </div>
       );
     });
 
   return (
-    <aside className="w-56 h-full vscode-sidebar overflow-y-auto">
+    <aside className="w-full pl-2 h-full overflow-y-auto border-r border-slate-300 bg-slate-50">
       {render(tree)}
     </aside>
   );
 }
 
 
-[IconBar.tsx]
+[frontend/src/components/IconBar.tsx]
 'use client';
+
 import {
   FolderIcon,
   Squares2X2Icon,
@@ -302,45 +394,49 @@ import {
 import type { ComponentType, SVGProps } from 'react';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
-
 interface Props {
   states: { exp: boolean; dia: boolean; chat: boolean };
   toggle: { exp: () => void; dia: () => void; chat: () => void };
 }
 
 export default function IconBar({ states, toggle }: Props) {
-  const Btn = ({ on, click, Icon }: {
+  const Btn = ({
+    on,
+    click,
+    Icon,
+  }: {
     on: boolean;
     click: () => void;
     Icon: IconType;
   }) => (
     <button
       onClick={click}
-      className={`w-10 h-10 flex items-center justify-center
-                  ${on ? 'bg-[--color-side]' : 'hover:bg-[--color-side]/70'}`}
+      className={
+        'w-10 h-10 flex items-center justify-center transition-colors ' +
+        (on ? 'bg-white' : 'hover:bg-slate-100')
+      }
     >
-      <Icon className="w-6 stroke-[--color-foreground]/70" />
+      <Icon className={'w-6 ' + (on ? 'stroke-sky-600' : 'stroke-slate-600')} />
     </button>
   );
 
   return (
-    <div className="vscode-activity">
-      <Btn on={states.exp}  click={toggle.exp}  Icon={FolderIcon} />
-      <Btn on={states.dia}  click={toggle.dia}  Icon={Squares2X2Icon} />
+    <div className="flex flex-col border-r border-slate-300 bg-slate-200">
+      <Btn on={states.exp} click={toggle.exp} Icon={FolderIcon} />
+      <Btn on={states.dia} click={toggle.dia} Icon={Squares2X2Icon} />
       <Btn on={states.chat} click={toggle.chat} Icon={ChatBubbleLeftRightIcon} />
     </div>
   );
 }
 
 
-[page.tsx]
-// src/app/page.tsx
+[frontend/src/app/page.tsx]
 'use client';
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useFS } from '@/store/files';
-import { Panel, PanelGroup } from 'react-resizable-panels';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import IconBar      from '@/components/IconBar';
 import FileExplorer from '@/components/FileExplorer';
@@ -349,17 +445,23 @@ const EditorTabs    = dynamic(() => import('@/components/EditorTabs'),    { ssr:
 const DiagramViewer = dynamic(() => import('@/components/DiagramViewer'), { ssr: false });
 const ChatUI        = dynamic(() => import('@/components/ChatUI'),        { ssr: false });
 
-export default function Home() {
-  const { current } = useFS();
+/* ─── Resize handles ────────────────────────────────────────────── */
+const HHandle = () => (
+  <PanelResizeHandle className="w-[4px] bg-slate-300 hover:bg-sky-600 cursor-col-resize transition-colors" />
+);
+const VHandle = () => (
+  <PanelResizeHandle className="h-[4px] bg-slate-300 hover:bg-sky-600 cursor-row-resize transition-colors" />
+);
 
-  // 패널 표시 토글
-  const [showExp,  setExp]  = useState(true);
-  const [showDia,  setDia]  = useState(true);
+export default function Home() {
+  const { current }         = useFS();
+  const [showExp, setExp]   = useState(true);
+  const [showDia, setDia]   = useState(true);
   const [showChat, setChat] = useState(true);
 
   return (
     <div className="flex h-full">
-      {/* 왼쪽 아이콘바 */}
+      {/* ─── Activity / Icon bar ─────────────────────────────────── */}
       <IconBar
         states={{ exp: showExp, dia: showDia, chat: showChat }}
         toggle={{
@@ -369,35 +471,42 @@ export default function Home() {
         }}
       />
 
-      {/* ───────────── 수평 패널 그룹 ───────────── */}
+      {/* ─── Main panel group (horizontal) ───────────────────────── */}
       <PanelGroup direction="horizontal" className="flex-1">
 
-        {/* ① 파일 탐색기 */}
+        {/* ─── File-explorer column ──────────────────────────────── */}
         {showExp && (
-          <Panel defaultSize={20} minSize={14}>
-            <FileExplorer />
-          </Panel>
+          <>
+            <Panel defaultSize={15} minSize={12}>
+              <FileExplorer />
+            </Panel>
+            <HHandle />
+          </>
         )}
 
-        {/* ② Monaco 에디터 영역 */}
-        <Panel defaultSize={50} minSize={30} className="border-x border-[--color-border]">
+        {/* ─── Code-editor column ────────────────────────────────── */}
+        <Panel defaultSize={55} minSize={30} className="border-x border-slate-300">
           <EditorTabs />
         </Panel>
 
-        {/* ③ 다이어그램 + 채팅 컨테이너 */}
+        {(showDia || showChat) && <HHandle />}
+
+        {/* ─── Diagram / Chat column (vertical split) ────────────── */}
         {(showDia || showChat) && (
-          <Panel defaultSize={30} minSize={18}>
-            {/* ───── 내부 세로 패널 그룹 ───── */}
+          <Panel defaultSize={30} minSize={18} className="flex-1 min-w-0">
             <PanelGroup direction="vertical">
-              
-              {/* ③-1 다이어그램 */}
+
+              {/* ── Diagram viewer ─────────────────────────────── */}
               {showDia && (
-                <Panel defaultSize={70} minSize={30}>
-                  {current && <DiagramViewer filePath={current.path} />}
-                </Panel>
+                <>
+                  <Panel defaultSize={70} minSize={30}>
+                    {current && <DiagramViewer filePath={current.path} />}
+                  </Panel>
+                  {showChat && <VHandle />}
+                </>
               )}
 
-              {/* ③-2 채팅 */}
+              {/* ── Chat UI ─────────────────────────────────────── */}
               {showChat && (
                 <Panel defaultSize={30} minSize={20}>
                   <ChatUI />
@@ -413,7 +522,72 @@ export default function Home() {
 }
 
 
-[editor.ts]
+[frontend/src/app/globals.css]
+/* src/app/globals.css */
+@import 'tailwindcss';
+
+/* ─── 라이트 팔레트 ─── */
+:root{
+  --background: #ffffff;
+  --foreground: #171717;
+  --panel:      #f3f3f3;
+  --border:     #e5e5e5;
+  --side:       #eeeeee;
+  --accent:     #0078d4;
+}
+
+/* ─── 다크 팔레트 ─── */
+@media (prefers-color-scheme:dark){
+  :root{
+    --background: #1e1e1e;
+    --foreground: #ededed;
+    --panel:      #252526;
+    --border:     #3c3c3c;
+    --side:       #333337;
+    --accent:     #569cd6;
+  }
+}
+
+/* 기본 레이아웃 */
+html, body {
+  height: 100%;
+}
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+}
+
+/* 선택 행 하이라이트 */
+.vscode-tree-active{
+  background: var(--side);
+  color: var(--accent);
+}
+
+/* Transition classes for smoother toggles, hovers, etc. */
+.transition-colors {
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+
+[frontend/src/store/editor.ts]
 'use client';
 
 import { create } from 'zustand';
@@ -455,7 +629,7 @@ export const useEditor = create<State>()(
 );
 
 
-[files.ts]
+[frontend/src/store/files.ts]
 import { create } from 'zustand'
 
 export type FileNode = { id: string; name: string; path: string; children?: FileNode[] }
