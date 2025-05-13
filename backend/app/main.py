@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 from schemas.common import DiagramRequest, DiagramResponse
 from llm.client import generate_control_flow_graph
+from fastapi.responses import JSONResponse
+
 import json
 
 # .env file loading
@@ -50,3 +52,10 @@ async def api_generate_control_flow_graph(request: DiagramRequest):
         return DiagramResponse(**result)
     except Exception as e:
         return DiagramResponse(status=500, data=str(e))
+    
+@app.get("/api/sample_cfg")
+async def sample_cfg():
+    """artifacts/cfg_json_output.json 파일 그대로 반환"""
+    json_path = Path(__file__).parent / "artifacts" / "cfg_json_output.json"
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    return JSONResponse(content=data)

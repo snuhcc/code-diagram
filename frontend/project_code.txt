@@ -349,19 +349,25 @@ export default function FileExplorer() {
     if (Array.isArray(n.children)) {
       setOpen(o => ({ ...o, [n.path ?? '']: !o[n.path ?? ''] }));
     } else if (n.path) {
-      /* 경로는 “poc/…” 포함 → API가 자동으로 잘라 줌 */
+      const clean = n.path.replace(/^poc[\\/]/, '');
+      console.log(clean)
+      // 2) 상태 업데이트
       setCurrent(n.id);
-      useEditor
-        .getState()
-        .open({ id: nanoid(), path: n.path, name: n.name });
+      useEditor.getState().open({
+        id: nanoid(),
+        path: clean,
+        name: n.name,
+      });
+
+
     }
   };
 
   /* 재귀 렌더 */
   const render = (nodes: FileNode[] | FileNode | undefined, depth = 0): JSX.Element[] =>
     arr(nodes).map(n => {
-      const isDir    = Array.isArray(n.children);
-      const isOpen   = !!open[n.path ?? ''];
+      const isDir = Array.isArray(n.children);
+      const isOpen = !!open[n.path ?? ''];
       const isActive = current?.id === n.id;
 
       return (
