@@ -59,9 +59,10 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
       try {
         /* 쿼리스트링만 붙여서 GET 호출 */
         const url =
-          `${process.env.NEXT_PUBLIC_API_BASE}${ENDPOINT}` +
+          `http://localhost:8000${ENDPOINT}` +
           `?path=${encodeURIComponent(filePath)}` +
           `&file_type=${encodeURIComponent(filePath.split('.').pop() || '')}`;
+          
 
         const res = await fetch(url);
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
