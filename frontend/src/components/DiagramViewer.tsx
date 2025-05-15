@@ -60,14 +60,21 @@ interface DiagramJSON {
 const ENDPOINT = '/api/generate_control_flow_graph';
 
 export default function DiagramViewer({ filePath }: { filePath: string }) {
+  /* ─── 상태 ────────────────────────────────────────────── */
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState<string>();
 
-  const openTab = useEditor((s) => s.open);
+  /* ─── 외부 스토어 ─────────────────────────────────────── */
+  const { open: openTab, tabs, activeId } = useEditor.getState();
+  const fsState = useFS.getState();
 
-  /* ───── 노드 클릭 → 코드 탭 열기 + 탐색기 하이라이트 ───── */
+  /* ─── 현재 에디터에서 열려 있는 파일 경로 ----------------- */
+  const activePath =
+    tabs.find((t) => t.id === activeId)?.path ?? tabs.at(-1)?.path ?? '';
+
+  /* ─── 노드 클릭: 코드 탭 + 탐색기 하이라이트 -------------- */
   const onNodeClick: NodeMouseHandler = (_, node) => {
     const file: string | undefined = (node.data as any)?.file;
     if (!file) return;
@@ -79,23 +86,19 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
       name: clean.split(/[\\/]/).pop() ?? clean,
     });
 
-    // 파일-익스플로러 현재 파일 동기화
-    const fsState = useFS.getState();
     const target = findByPath(fsState.tree, clean);
     if (target) fsState.setCurrent(target.id);
   };
 
-  /* ───── 다이어그램 로딩 ───── */
+  /* ─── 다이어그램 로딩 & 캐시 ------------------------------ */
   useEffect(() => {
     (async () => {
-      /* ① 캐시 존재 시 즉시 사용 */
       if (diagramCache) {
         hydrate(diagramCache);
         setLoad(false);
         return;
       }
 
-      /* ② 없으면 API 호출 */
       setLoad(true);
       setErr(undefined);
 
@@ -115,7 +118,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
             ? JSON.parse(raw.data)
             : raw?.data ?? raw;
 
-        diagramCache = json;      // ③ 성공 시 캐시
+        diagramCache = json; // 캐시
         hydrate(json);
       } catch (e: any) {
         setErr(String(e));
@@ -127,7 +130,25 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     })();
   }, [filePath]);
 
-  /* ───── 렌더링 분기 ───── */
+  /* ─── 에디터 활성 파일 바뀔 때마다 노드 하이라이트 --------- */
+  useEffect(() => {
+    setNodes((prev) =>
+      prev.map((n) => {
+        const file = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
+        const on = file === activePath;
+        return {
+          ...n,
+          style: {
+            ...n.style,
+            background: on ? '#dbeafe' /* sky-100 */ : '#ffffff',
+            border: on ? '2px solid #0284c7' /* sky-600 */ : '1px solid #3b82f6',
+          },
+        };
+      }),
+    );
+  }, [activePath]);
+
+  /* ─── 로딩·에러 분기 ------------------------------------ */
   if (loading)
     return <div className="p-4 text-sm text-slate-500">diagram loading…</div>;
   if (error)
@@ -135,6 +156,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
       <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
     );
 
+  /* ─── 렌더링 -------------------------------------------- */
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
@@ -153,7 +175,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     </div>
   );
 
-  /* ─── 내부 util ─────────────────────────────────────────── */
+  /* ─── 내부 util ----------------------------------------- */
   function hydrate(json: DiagramJSON) {
     const n: Node[] = json.nodes.map((r) => ({
       id: r.id,
@@ -173,7 +195,6 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
       animated: true,
       markerEnd: { type: MarkerType.ArrowClosed },
     }));
-
     setNodes(layout(n, e));
     setEdges(e);
   }
