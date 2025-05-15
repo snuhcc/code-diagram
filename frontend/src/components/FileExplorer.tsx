@@ -6,6 +6,16 @@ import { useFS, FileNode } from '@/store/files';
 import { useEditor } from '@/store/editor';
 import { nanoid } from 'nanoid';
 
+function filterTree(nodes: FileNode[] = []): FileNode[] {
+  return nodes
+    .filter((n) => n.name !== '__pycache__')           // ① 현재 노드 제외
+    .map((n) =>
+      Array.isArray(n.children)                        // ② 자식도 재귀적으로 필터
+        ? { ...n, children: filterTree(n.children) }
+        : n,
+    );
+}
+
 /* 배열/객체/undefined → 배열 */
 const arr = (x: FileNode[] | FileNode | undefined): FileNode[] =>
   Array.isArray(x) ? x : x ? [x] : [];
@@ -40,8 +50,8 @@ export default function FileExplorer() {
   /* 트리 로드 */
   useEffect(() => {
     (async () => {
-      const data: FileNode[] = await fetch('/api/files').then(r => r.json());
-      load(data);
+      const data: FileNode[] = await fetch('/api/files').then((r) => r.json());
+      load(filterTree(data));                          // ← 필터링 후 저장
     })();
   }, [load]);
 
