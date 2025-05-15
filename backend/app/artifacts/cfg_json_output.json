@@ -4,9 +4,9 @@
             "id": "n0",
             "file": "poc/main.py",
             "line_start": 7,
-            "line_end": 17,
+            "line_end": 15,
             "label": "main",
-            "description": "Entry point: orchestrates fetch → process → analyze → report, with exception handling."
+            "description": "Main function orchestrating data fetch, process, analysis, and reporting with error handling."
         },
         {
             "id": "n1",
@@ -14,7 +14,7 @@
             "line_start": 4,
             "line_end": 13,
             "label": "fetch_data",
-            "description": "Attempts up to 3 retries to fetch a list of random integers; raises on failure."
+            "description": "Attempts to fetch data up to a fixed number of retries; returns list on success or raises on failure."
         },
         {
             "id": "n2",
@@ -22,7 +22,7 @@
             "line_start": 3,
             "line_end": 15,
             "label": "process_data",
-            "description": "Processes each number via branching: div3, even, or other handler."
+            "description": "Iterates over input data, routes each element to specialized handlers based on divisibility."
         },
         {
             "id": "n3",
@@ -30,7 +30,7 @@
             "line_start": 17,
             "line_end": 20,
             "label": "handle_div3",
-            "description": "Handler for numbers divisible by 3: divides by 3."
+            "description": "Handles numbers divisible by 3: divides by 3."
         },
         {
             "id": "n4",
@@ -38,7 +38,7 @@
             "line_start": 21,
             "line_end": 24,
             "label": "handle_even",
-            "description": "Handler for even numbers not divisible by 3: halves the number."
+            "description": "Handles even (but not divisible by 3) numbers: divides by 2."
         },
         {
             "id": "n5",
@@ -46,7 +46,7 @@
             "line_start": 25,
             "line_end": 27,
             "label": "handle_other",
-            "description": "Handler for all other numbers: applies num*3+1."
+            "description": "Handles all other numbers: applies num*3+1."
         },
         {
             "id": "n6",
@@ -54,7 +54,7 @@
             "line_start": 4,
             "line_end": 16,
             "label": "analyze_data",
-            "description": "Computes average, median and partitions values into high/low groups."
+            "description": "Computes mean and median, partitions values into high (>mean) and low (<=mean)."
         },
         {
             "id": "n7",
@@ -62,7 +62,7 @@
             "line_start": 2,
             "line_end": 21,
             "label": "generate_report",
-            "description": "Prints report: average, median, counts and comparison of high vs low."
+            "description": "Prints a summary report of analysis and compares counts of high vs low values."
         }
     ],
     "edges": [
@@ -71,49 +71,49 @@
             "source": "n0",
             "target": "n1",
             "type": "call",
-            "description": "main() calls fetch_data()"
+            "description": "main calls fetch_data"
         },
         {
             "id": "e1",
             "source": "n0",
             "target": "n2",
             "type": "call",
-            "description": "main() calls process_data()"
+            "description": "main calls process_data with fetched data"
         },
         {
             "id": "e2",
             "source": "n0",
             "target": "n6",
             "type": "call",
-            "description": "main() calls analyze_data()"
+            "description": "main calls analyze_data with processed data"
         },
         {
             "id": "e3",
             "source": "n0",
             "target": "n7",
             "type": "call",
-            "description": "main() calls generate_report()"
+            "description": "main calls generate_report with analysis output"
         },
         {
             "id": "e4",
             "source": "n2",
             "target": "n3",
             "type": "call",
-            "description": "process_data() routes divisible-by-3 numbers to handle_div3()"
+            "description": "process_data calls handle_div3 when num%3==0"
         },
         {
             "id": "e5",
             "source": "n2",
             "target": "n4",
             "type": "call",
-            "description": "process_data() routes even numbers to handle_even()"
+            "description": "process_data calls handle_even when num%2==0 and not divisible by 3"
         },
         {
             "id": "e6",
             "source": "n2",
             "target": "n5",
             "type": "call",
-            "description": "process_data() routes other numbers to handle_other()"
+            "description": "process_data calls handle_other for all other numbers"
         }
     ]
 }

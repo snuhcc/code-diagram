@@ -7,6 +7,7 @@ import {
   Background,
   MiniMap,
   Controls,
+  MarkerType,                // 🔸 1) 화살표 타입 import
   type Node,
   type Edge,
 } from '@xyflow/react';
@@ -73,7 +74,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
-        /* ② 응답 파싱 (data가 문자열인지 객체인지 모두 처리) */
+        /* ② 응답 파싱 */
         const raw: any = await res.json();
 
         let json: DiagramJSON;
@@ -99,11 +100,15 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
             background: '#fff',
           },
         }));
+
         const e: Edge[] = json.edges.map((r) => ({
           id: r.id,
           source: r.source,
           target: r.target,
           animated: true,
+          markerEnd: {                // 🔸 2) 모든 엣지에 화살표 추가
+            type: MarkerType.ArrowClosed,
+          },
         }));
 
         setNodes(layout(n, e));
