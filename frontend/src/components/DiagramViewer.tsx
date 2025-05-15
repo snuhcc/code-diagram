@@ -1,4 +1,3 @@
-// src/components/DiagramViewer.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,12 +6,19 @@ import {
   Background,
   MiniMap,
   Controls,
-  MarkerType,                // 🔸 1) 화살표 타입 import
+  MarkerType,
   type Node,
   type Edge,
+  type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
+import { nanoid } from 'nanoid';
+import { useEditor } from '@/store/editor';
+import { useFS, type FileNode } from '@/store/files';
+
+/* ────────────── 세션-전역 다이어그램 캐시 ────────────── */
+let diagramCache: DiagramJSON | null = null;
 
 /* ───────────── dagre helper ───────────── */
 function layout(nodes: Node[] = [], edges: Edge[] = []) {
@@ -37,6 +43,7 @@ function layout(nodes: Node[] = [], edges: Edge[] = []) {
 interface RawNode {
   id: string;
   label: string;
+  file: string;
 }
 interface RawEdge {
   id: string;
@@ -58,62 +65,59 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState<string>();
 
-  useEffect(() => {
-    if (!filePath) return; // 파일 선택 전엔 실행 안 함
+  const openTab = useEditor((s) => s.open);
 
+  /* ───── 노드 클릭 → 코드 탭 열기 + 탐색기 하이라이트 ───── */
+  const onNodeClick: NodeMouseHandler = (_, node) => {
+    const file: string | undefined = (node.data as any)?.file;
+    if (!file) return;
+
+    const clean = file.replace(/^poc[\\/]/, '');
+    openTab({
+      id: nanoid(),
+      path: clean,
+      name: clean.split(/[\\/]/).pop() ?? clean,
+    });
+
+    // 파일-익스플로러 현재 파일 동기화
+    const fsState = useFS.getState();
+    const target = findByPath(fsState.tree, clean);
+    if (target) fsState.setCurrent(target.id);
+  };
+
+  /* ───── 다이어그램 로딩 ───── */
+  useEffect(() => {
     (async () => {
+      /* ① 캐시 존재 시 즉시 사용 */
+      if (diagramCache) {
+        hydrate(diagramCache);
+        setLoad(false);
+        return;
+      }
+
+      /* ② 없으면 API 호출 */
       setLoad(true);
       setErr(undefined);
 
       try {
-        /* ① 백엔드 호출 */
         const res = await fetch(`http://localhost:8000${ENDPOINT}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}), // 기본값 사용
+          body: JSON.stringify({}),
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
-        /* ② 응답 파싱 */
-        const raw: any = await res.json();
+        const raw = await res.json();
+        const json: DiagramJSON =
+          typeof raw === 'string'
+            ? JSON.parse(raw)
+            : typeof raw?.data === 'string'
+            ? JSON.parse(raw.data)
+            : raw?.data ?? raw;
 
-        let json: DiagramJSON;
-        if (typeof raw === 'string') {
-          json = JSON.parse(raw);
-        } else if (typeof raw?.data === 'string') {
-          json = JSON.parse(raw.data);
-        } else if (raw?.data) {
-          json = raw.data as DiagramJSON;
-        } else {
-          json = raw as DiagramJSON;
-        }
-
-        /* ③ React-Flow 형식 변환 */
-        const n: Node[] = json.nodes.map((r) => ({
-          id: r.id,
-          data: { label: r.label },
-          position: { x: 0, y: 0 }, // dagre에서 재배치
-          style: {
-            padding: 6,
-            borderRadius: 4,
-            border: '1px solid #3b82f6',
-            background: '#fff',
-          },
-        }));
-
-        const e: Edge[] = json.edges.map((r) => ({
-          id: r.id,
-          source: r.source,
-          target: r.target,
-          animated: true,
-          markerEnd: {                // 🔸 2) 모든 엣지에 화살표 추가
-            type: MarkerType.ArrowClosed,
-          },
-        }));
-
-        setNodes(layout(n, e));
-        setEdges(e);
-      } catch (e) {
+        diagramCache = json;      // ③ 성공 시 캐시
+        hydrate(json);
+      } catch (e: any) {
         setErr(String(e));
         setNodes([]);
         setEdges([]);
@@ -123,10 +127,9 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     })();
   }, [filePath]);
 
+  /* ───── 렌더링 분기 ───── */
   if (loading)
-    return (
-      <div className="p-4 text-sm text-slate-500">diagram loading…</div>
-    );
+    return <div className="p-4 text-sm text-slate-500">diagram loading…</div>;
   if (error)
     return (
       <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
@@ -137,6 +140,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        onNodeClick={onNodeClick}
         fitView
         minZoom={0.2}
         maxZoom={2}
@@ -148,4 +152,40 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
       </ReactFlow>
     </div>
   );
+
+  /* ─── 내부 util ─────────────────────────────────────────── */
+  function hydrate(json: DiagramJSON) {
+    const n: Node[] = json.nodes.map((r) => ({
+      id: r.id,
+      data: { label: r.label, file: r.file },
+      position: { x: 0, y: 0 },
+      style: {
+        padding: 6,
+        borderRadius: 4,
+        border: '1px solid #3b82f6',
+        background: '#fff',
+      },
+    }));
+    const e: Edge[] = json.edges.map((r) => ({
+      id: r.id,
+      source: r.source,
+      target: r.target,
+      animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed },
+    }));
+
+    setNodes(layout(n, e));
+    setEdges(e);
+  }
+}
+
+/* ──────────── helper: 경로로 FileNode 찾기 ─────────── */
+function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
+  for (const n of nodes) {
+    if (n.path?.replace(/^poc[\\/]/, '') === p) return n;
+    if (n.children) {
+      const r = findByPath(n.children, p);
+      if (r) return r;
+    }
+  }
 }

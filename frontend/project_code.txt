@@ -132,11 +132,15 @@ import {
   Background,
   MiniMap,
   Controls,
+  MarkerType,
   type Node,
   type Edge,
+  type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
+import { nanoid } from 'nanoid';              // 🔸 (1) 탭 id용
+import { useEditor } from '@/store/editor';   // 🔸 (1) 에디터 스토어
 
 /* ───────────── dagre helper ───────────── */
 function layout(nodes: Node[] = [], edges: Edge[] = []) {
@@ -161,6 +165,7 @@ function layout(nodes: Node[] = [], edges: Edge[] = []) {
 interface RawNode {
   id: string;
   label: string;
+  file: string;       // ← JSON에 이미 포함
 }
 interface RawEdge {
   id: string;
@@ -181,42 +186,51 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState<string>();
+  const openTab = useEditor((s) => s.open);           // 🔸 (1) 탭 열기 함수
+
+  /* ───── 노드 클릭 시 코드 탭 열기 ───── */
+  const onNodeClick: NodeMouseHandler = (_, node) => {
+    const file: string | undefined = (node.data as any)?.file;
+    if (!file) return;
+
+    // 'poc/...' 앞부분 제거
+    const clean = file.replace(/^poc[\\/]/, '');
+    openTab({
+      id: nanoid(),
+      path: clean,
+      name: clean.split(/[\\/]/).pop() ?? clean,
+    });
+  };
 
   useEffect(() => {
-    if (!filePath) return; // 파일 선택 전엔 실행 안 함
+    if (!filePath) return;
 
     (async () => {
       setLoad(true);
       setErr(undefined);
 
       try {
-        /* ① 백엔드 호출 */
         const res = await fetch(`http://localhost:8000${ENDPOINT}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}), // 기본값 사용
+          body: JSON.stringify({}), // 기본값
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
-        /* ② 응답 파싱 (data가 문자열인지 객체인지 모두 처리) */
         const raw: any = await res.json();
 
-        let json: DiagramJSON;
-        if (typeof raw === 'string') {
-          json = JSON.parse(raw);
-        } else if (typeof raw?.data === 'string') {
-          json = JSON.parse(raw.data);
-        } else if (raw?.data) {
-          json = raw.data as DiagramJSON;
-        } else {
-          json = raw as DiagramJSON;
-        }
+        const json: DiagramJSON =
+          typeof raw === 'string'
+            ? JSON.parse(raw)
+            : typeof raw?.data === 'string'
+            ? JSON.parse(raw.data)
+            : raw?.data ?? raw;
 
-        /* ③ React-Flow 형식 변환 */
+        /* ─── 노드/엣지 변환 ───────────────────────── */
         const n: Node[] = json.nodes.map((r) => ({
           id: r.id,
-          data: { label: r.label },
-          position: { x: 0, y: 0 }, // dagre에서 재배치
+          data: { label: r.label, file: r.file },   // 🔸 (2) file 경로 보관
+          position: { x: 0, y: 0 },
           style: {
             padding: 6,
             borderRadius: 4,
@@ -224,11 +238,13 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
             background: '#fff',
           },
         }));
+
         const e: Edge[] = json.edges.map((r) => ({
           id: r.id,
           source: r.source,
           target: r.target,
           animated: true,
+          markerEnd: { type: MarkerType.ArrowClosed },
         }));
 
         setNodes(layout(n, e));
@@ -244,9 +260,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
   }, [filePath]);
 
   if (loading)
-    return (
-      <div className="p-4 text-sm text-slate-500">diagram loading…</div>
-    );
+    return <div className="p-4 text-sm text-slate-500">diagram loading…</div>;
   if (error)
     return (
       <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
@@ -257,6 +271,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        onNodeClick={onNodeClick}          // 🔸 (2) 클릭 핸들러 연결
         fitView
         minZoom={0.2}
         maxZoom={2}
@@ -394,6 +409,16 @@ import { useFS, FileNode } from '@/store/files';
 import { useEditor } from '@/store/editor';
 import { nanoid } from 'nanoid';
 
+function filterTree(nodes: FileNode[] = []): FileNode[] {
+  return nodes
+    .filter((n) => n.name !== '__pycache__')           // ① 현재 노드 제외
+    .map((n) =>
+      Array.isArray(n.children)                        // ② 자식도 재귀적으로 필터
+        ? { ...n, children: filterTree(n.children) }
+        : n,
+    );
+}
+
 /* 배열/객체/undefined → 배열 */
 const arr = (x: FileNode[] | FileNode | undefined): FileNode[] =>
   Array.isArray(x) ? x : x ? [x] : [];
@@ -428,8 +453,8 @@ export default function FileExplorer() {
   /* 트리 로드 */
   useEffect(() => {
     (async () => {
-      const data: FileNode[] = await fetch('/api/files').then(r => r.json());
-      load(data);
+      const data: FileNode[] = await fetch('/api/files').then((r) => r.json());
+      load(filterTree(data));                          // ← 필터링 후 저장
     })();
   }, [load]);
 
