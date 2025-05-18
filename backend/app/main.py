@@ -45,7 +45,6 @@ async def api_generate_control_flow_graph(request: DiagramRequest):
 
         json_data = await generate_control_flow_graph(request.path, request.file_type)
         result = {
-            # "status": 0, # Success
             "data": json_data
         }
         print(result)

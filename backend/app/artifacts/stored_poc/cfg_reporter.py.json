@@ -1,0 +1,13 @@
+{
+    "nodes": [
+        {
+            "id": "reporter.generate_report",
+            "function_name": "generate_report",
+            "file": "poc/reporter.py",
+            "line_start": 2,
+            "line_end": 21,
+            "description": "Function that prints a report based on the analysis dictionary, including averages, medians, counts, and comparative messages."
+        }
+    ],
+    "edges": []
+}
