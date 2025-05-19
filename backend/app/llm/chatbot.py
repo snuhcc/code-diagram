@@ -2,8 +2,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
 from typing_extensions import TypedDict
 import uuid
-
-OPENAI_GPT_4_1 = "gpt-4.1-2025-04-14"
+from llm.constants import OPENAI_GPT_4_1
 
 # 세션별 엔진/히스토리 저장소 (메모리 기반, 프로덕션에서는 Redis 등 외부 저장소 권장)
 session_store = {}

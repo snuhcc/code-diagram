@@ -9,13 +9,13 @@ from llm.prompt_util import *
 from llm.utils import get_source_files
 from typing import Optional
 import json
-
-OPENAI_O3 = "o3-2025-04-16"
-OPENAI_O4_MINI = "o4-mini-2025-04-16"
-
-BACKEND_ROOT_DIR = os.getcwd()
-ARTIFACTS_REPO_PROMPT_TXT = os.path.join(BACKEND_ROOT_DIR, "artifacts", "repo_prompt.txt")
-CFG_JSON_OUTPUT = os.path.join(BACKEND_ROOT_DIR, "artifacts", "cfg_json_output_all.json")
+from llm.constants import (
+    OPENAI_O3,
+    OPENAI_O4_MINI,
+    BACKEND_ROOT_DIR,
+    ARTIFACTS_REPO_PROMPT_TXT,
+    CFG_JSON_OUTPUT,
+)
 
 reasoning = {
     "effort": "low",  # 'low', 'medium', or 'high'
@@ -23,7 +23,11 @@ reasoning = {
     # "summary": "None",  # 'detailed', 'auto', or None
 }
 
-
+def log_exception(e: Exception, function_name: str, extra_info: str = ""):
+    error_trace = traceback.format_exc()
+    print(f"Error in function '{function_name}'{extra_info}: {e}")
+    print("Full traceback:")
+    print(error_trace)
 
 def create_messages(path: str):
 
@@ -94,12 +98,8 @@ async def generate_control_flow_graph_for_file(root_path: str, file_path: str):
             json.dump(json_obj, f, indent=4, ensure_ascii=False)
         return json_obj
     except Exception as e:
-        error_trace = traceback.format_exc()
-        current_function_name = inspect.currentframe().f_code.co_name
-        print(f"Error in function '{current_function_name}' for file '{file_path}': {e}")
-        print("Full traceback:")
-        print(error_trace)
-        raise HTTPException(status_code=500, detail=f"Error in {current_function_name} for {file_path}: {str(e)}")
+        log_exception(e, inspect.currentframe().f_code.co_name, f" for file '{file_path}'")
+        raise HTTPException(status_code=500, detail=f"Error in {inspect.currentframe().f_code.co_name} for {file_path}: {str(e)}")
 
 async def generate_control_flow_graph(root_path: str, file_type: Optional[str]):
     try:
@@ -116,11 +116,5 @@ async def generate_control_flow_graph(root_path: str, file_type: Optional[str]):
         return results_str
 
     except Exception as e:
-        error_trace = traceback.format_exc()
-        current_function_name = inspect.currentframe().f_code.co_name
-        print(f"Error in function '{current_function_name}': {e}")
-        print("Full traceback:")
-        print(error_trace)
-        raise HTTPException(status_code=500, detail=f"Error in {current_function_name}: {str(e)}")
-
-
+        log_exception(e, inspect.currentframe().f_code.co_name)
+        raise HTTPException(status_code=500, detail=f"Error in {inspect.currentframe().f_code.co_name}: {str(e)}")

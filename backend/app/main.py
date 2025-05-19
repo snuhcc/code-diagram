@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
 from schemas.common import *
-from llm.client import generate_control_flow_graph
+from llm.diagram_generator import generate_control_flow_graph
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session
 from fastapi.responses import JSONResponse
 
