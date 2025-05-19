@@ -1,10 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
-from schemas.common import DiagramRequest, DiagramResponse
-from llm.client import generate_control_flow_graph
+from schemas.common import *
+from llm.client import (
+    generate_control_flow_graph,
+    create_session,
+    remove_session,
+    generate_chatbot_answer_with_session,
+)
 from fastapi.responses import JSONResponse
 
 import json
@@ -55,6 +60,28 @@ async def api_generate_control_flow_graph(request: DiagramRequest):
 @app.get("/api/sample_cfg")
 async def sample_cfg():
     """artifacts/cfg_json_output.json 파일 그대로 반환"""
-    json_path = Path(__file__).parent / "artifacts" / "cfg_json_output.json"
+    json_path = Path(__file__).parent / "artifacts" / "stored_poc" / "cfg_json_output_all.json"
     data = json.loads(json_path.read_text(encoding="utf-8"))
     return JSONResponse(content=data)
+
+@app.post("/api/chatbot/session/open")
+async def api_open_session():
+    session_id = create_session()
+    return SessionResponse(session_id=session_id)
+
+@app.post("/api/chatbot/session/close")
+async def api_close_session(req: SessionRequest):
+    remove_session(req.session_id)
+    return {"status": "closed"}
+
+@app.post("/api/chatbot/session/chat", response_model=ChatbotQueryResponse)
+async def api_session_chat(req: ChatbotQueryRequest):
+    try:
+        answer, highlight = await generate_chatbot_answer_with_session(
+            req.session_id, req.code, req.diagram, req.query
+        )
+        return ChatbotQueryResponse(answer=answer, highlight=highlight)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
