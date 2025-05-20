@@ -1,0 +1,114 @@
+{
+    "nodes": [
+        {
+            "id": "video_emotion_color_demo.main",
+            "function_name": "<module>",
+            "file": "video_emotion_color_demo.py",
+            "line_start": 1,
+            "line_end": 91,
+            "description": "Top-level script that loads models and runs the video emotion detection loop."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.datasets.get_labels"
+        },
+        {
+            "id": "e1",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.load_detection_model"
+        },
+        {
+            "id": "e2",
+            "source": "video_emotion_color_demo.main",
+            "target": "keras.models.load_model"
+        },
+        {
+            "id": "e3",
+            "source": "video_emotion_color_demo.main",
+            "target": "cv2.namedWindow"
+        },
+        {
+            "id": "e4",
+            "source": "video_emotion_color_demo.main",
+            "target": "cv2.VideoCapture"
+        },
+        {
+            "id": "e5",
+            "source": "video_emotion_color_demo.main",
+            "target": "cv2.cvtColor"
+        },
+        {
+            "id": "e6",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.detect_faces"
+        },
+        {
+            "id": "e7",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.apply_offsets"
+        },
+        {
+            "id": "e8",
+            "source": "video_emotion_color_demo.main",
+            "target": "cv2.resize"
+        },
+        {
+            "id": "e9",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.preprocessor.preprocess_input"
+        },
+        {
+            "id": "e10",
+            "source": "video_emotion_color_demo.main",
+            "target": "numpy.expand_dims"
+        },
+        {
+            "id": "e11",
+            "source": "video_emotion_color_demo.main",
+            "target": "emotion_classifier.predict"
+        },
+        {
+            "id": "e12",
+            "source": "video_emotion_color_demo.main",
+            "target": "numpy.max"
+        },
+        {
+            "id": "e13",
+            "source": "video_emotion_color_demo.main",
+            "target": "numpy.argmax"
+        },
+        {
+            "id": "e14",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.draw_bounding_box"
+        },
+        {
+            "id": "e15",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.draw_text"
+        },
+        {
+            "id": "e16",
+            "source": "video_emotion_color_demo.main",
+            "target": "cv2.imshow"
+        },
+        {
+            "id": "e17",
+            "source": "video_emotion_color_demo.main",
+            "target": "cv2.waitKey"
+        },
+        {
+            "id": "e18",
+            "source": "video_emotion_color_demo.main",
+            "target": "cv2.VideoCapture.release"
+        },
+        {
+            "id": "e19",
+            "source": "video_emotion_color_demo.main",
+            "target": "cv2.destroyAllWindows"
+        }
+    ]
+}

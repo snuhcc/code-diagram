@@ -1,0 +1,58 @@
+{
+    "nodes": [
+        {
+            "id": "preprocessor.preprocess_input",
+            "function_name": "preprocess_input",
+            "file": "preprocessor.py",
+            "line_start": 5,
+            "line_end": 11,
+            "description": "Normalize image array x to [0,1], then optionally scale to [-1,1] if v2=True."
+        },
+        {
+            "id": "preprocessor._imread",
+            "function_name": "_imread",
+            "file": "preprocessor.py",
+            "line_start": 14,
+            "line_end": 16,
+            "description": "Read image from disk using scipy.misc.imread."
+        },
+        {
+            "id": "preprocessor._imresize",
+            "function_name": "_imresize",
+            "file": "preprocessor.py",
+            "line_start": 18,
+            "line_end": 20,
+            "description": "Resize image array using scipy.misc.imresize."
+        },
+        {
+            "id": "preprocessor.to_categorical",
+            "function_name": "to_categorical",
+            "file": "preprocessor.py",
+            "line_start": 22,
+            "line_end": 27,
+            "description": "Convert integer class labels to one-hot encoded matrix."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "preprocessor._imread",
+            "target": "scipy.misc.imread"
+        },
+        {
+            "id": "e1",
+            "source": "preprocessor._imresize",
+            "target": "scipy.misc.imresize"
+        },
+        {
+            "id": "e2",
+            "source": "preprocessor.to_categorical",
+            "target": "numpy.asarray"
+        },
+        {
+            "id": "e3",
+            "source": "preprocessor.to_categorical",
+            "target": "numpy.zeros"
+        }
+    ]
+}

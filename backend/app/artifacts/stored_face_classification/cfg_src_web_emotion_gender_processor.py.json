@@ -1,0 +1,134 @@
+{
+    "nodes": [
+        {
+            "id": "emotion_gender_processor.process_image",
+            "function_name": "process_image",
+            "file": "emotion_gender_processor.py",
+            "line_start": 18,
+            "line_end": 87,
+            "description": "Main function to detect faces in an image, classify emotion and gender, annotate and save the result."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "emotion_gender_processor.process_image",
+            "target": "utils.datasets.get_labels",
+            "description": "Load emotion and gender labels."
+        },
+        {
+            "id": "e1",
+            "source": "emotion_gender_processor.process_image",
+            "target": "utils.inference.load_detection_model",
+            "description": "Load Haar cascade face detector."
+        },
+        {
+            "id": "e2",
+            "source": "emotion_gender_processor.process_image",
+            "target": "keras.models.load_model",
+            "description": "Load emotion and gender classification models."
+        },
+        {
+            "id": "e3",
+            "source": "emotion_gender_processor.process_image",
+            "target": "numpy.fromstring",
+            "description": "Convert input bytes to NumPy array."
+        },
+        {
+            "id": "e4",
+            "source": "emotion_gender_processor.process_image",
+            "target": "cv2.imdecode",
+            "description": "Decode image bytes to OpenCV image."
+        },
+        {
+            "id": "e5",
+            "source": "emotion_gender_processor.process_image",
+            "target": "cv2.cvtColor",
+            "description": "Convert image color spaces (BGR->RGB, BGR->GRAY)."
+        },
+        {
+            "id": "e6",
+            "source": "emotion_gender_processor.process_image",
+            "target": "utils.inference.detect_faces",
+            "description": "Detect faces in the grayscale image."
+        },
+        {
+            "id": "e7",
+            "source": "emotion_gender_processor.process_image",
+            "target": "utils.inference.apply_offsets",
+            "description": "Apply bounding box offsets for cropping faces."
+        },
+        {
+            "id": "e8",
+            "source": "emotion_gender_processor.process_image",
+            "target": "cv2.resize",
+            "description": "Resize face regions to model input sizes."
+        },
+        {
+            "id": "e9",
+            "source": "emotion_gender_processor.process_image",
+            "target": "utils.preprocessor.preprocess_input",
+            "description": "Preprocess RGB and grayscale face images."
+        },
+        {
+            "id": "e10",
+            "source": "emotion_gender_processor.process_image",
+            "target": "numpy.expand_dims",
+            "description": "Add batch dimension to preprocessed face arrays."
+        },
+        {
+            "id": "e11",
+            "source": "emotion_gender_processor.process_image",
+            "target": "gender_classifier.predict",
+            "description": "Predict gender on the RGB face."
+        },
+        {
+            "id": "e12",
+            "source": "emotion_gender_processor.process_image",
+            "target": "emotion_classifier.predict",
+            "description": "Predict emotion on the grayscale face."
+        },
+        {
+            "id": "e13",
+            "source": "emotion_gender_processor.process_image",
+            "target": "numpy.argmax",
+            "description": "Select the highest-probability class from model outputs."
+        },
+        {
+            "id": "e14",
+            "source": "emotion_gender_processor.process_image",
+            "target": "utils.inference.draw_bounding_box",
+            "description": "Draw box around detected face."
+        },
+        {
+            "id": "e15",
+            "source": "emotion_gender_processor.process_image",
+            "target": "utils.inference.draw_text",
+            "description": "Draw gender and emotion labels on the image."
+        },
+        {
+            "id": "e16",
+            "source": "emotion_gender_processor.process_image",
+            "target": "logging.error",
+            "description": "Log any exception during processing."
+        },
+        {
+            "id": "e17",
+            "source": "emotion_gender_processor.process_image",
+            "target": "os.path.exists",
+            "description": "Check if the output directory exists."
+        },
+        {
+            "id": "e18",
+            "source": "emotion_gender_processor.process_image",
+            "target": "os.mkdir",
+            "description": "Create the output directory if missing."
+        },
+        {
+            "id": "e19",
+            "source": "emotion_gender_processor.process_image",
+            "target": "cv2.imwrite",
+            "description": "Save the annotated image to disk."
+        }
+    ]
+}

@@ -1,0 +1,119 @@
+{
+    "nodes": [
+        {
+            "id": "video_emotion_gender_demo.main",
+            "function_name": "main",
+            "file": "video_emotion_gender_demo.py",
+            "line_start": 1,
+            "line_end": 102,
+            "description": "Top‐level script executing video capture, face detection, emotion and gender inference, and display loop."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "video_emotion_gender_demo.main",
+            "target": "statistics.mode"
+        },
+        {
+            "id": "e1",
+            "source": "video_emotion_gender_demo.main",
+            "target": "utils.datasets.get_labels"
+        },
+        {
+            "id": "e2",
+            "source": "video_emotion_gender_demo.main",
+            "target": "utils.inference.load_detection_model"
+        },
+        {
+            "id": "e3",
+            "source": "video_emotion_gender_demo.main",
+            "target": "keras.models.load_model"
+        },
+        {
+            "id": "e4",
+            "source": "video_emotion_gender_demo.main",
+            "target": "cv2.namedWindow"
+        },
+        {
+            "id": "e5",
+            "source": "video_emotion_gender_demo.main",
+            "target": "cv2.VideoCapture"
+        },
+        {
+            "id": "e6",
+            "source": "video_emotion_gender_demo.main",
+            "target": "cv2.cvtColor"
+        },
+        {
+            "id": "e7",
+            "source": "video_emotion_gender_demo.main",
+            "target": "utils.inference.detect_faces"
+        },
+        {
+            "id": "e8",
+            "source": "video_emotion_gender_demo.main",
+            "target": "utils.inference.apply_offsets"
+        },
+        {
+            "id": "e9",
+            "source": "video_emotion_gender_demo.main",
+            "target": "cv2.resize"
+        },
+        {
+            "id": "e10",
+            "source": "video_emotion_gender_demo.main",
+            "target": "utils.preprocessor.preprocess_input"
+        },
+        {
+            "id": "e11",
+            "source": "video_emotion_gender_demo.main",
+            "target": "numpy.expand_dims"
+        },
+        {
+            "id": "e12",
+            "source": "video_emotion_gender_demo.main",
+            "target": "keras.models.Model.predict"
+        },
+        {
+            "id": "e13",
+            "source": "video_emotion_gender_demo.main",
+            "target": "numpy.argmax"
+        },
+        {
+            "id": "e14",
+            "source": "video_emotion_gender_demo.main",
+            "target": "statistics.mode"
+        },
+        {
+            "id": "e15",
+            "source": "video_emotion_gender_demo.main",
+            "target": "utils.inference.draw_bounding_box"
+        },
+        {
+            "id": "e16",
+            "source": "video_emotion_gender_demo.main",
+            "target": "utils.inference.draw_text"
+        },
+        {
+            "id": "e17",
+            "source": "video_emotion_gender_demo.main",
+            "target": "cv2.imshow"
+        },
+        {
+            "id": "e18",
+            "source": "video_emotion_gender_demo.main",
+            "target": "cv2.waitKey"
+        },
+        {
+            "id": "e19",
+            "source": "video_emotion_gender_demo.main",
+            "target": "cv2.destroyAllWindows"
+        },
+        {
+            "id": "e20",
+            "source": "video_emotion_gender_demo.main",
+            "target": "cv2.VideoCapture.release"
+        }
+    ]
+}

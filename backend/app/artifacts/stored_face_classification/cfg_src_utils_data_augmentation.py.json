@@ -1,0 +1,206 @@
+{
+    "nodes": [
+        {
+            "id": "ImageGenerator",
+            "function_name": "ImageGenerator",
+            "file": "data_augmentation.py",
+            "line_start": 11,
+            "line_end": 20,
+            "description": "Class defining image data augmentation generator."
+        },
+        {
+            "id": "ImageGenerator.__init__",
+            "function_name": "__init__",
+            "file": "data_augmentation.py",
+            "line_start": 21,
+            "line_end": 60,
+            "description": "Constructor initializing augmentation parameters."
+        },
+        {
+            "id": "ImageGenerator._do_random_crop",
+            "function_name": "_do_random_crop",
+            "file": "data_augmentation.py",
+            "line_start": 61,
+            "line_end": 81,
+            "description": "Applies random crop and scaling to an image."
+        },
+        {
+            "id": "ImageGenerator.do_random_rotation",
+            "function_name": "do_random_rotation",
+            "file": "data_augmentation.py",
+            "line_start": 83,
+            "line_end": 103,
+            "description": "Applies random rotation and scaling to an image."
+        },
+        {
+            "id": "ImageGenerator._gray_scale",
+            "function_name": "_gray_scale",
+            "file": "data_augmentation.py",
+            "line_start": 105,
+            "line_end": 107,
+            "description": "Converts an RGB image to grayscale."
+        },
+        {
+            "id": "ImageGenerator.saturation",
+            "function_name": "saturation",
+            "file": "data_augmentation.py",
+            "line_start": 108,
+            "line_end": 115,
+            "description": "Applies random saturation jitter."
+        },
+        {
+            "id": "ImageGenerator.brightness",
+            "function_name": "brightness",
+            "file": "data_augmentation.py",
+            "line_start": 116,
+            "line_end": 120,
+            "description": "Applies random brightness jitter."
+        },
+        {
+            "id": "ImageGenerator.contrast",
+            "function_name": "contrast",
+            "file": "data_augmentation.py",
+            "line_start": 122,
+            "line_end": 128,
+            "description": "Applies random contrast jitter."
+        },
+        {
+            "id": "ImageGenerator.lighting",
+            "function_name": "lighting",
+            "file": "data_augmentation.py",
+            "line_start": 130,
+            "line_end": 137,
+            "description": "Applies PCA-based lighting noise."
+        },
+        {
+            "id": "ImageGenerator.horizontal_flip",
+            "function_name": "horizontal_flip",
+            "file": "data_augmentation.py",
+            "line_start": 139,
+            "line_end": 145,
+            "description": "Randomly flips image horizontally and adjusts boxes."
+        },
+        {
+            "id": "ImageGenerator.vertical_flip",
+            "function_name": "vertical_flip",
+            "file": "data_augmentation.py",
+            "line_start": 146,
+            "line_end": 152,
+            "description": "Randomly flips image vertically and adjusts boxes."
+        },
+        {
+            "id": "ImageGenerator.transform",
+            "function_name": "transform",
+            "file": "data_augmentation.py",
+            "line_start": 153,
+            "line_end": 168,
+            "description": "Applies full sequence of color and geometric augmentations."
+        },
+        {
+            "id": "ImageGenerator.preprocess_images",
+            "function_name": "preprocess_images",
+            "file": "data_augmentation.py",
+            "line_start": 170,
+            "line_end": 172,
+            "description": "Applies preprocessing to batch of images."
+        },
+        {
+            "id": "ImageGenerator.flow",
+            "function_name": "flow",
+            "file": "data_augmentation.py",
+            "line_start": 173,
+            "line_end": 232,
+            "description": "Yields augmented batches of images and targets."
+        },
+        {
+            "id": "ImageGenerator._wrap_in_dictionary",
+            "function_name": "_wrap_in_dictionary",
+            "file": "data_augmentation.py",
+            "line_start": 233,
+            "line_end": 235,
+            "description": "Wraps inputs and targets into dict for model input."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "ImageGenerator.saturation",
+            "target": "ImageGenerator._gray_scale"
+        },
+        {
+            "id": "e1",
+            "source": "ImageGenerator.contrast",
+            "target": "ImageGenerator._gray_scale"
+        },
+        {
+            "id": "e2",
+            "source": "ImageGenerator.transform",
+            "target": "ImageGenerator.saturation"
+        },
+        {
+            "id": "e3",
+            "source": "ImageGenerator.transform",
+            "target": "ImageGenerator.brightness"
+        },
+        {
+            "id": "e4",
+            "source": "ImageGenerator.transform",
+            "target": "ImageGenerator.contrast"
+        },
+        {
+            "id": "e5",
+            "source": "ImageGenerator.transform",
+            "target": "ImageGenerator.lighting"
+        },
+        {
+            "id": "e6",
+            "source": "ImageGenerator.transform",
+            "target": "ImageGenerator.horizontal_flip"
+        },
+        {
+            "id": "e7",
+            "source": "ImageGenerator.transform",
+            "target": "ImageGenerator.vertical_flip"
+        },
+        {
+            "id": "e8",
+            "source": "ImageGenerator.flow",
+            "target": "preprocessor._imread"
+        },
+        {
+            "id": "e9",
+            "source": "ImageGenerator.flow",
+            "target": "preprocessor._imresize"
+        },
+        {
+            "id": "e10",
+            "source": "ImageGenerator.flow",
+            "target": "ImageGenerator._do_random_crop"
+        },
+        {
+            "id": "e11",
+            "source": "ImageGenerator.flow",
+            "target": "ImageGenerator.transform"
+        },
+        {
+            "id": "e12",
+            "source": "ImageGenerator.flow",
+            "target": "preprocessor.to_categorical"
+        },
+        {
+            "id": "e13",
+            "source": "ImageGenerator.flow",
+            "target": "ImageGenerator.preprocess_images"
+        },
+        {
+            "id": "e14",
+            "source": "ImageGenerator.flow",
+            "target": "ImageGenerator._wrap_in_dictionary"
+        },
+        {
+            "id": "e15",
+            "source": "ImageGenerator.preprocess_images",
+            "target": "preprocessor.preprocess_input"
+        }
+    ]
+}

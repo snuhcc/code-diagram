@@ -1,0 +1,79 @@
+{
+    "nodes": [
+        {
+            "id": "image_gradcam_demo.main",
+            "function_name": "main",
+            "file": "image_gradcam_demo.py",
+            "line_start": 21,
+            "line_end": 85,
+            "description": "Script entry point executing the image Grad-CAM pipeline"
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "image_gradcam_demo.main",
+            "target": "keras.models.load_model"
+        },
+        {
+            "id": "e1",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.datasets.get_labels"
+        },
+        {
+            "id": "e2",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.inference.load_detection_model"
+        },
+        {
+            "id": "e3",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.inference.load_image"
+        },
+        {
+            "id": "e4",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.inference.detect_faces"
+        },
+        {
+            "id": "e5",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.inference.apply_offsets"
+        },
+        {
+            "id": "e6",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.preprocessor.preprocess_input"
+        },
+        {
+            "id": "e7",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.grad_cam.compile_gradient_function"
+        },
+        {
+            "id": "e8",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.grad_cam.register_gradient"
+        },
+        {
+            "id": "e9",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.grad_cam.modify_backprop"
+        },
+        {
+            "id": "e10",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.grad_cam.compile_saliency_function"
+        },
+        {
+            "id": "e11",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.grad_cam.calculate_guided_gradient_CAM"
+        },
+        {
+            "id": "e12",
+            "source": "image_gradcam_demo.main",
+            "target": "utils.inference.draw_bounding_box"
+        }
+    ]
+}

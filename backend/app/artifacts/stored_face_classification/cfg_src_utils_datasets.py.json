@@ -1,0 +1,183 @@
+{
+    "nodes": [
+        {
+            "id": "datasets.DataManager.__init__",
+            "function_name": "__init__",
+            "file": "datasets.py",
+            "line_start": 12,
+            "line_end": 28,
+            "description": "Constructor for DataManager: sets dataset_name, path, image_size and resolves default paths or raises on unknown name."
+        },
+        {
+            "id": "datasets.DataManager.get_data",
+            "function_name": "get_data",
+            "file": "datasets.py",
+            "line_start": 30,
+            "line_end": 37,
+            "description": "Dispatch method to load the appropriate dataset based on dataset_name."
+        },
+        {
+            "id": "datasets.DataManager._load_imdb",
+            "function_name": "_load_imdb",
+            "file": "datasets.py",
+            "line_start": 39,
+            "line_end": 57,
+            "description": "Loads and filters the IMDB dataset from a .mat file, returns mapping of image paths to gender labels."
+        },
+        {
+            "id": "datasets.DataManager._load_fer2013",
+            "function_name": "_load_fer2013",
+            "file": "datasets.py",
+            "line_start": 59,
+            "line_end": 72,
+            "description": "Loads FER2013 CSV, converts pixel strings to resized arrays and one-hot encodes emotions."
+        },
+        {
+            "id": "datasets.DataManager._load_KDEF",
+            "function_name": "_load_KDEF",
+            "file": "datasets.py",
+            "line_start": 74,
+            "line_end": 102,
+            "description": "Walks KDEF directory, loads, resizes images, maps filenames to emotion classes and builds arrays."
+        },
+        {
+            "id": "datasets.get_labels",
+            "function_name": "get_labels",
+            "file": "datasets.py",
+            "line_start": 105,
+            "line_end": 114,
+            "description": "Returns label mapping for provided dataset name or raises on invalid."
+        },
+        {
+            "id": "datasets.get_class_to_arg",
+            "function_name": "get_class_to_arg",
+            "file": "datasets.py",
+            "line_start": 117,
+            "line_end": 126,
+            "description": "Returns a mapping from class names to integer indices for a given dataset."
+        },
+        {
+            "id": "datasets.split_imdb_data",
+            "function_name": "split_imdb_data",
+            "file": "datasets.py",
+            "line_start": 129,
+            "line_end": 137,
+            "description": "Splits IMDB ground truth dict into training and validation keys, with optional shuffling."
+        },
+        {
+            "id": "datasets.split_data",
+            "function_name": "split_data",
+            "file": "datasets.py",
+            "line_start": 140,
+            "line_end": 149,
+            "description": "Splits arrays x and y into training and validation sets by a given ratio."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "datasets.DataManager.get_data",
+            "target": "datasets.DataManager._load_imdb"
+        },
+        {
+            "id": "e1",
+            "source": "datasets.DataManager.get_data",
+            "target": "datasets.DataManager._load_fer2013"
+        },
+        {
+            "id": "e2",
+            "source": "datasets.DataManager.get_data",
+            "target": "datasets.DataManager._load_KDEF"
+        },
+        {
+            "id": "e3",
+            "source": "datasets.DataManager._load_imdb",
+            "target": "scipy.io.loadmat"
+        },
+        {
+            "id": "e4",
+            "source": "datasets.DataManager._load_imdb",
+            "target": "np.isnan"
+        },
+        {
+            "id": "e5",
+            "source": "datasets.DataManager._load_imdb",
+            "target": "np.logical_not"
+        },
+        {
+            "id": "e6",
+            "source": "datasets.DataManager._load_imdb",
+            "target": "np.logical_and"
+        },
+        {
+            "id": "e7",
+            "source": "datasets.DataManager._load_fer2013",
+            "target": "pd.read_csv"
+        },
+        {
+            "id": "e8",
+            "source": "datasets.DataManager._load_fer2013",
+            "target": "np.asarray"
+        },
+        {
+            "id": "e9",
+            "source": "datasets.DataManager._load_fer2013",
+            "target": "cv2.resize"
+        },
+        {
+            "id": "e10",
+            "source": "datasets.DataManager._load_fer2013",
+            "target": "np.expand_dims"
+        },
+        {
+            "id": "e11",
+            "source": "datasets.DataManager._load_fer2013",
+            "target": "pd.get_dummies"
+        },
+        {
+            "id": "e12",
+            "source": "datasets.DataManager._load_KDEF",
+            "target": "datasets.get_class_to_arg"
+        },
+        {
+            "id": "e13",
+            "source": "datasets.DataManager._load_KDEF",
+            "target": "os.walk"
+        },
+        {
+            "id": "e14",
+            "source": "datasets.DataManager._load_KDEF",
+            "target": "os.path.join"
+        },
+        {
+            "id": "e15",
+            "source": "datasets.DataManager._load_KDEF",
+            "target": "cv2.imread"
+        },
+        {
+            "id": "e16",
+            "source": "datasets.DataManager._load_KDEF",
+            "target": "cv2.resize"
+        },
+        {
+            "id": "e17",
+            "source": "datasets.DataManager._load_KDEF",
+            "target": "np.zeros"
+        },
+        {
+            "id": "e18",
+            "source": "datasets.DataManager._load_KDEF",
+            "target": "np.expand_dims"
+        },
+        {
+            "id": "e19",
+            "source": "datasets.DataManager._load_KDEF",
+            "target": "os.path.basename"
+        },
+        {
+            "id": "e20",
+            "source": "datasets.split_imdb_data",
+            "target": "random.shuffle"
+        }
+    ]
+}

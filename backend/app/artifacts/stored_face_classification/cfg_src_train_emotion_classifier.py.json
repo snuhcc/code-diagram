@@ -1,0 +1,100 @@
+{
+    "nodes": [
+        {
+            "id": "train_emotion_classifier.main",
+            "function_name": "main_script",
+            "file": "train_emotion_classifier.py",
+            "line_start": 1,
+            "line_end": 72,
+            "description": "Top-level script that sets up parameters, data generators, model, callbacks, loads data, and starts training."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "train_emotion_classifier.main",
+            "target": "keras.preprocessing.image.ImageDataGenerator",
+            "description": "Instantiate data generator"
+        },
+        {
+            "id": "e1",
+            "source": "train_emotion_classifier.main",
+            "target": "models.cnn.mini_XCEPTION",
+            "description": "Build emotion classification model"
+        },
+        {
+            "id": "e2",
+            "source": "train_emotion_classifier.main",
+            "target": "train_emotion_classifier.main",
+            "description": "Compile model (method call)",
+            "note": "model.compile"
+        },
+        {
+            "id": "e3",
+            "source": "train_emotion_classifier.main",
+            "target": "train_emotion_classifier.main",
+            "description": "Summarize model architecture (method call)",
+            "note": "model.summary"
+        },
+        {
+            "id": "e4",
+            "source": "train_emotion_classifier.main",
+            "target": "keras.callbacks.CSVLogger",
+            "description": "Set up CSV logging callback"
+        },
+        {
+            "id": "e5",
+            "source": "train_emotion_classifier.main",
+            "target": "keras.callbacks.EarlyStopping",
+            "description": "Set up early stopping callback"
+        },
+        {
+            "id": "e6",
+            "source": "train_emotion_classifier.main",
+            "target": "keras.callbacks.ReduceLROnPlateau",
+            "description": "Set up LR reduction callback"
+        },
+        {
+            "id": "e7",
+            "source": "train_emotion_classifier.main",
+            "target": "keras.callbacks.ModelCheckpoint",
+            "description": "Set up model checkpoint callback"
+        },
+        {
+            "id": "e8",
+            "source": "train_emotion_classifier.main",
+            "target": "utils.datasets.DataManager",
+            "description": "Load dataset manager"
+        },
+        {
+            "id": "e9",
+            "source": "train_emotion_classifier.main",
+            "target": "utils.datasets.DataManager.get_data",
+            "description": "Fetch faces and emotions"
+        },
+        {
+            "id": "e10",
+            "source": "train_emotion_classifier.main",
+            "target": "utils.preprocessor.preprocess_input",
+            "description": "Preprocess face data"
+        },
+        {
+            "id": "e11",
+            "source": "train_emotion_classifier.main",
+            "target": "utils.datasets.split_data",
+            "description": "Split data into train/validation"
+        },
+        {
+            "id": "e12",
+            "source": "train_emotion_classifier.main",
+            "target": "keras.preprocessing.image.ImageDataGenerator.flow",
+            "description": "Generate augmented training batches"
+        },
+        {
+            "id": "e13",
+            "source": "train_emotion_classifier.main",
+            "target": "keras.models.Model.fit_generator",
+            "description": "Train model with data generator"
+        }
+    ]
+}

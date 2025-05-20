@@ -1,0 +1,2280 @@
+{
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/image_gradcam_demo.py": {
+        "nodes": [
+            {
+                "id": "image_gradcam_demo.main",
+                "function_name": "main",
+                "file": "image_gradcam_demo.py",
+                "line_start": 21,
+                "line_end": 85,
+                "description": "Script entry point executing the image Grad-CAM pipeline"
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "image_gradcam_demo.main",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e1",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.datasets.get_labels"
+            },
+            {
+                "id": "e2",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.inference.load_detection_model"
+            },
+            {
+                "id": "e3",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.inference.load_image"
+            },
+            {
+                "id": "e4",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.inference.detect_faces"
+            },
+            {
+                "id": "e5",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.inference.apply_offsets"
+            },
+            {
+                "id": "e6",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.preprocessor.preprocess_input"
+            },
+            {
+                "id": "e7",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.grad_cam.compile_gradient_function"
+            },
+            {
+                "id": "e8",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.grad_cam.register_gradient"
+            },
+            {
+                "id": "e9",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.grad_cam.modify_backprop"
+            },
+            {
+                "id": "e10",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.grad_cam.compile_saliency_function"
+            },
+            {
+                "id": "e11",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.grad_cam.calculate_guided_gradient_CAM"
+            },
+            {
+                "id": "e12",
+                "source": "image_gradcam_demo.main",
+                "target": "utils.inference.draw_bounding_box"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/train_gender_classifier.py": {
+        "nodes": [
+            {
+                "id": "train_gender_classifier.main",
+                "function_name": "main",
+                "file": "train_gender_classifier.py",
+                "line_start": 1,
+                "line_end": 71,
+                "description": "Top-level script that orchestrates data loading, model creation, compilation, callback setup, and training."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "train_gender_classifier.main",
+                "target": "utils.datasets.DataManager",
+                "description": "Instantiate data manager"
+            },
+            {
+                "id": "e1",
+                "source": "train_gender_classifier.main",
+                "target": "utils.datasets.DataManager.get_data",
+                "description": "Load ground truth data"
+            },
+            {
+                "id": "e2",
+                "source": "train_gender_classifier.main",
+                "target": "utils.datasets.split_imdb_data",
+                "description": "Split data into training and validation sets"
+            },
+            {
+                "id": "e3",
+                "source": "train_gender_classifier.main",
+                "target": "utils.data_augmentation.ImageGenerator",
+                "description": "Instantiate image data generator"
+            },
+            {
+                "id": "e4",
+                "source": "train_gender_classifier.main",
+                "target": "models.cnn.mini_XCEPTION",
+                "description": "Build the CNN model"
+            },
+            {
+                "id": "e5",
+                "source": "train_gender_classifier.main",
+                "target": "keras.models.Model.compile",
+                "description": "Compile the model with optimizer, loss, and metrics"
+            },
+            {
+                "id": "e6",
+                "source": "train_gender_classifier.main",
+                "target": "keras.models.Model.summary",
+                "description": "Print model summary"
+            },
+            {
+                "id": "e7",
+                "source": "train_gender_classifier.main",
+                "target": "keras.callbacks.EarlyStopping",
+                "description": "Set up early stopping callback"
+            },
+            {
+                "id": "e8",
+                "source": "train_gender_classifier.main",
+                "target": "keras.callbacks.ReduceLROnPlateau",
+                "description": "Set up learning rate reducer callback"
+            },
+            {
+                "id": "e9",
+                "source": "train_gender_classifier.main",
+                "target": "keras.callbacks.CSVLogger",
+                "description": "Set up CSV logger callback"
+            },
+            {
+                "id": "e10",
+                "source": "train_gender_classifier.main",
+                "target": "keras.callbacks.ModelCheckpoint",
+                "description": "Set up model checkpoint callback"
+            },
+            {
+                "id": "e11",
+                "source": "train_gender_classifier.main",
+                "target": "utils.data_augmentation.ImageGenerator.flow",
+                "description": "Generate training batches"
+            },
+            {
+                "id": "e12",
+                "source": "train_gender_classifier.main",
+                "target": "keras.models.Model.fit_generator",
+                "description": "Train the model with data generator"
+            },
+            {
+                "id": "e13",
+                "source": "train_gender_classifier.main",
+                "target": "utils.data_augmentation.ImageGenerator.flow",
+                "description": "Generate validation batches"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/video_emotion_gender_demo.py": {
+        "nodes": [
+            {
+                "id": "video_emotion_gender_demo.main",
+                "function_name": "main",
+                "file": "video_emotion_gender_demo.py",
+                "line_start": 1,
+                "line_end": 102,
+                "description": "Top‐level script executing video capture, face detection, emotion and gender inference, and display loop."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "video_emotion_gender_demo.main",
+                "target": "statistics.mode"
+            },
+            {
+                "id": "e1",
+                "source": "video_emotion_gender_demo.main",
+                "target": "utils.datasets.get_labels"
+            },
+            {
+                "id": "e2",
+                "source": "video_emotion_gender_demo.main",
+                "target": "utils.inference.load_detection_model"
+            },
+            {
+                "id": "e3",
+                "source": "video_emotion_gender_demo.main",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e4",
+                "source": "video_emotion_gender_demo.main",
+                "target": "cv2.namedWindow"
+            },
+            {
+                "id": "e5",
+                "source": "video_emotion_gender_demo.main",
+                "target": "cv2.VideoCapture"
+            },
+            {
+                "id": "e6",
+                "source": "video_emotion_gender_demo.main",
+                "target": "cv2.cvtColor"
+            },
+            {
+                "id": "e7",
+                "source": "video_emotion_gender_demo.main",
+                "target": "utils.inference.detect_faces"
+            },
+            {
+                "id": "e8",
+                "source": "video_emotion_gender_demo.main",
+                "target": "utils.inference.apply_offsets"
+            },
+            {
+                "id": "e9",
+                "source": "video_emotion_gender_demo.main",
+                "target": "cv2.resize"
+            },
+            {
+                "id": "e10",
+                "source": "video_emotion_gender_demo.main",
+                "target": "utils.preprocessor.preprocess_input"
+            },
+            {
+                "id": "e11",
+                "source": "video_emotion_gender_demo.main",
+                "target": "numpy.expand_dims"
+            },
+            {
+                "id": "e12",
+                "source": "video_emotion_gender_demo.main",
+                "target": "keras.models.Model.predict"
+            },
+            {
+                "id": "e13",
+                "source": "video_emotion_gender_demo.main",
+                "target": "numpy.argmax"
+            },
+            {
+                "id": "e14",
+                "source": "video_emotion_gender_demo.main",
+                "target": "statistics.mode"
+            },
+            {
+                "id": "e15",
+                "source": "video_emotion_gender_demo.main",
+                "target": "utils.inference.draw_bounding_box"
+            },
+            {
+                "id": "e16",
+                "source": "video_emotion_gender_demo.main",
+                "target": "utils.inference.draw_text"
+            },
+            {
+                "id": "e17",
+                "source": "video_emotion_gender_demo.main",
+                "target": "cv2.imshow"
+            },
+            {
+                "id": "e18",
+                "source": "video_emotion_gender_demo.main",
+                "target": "cv2.waitKey"
+            },
+            {
+                "id": "e19",
+                "source": "video_emotion_gender_demo.main",
+                "target": "cv2.destroyAllWindows"
+            },
+            {
+                "id": "e20",
+                "source": "video_emotion_gender_demo.main",
+                "target": "cv2.VideoCapture.release"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/video_emotion_color_demo.py": {
+        "nodes": [
+            {
+                "id": "video_emotion_color_demo.main",
+                "function_name": "<module>",
+                "file": "video_emotion_color_demo.py",
+                "line_start": 1,
+                "line_end": 91,
+                "description": "Top-level script that loads models and runs the video emotion detection loop."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "video_emotion_color_demo.main",
+                "target": "utils.datasets.get_labels"
+            },
+            {
+                "id": "e1",
+                "source": "video_emotion_color_demo.main",
+                "target": "utils.inference.load_detection_model"
+            },
+            {
+                "id": "e2",
+                "source": "video_emotion_color_demo.main",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e3",
+                "source": "video_emotion_color_demo.main",
+                "target": "cv2.namedWindow"
+            },
+            {
+                "id": "e4",
+                "source": "video_emotion_color_demo.main",
+                "target": "cv2.VideoCapture"
+            },
+            {
+                "id": "e5",
+                "source": "video_emotion_color_demo.main",
+                "target": "cv2.cvtColor"
+            },
+            {
+                "id": "e6",
+                "source": "video_emotion_color_demo.main",
+                "target": "utils.inference.detect_faces"
+            },
+            {
+                "id": "e7",
+                "source": "video_emotion_color_demo.main",
+                "target": "utils.inference.apply_offsets"
+            },
+            {
+                "id": "e8",
+                "source": "video_emotion_color_demo.main",
+                "target": "cv2.resize"
+            },
+            {
+                "id": "e9",
+                "source": "video_emotion_color_demo.main",
+                "target": "utils.preprocessor.preprocess_input"
+            },
+            {
+                "id": "e10",
+                "source": "video_emotion_color_demo.main",
+                "target": "numpy.expand_dims"
+            },
+            {
+                "id": "e11",
+                "source": "video_emotion_color_demo.main",
+                "target": "emotion_classifier.predict"
+            },
+            {
+                "id": "e12",
+                "source": "video_emotion_color_demo.main",
+                "target": "numpy.max"
+            },
+            {
+                "id": "e13",
+                "source": "video_emotion_color_demo.main",
+                "target": "numpy.argmax"
+            },
+            {
+                "id": "e14",
+                "source": "video_emotion_color_demo.main",
+                "target": "utils.inference.draw_bounding_box"
+            },
+            {
+                "id": "e15",
+                "source": "video_emotion_color_demo.main",
+                "target": "utils.inference.draw_text"
+            },
+            {
+                "id": "e16",
+                "source": "video_emotion_color_demo.main",
+                "target": "cv2.imshow"
+            },
+            {
+                "id": "e17",
+                "source": "video_emotion_color_demo.main",
+                "target": "cv2.waitKey"
+            },
+            {
+                "id": "e18",
+                "source": "video_emotion_color_demo.main",
+                "target": "cv2.VideoCapture.release"
+            },
+            {
+                "id": "e19",
+                "source": "video_emotion_color_demo.main",
+                "target": "cv2.destroyAllWindows"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/video_gradcam_demo.py": {
+        "nodes": [
+            {
+                "id": "video_gradcam_demo.main",
+                "function_name": "main",
+                "file": "video_gradcam_demo.py",
+                "line_start": 1,
+                "line_end": 92,
+                "description": "Main script orchestrating model loading, video capture, face detection, and Grad-CAM visualization."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "video_gradcam_demo.main",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e1",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.grad_cam.compile_gradient_function"
+            },
+            {
+                "id": "e2",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.grad_cam.register_gradient"
+            },
+            {
+                "id": "e3",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.grad_cam.modify_backprop"
+            },
+            {
+                "id": "e4",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.grad_cam.compile_saliency_function"
+            },
+            {
+                "id": "e5",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.inference.load_detection_model"
+            },
+            {
+                "id": "e6",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.inference.detect_faces"
+            },
+            {
+                "id": "e7",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.inference.apply_offsets"
+            },
+            {
+                "id": "e8",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.preprocessor.preprocess_input"
+            },
+            {
+                "id": "e9",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.grad_cam.calculate_guided_gradient_CAM"
+            },
+            {
+                "id": "e10",
+                "source": "video_gradcam_demo.main",
+                "target": "utils.inference.draw_bounding_box"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/train_emotion_classifier.py": {
+        "nodes": [
+            {
+                "id": "train_emotion_classifier.main",
+                "function_name": "main_script",
+                "file": "train_emotion_classifier.py",
+                "line_start": 1,
+                "line_end": 72,
+                "description": "Top-level script that sets up parameters, data generators, model, callbacks, loads data, and starts training."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "train_emotion_classifier.main",
+                "target": "keras.preprocessing.image.ImageDataGenerator",
+                "description": "Instantiate data generator"
+            },
+            {
+                "id": "e1",
+                "source": "train_emotion_classifier.main",
+                "target": "models.cnn.mini_XCEPTION",
+                "description": "Build emotion classification model"
+            },
+            {
+                "id": "e2",
+                "source": "train_emotion_classifier.main",
+                "target": "train_emotion_classifier.main",
+                "description": "Compile model (method call)",
+                "note": "model.compile"
+            },
+            {
+                "id": "e3",
+                "source": "train_emotion_classifier.main",
+                "target": "train_emotion_classifier.main",
+                "description": "Summarize model architecture (method call)",
+                "note": "model.summary"
+            },
+            {
+                "id": "e4",
+                "source": "train_emotion_classifier.main",
+                "target": "keras.callbacks.CSVLogger",
+                "description": "Set up CSV logging callback"
+            },
+            {
+                "id": "e5",
+                "source": "train_emotion_classifier.main",
+                "target": "keras.callbacks.EarlyStopping",
+                "description": "Set up early stopping callback"
+            },
+            {
+                "id": "e6",
+                "source": "train_emotion_classifier.main",
+                "target": "keras.callbacks.ReduceLROnPlateau",
+                "description": "Set up LR reduction callback"
+            },
+            {
+                "id": "e7",
+                "source": "train_emotion_classifier.main",
+                "target": "keras.callbacks.ModelCheckpoint",
+                "description": "Set up model checkpoint callback"
+            },
+            {
+                "id": "e8",
+                "source": "train_emotion_classifier.main",
+                "target": "utils.datasets.DataManager",
+                "description": "Load dataset manager"
+            },
+            {
+                "id": "e9",
+                "source": "train_emotion_classifier.main",
+                "target": "utils.datasets.DataManager.get_data",
+                "description": "Fetch faces and emotions"
+            },
+            {
+                "id": "e10",
+                "source": "train_emotion_classifier.main",
+                "target": "utils.preprocessor.preprocess_input",
+                "description": "Preprocess face data"
+            },
+            {
+                "id": "e11",
+                "source": "train_emotion_classifier.main",
+                "target": "utils.datasets.split_data",
+                "description": "Split data into train/validation"
+            },
+            {
+                "id": "e12",
+                "source": "train_emotion_classifier.main",
+                "target": "keras.preprocessing.image.ImageDataGenerator.flow",
+                "description": "Generate augmented training batches"
+            },
+            {
+                "id": "e13",
+                "source": "train_emotion_classifier.main",
+                "target": "keras.models.Model.fit_generator",
+                "description": "Train model with data generator"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/image_emotion_gender_demo.py": {
+        "nodes": [
+            {
+                "id": "image_emotion_gender_demo.main",
+                "function_name": "<module>",
+                "file": "image_emotion_gender_demo.py",
+                "line_start": 1,
+                "line_end": 82,
+                "description": "Top‐level script executing the emotion and gender detection pipeline."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.datasets.get_labels"
+            },
+            {
+                "id": "e1",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.datasets.get_labels"
+            },
+            {
+                "id": "e2",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.load_detection_model"
+            },
+            {
+                "id": "e3",
+                "source": "image_emotion_gender_demo.main",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e4",
+                "source": "image_emotion_gender_demo.main",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e5",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.load_image"
+            },
+            {
+                "id": "e6",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.load_image"
+            },
+            {
+                "id": "e7",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.detect_faces"
+            },
+            {
+                "id": "e8",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.apply_offsets"
+            },
+            {
+                "id": "e9",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.apply_offsets"
+            },
+            {
+                "id": "e10",
+                "source": "image_emotion_gender_demo.main",
+                "target": "cv2.resize"
+            },
+            {
+                "id": "e11",
+                "source": "image_emotion_gender_demo.main",
+                "target": "cv2.resize"
+            },
+            {
+                "id": "e12",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.preprocessor.preprocess_input"
+            },
+            {
+                "id": "e13",
+                "source": "image_emotion_gender_demo.main",
+                "target": "numpy.expand_dims"
+            },
+            {
+                "id": "e14",
+                "source": "image_emotion_gender_demo.main",
+                "target": "numpy.argmax"
+            },
+            {
+                "id": "e15",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.preprocessor.preprocess_input"
+            },
+            {
+                "id": "e16",
+                "source": "image_emotion_gender_demo.main",
+                "target": "numpy.expand_dims"
+            },
+            {
+                "id": "e17",
+                "source": "image_emotion_gender_demo.main",
+                "target": "numpy.expand_dims"
+            },
+            {
+                "id": "e18",
+                "source": "image_emotion_gender_demo.main",
+                "target": "numpy.argmax"
+            },
+            {
+                "id": "e19",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.draw_bounding_box"
+            },
+            {
+                "id": "e20",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.draw_text"
+            },
+            {
+                "id": "e21",
+                "source": "image_emotion_gender_demo.main",
+                "target": "utils.inference.draw_text"
+            },
+            {
+                "id": "e22",
+                "source": "image_emotion_gender_demo.main",
+                "target": "cv2.cvtColor"
+            },
+            {
+                "id": "e23",
+                "source": "image_emotion_gender_demo.main",
+                "target": "cv2.imwrite"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/web/faces.py": {
+        "nodes": [
+            {
+                "id": "faces.index",
+                "function_name": "index",
+                "file": "faces.py",
+                "line_start": 8,
+                "line_end": 10,
+                "description": "Redirects root URL to ekholabs.ai with HTTP 302."
+            },
+            {
+                "id": "faces.upload",
+                "function_name": "upload",
+                "file": "faces.py",
+                "line_start": 12,
+                "line_end": 20,
+                "description": "Handles image upload, processes it and returns the classified image or aborts on error."
+            },
+            {
+                "id": "faces.bad_request",
+                "function_name": "bad_request",
+                "file": "faces.py",
+                "line_start": 22,
+                "line_end": 24,
+                "description": "Custom handler for HTTP 400 errors, returning a JSON error message."
+            },
+            {
+                "id": "faces.not_found",
+                "function_name": "not_found",
+                "file": "faces.py",
+                "line_start": 26,
+                "line_end": 28,
+                "description": "Custom handler for HTTP 404 errors, returning a JSON error message."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "faces.index",
+                "target": "flask.redirect"
+            },
+            {
+                "id": "e1",
+                "source": "faces.upload",
+                "target": "request.files.read"
+            },
+            {
+                "id": "e2",
+                "source": "faces.upload",
+                "target": "emotion_gender_processor.process_image"
+            },
+            {
+                "id": "e3",
+                "source": "faces.upload",
+                "target": "flask.send_file"
+            },
+            {
+                "id": "e4",
+                "source": "faces.upload",
+                "target": "logging.error"
+            },
+            {
+                "id": "e5",
+                "source": "faces.upload",
+                "target": "flask.abort"
+            },
+            {
+                "id": "e6",
+                "source": "faces.bad_request",
+                "target": "flask.make_response"
+            },
+            {
+                "id": "e7",
+                "source": "faces.bad_request",
+                "target": "flask.jsonify"
+            },
+            {
+                "id": "e8",
+                "source": "faces.not_found",
+                "target": "flask.make_response"
+            },
+            {
+                "id": "e9",
+                "source": "faces.not_found",
+                "target": "flask.jsonify"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/web/emotion_gender_processor.py": {
+        "nodes": [
+            {
+                "id": "emotion_gender_processor.process_image",
+                "function_name": "process_image",
+                "file": "emotion_gender_processor.py",
+                "line_start": 18,
+                "line_end": 87,
+                "description": "Main function to detect faces in an image, classify emotion and gender, annotate and save the result."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "emotion_gender_processor.process_image",
+                "target": "utils.datasets.get_labels",
+                "description": "Load emotion and gender labels."
+            },
+            {
+                "id": "e1",
+                "source": "emotion_gender_processor.process_image",
+                "target": "utils.inference.load_detection_model",
+                "description": "Load Haar cascade face detector."
+            },
+            {
+                "id": "e2",
+                "source": "emotion_gender_processor.process_image",
+                "target": "keras.models.load_model",
+                "description": "Load emotion and gender classification models."
+            },
+            {
+                "id": "e3",
+                "source": "emotion_gender_processor.process_image",
+                "target": "numpy.fromstring",
+                "description": "Convert input bytes to NumPy array."
+            },
+            {
+                "id": "e4",
+                "source": "emotion_gender_processor.process_image",
+                "target": "cv2.imdecode",
+                "description": "Decode image bytes to OpenCV image."
+            },
+            {
+                "id": "e5",
+                "source": "emotion_gender_processor.process_image",
+                "target": "cv2.cvtColor",
+                "description": "Convert image color spaces (BGR->RGB, BGR->GRAY)."
+            },
+            {
+                "id": "e6",
+                "source": "emotion_gender_processor.process_image",
+                "target": "utils.inference.detect_faces",
+                "description": "Detect faces in the grayscale image."
+            },
+            {
+                "id": "e7",
+                "source": "emotion_gender_processor.process_image",
+                "target": "utils.inference.apply_offsets",
+                "description": "Apply bounding box offsets for cropping faces."
+            },
+            {
+                "id": "e8",
+                "source": "emotion_gender_processor.process_image",
+                "target": "cv2.resize",
+                "description": "Resize face regions to model input sizes."
+            },
+            {
+                "id": "e9",
+                "source": "emotion_gender_processor.process_image",
+                "target": "utils.preprocessor.preprocess_input",
+                "description": "Preprocess RGB and grayscale face images."
+            },
+            {
+                "id": "e10",
+                "source": "emotion_gender_processor.process_image",
+                "target": "numpy.expand_dims",
+                "description": "Add batch dimension to preprocessed face arrays."
+            },
+            {
+                "id": "e11",
+                "source": "emotion_gender_processor.process_image",
+                "target": "gender_classifier.predict",
+                "description": "Predict gender on the RGB face."
+            },
+            {
+                "id": "e12",
+                "source": "emotion_gender_processor.process_image",
+                "target": "emotion_classifier.predict",
+                "description": "Predict emotion on the grayscale face."
+            },
+            {
+                "id": "e13",
+                "source": "emotion_gender_processor.process_image",
+                "target": "numpy.argmax",
+                "description": "Select the highest-probability class from model outputs."
+            },
+            {
+                "id": "e14",
+                "source": "emotion_gender_processor.process_image",
+                "target": "utils.inference.draw_bounding_box",
+                "description": "Draw box around detected face."
+            },
+            {
+                "id": "e15",
+                "source": "emotion_gender_processor.process_image",
+                "target": "utils.inference.draw_text",
+                "description": "Draw gender and emotion labels on the image."
+            },
+            {
+                "id": "e16",
+                "source": "emotion_gender_processor.process_image",
+                "target": "logging.error",
+                "description": "Log any exception during processing."
+            },
+            {
+                "id": "e17",
+                "source": "emotion_gender_processor.process_image",
+                "target": "os.path.exists",
+                "description": "Check if the output directory exists."
+            },
+            {
+                "id": "e18",
+                "source": "emotion_gender_processor.process_image",
+                "target": "os.mkdir",
+                "description": "Create the output directory if missing."
+            },
+            {
+                "id": "e19",
+                "source": "emotion_gender_processor.process_image",
+                "target": "cv2.imwrite",
+                "description": "Save the annotated image to disk."
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/utils/datasets.py": {
+        "nodes": [
+            {
+                "id": "datasets.DataManager.__init__",
+                "function_name": "__init__",
+                "file": "datasets.py",
+                "line_start": 12,
+                "line_end": 28,
+                "description": "Constructor for DataManager: sets dataset_name, path, image_size and resolves default paths or raises on unknown name."
+            },
+            {
+                "id": "datasets.DataManager.get_data",
+                "function_name": "get_data",
+                "file": "datasets.py",
+                "line_start": 30,
+                "line_end": 37,
+                "description": "Dispatch method to load the appropriate dataset based on dataset_name."
+            },
+            {
+                "id": "datasets.DataManager._load_imdb",
+                "function_name": "_load_imdb",
+                "file": "datasets.py",
+                "line_start": 39,
+                "line_end": 57,
+                "description": "Loads and filters the IMDB dataset from a .mat file, returns mapping of image paths to gender labels."
+            },
+            {
+                "id": "datasets.DataManager._load_fer2013",
+                "function_name": "_load_fer2013",
+                "file": "datasets.py",
+                "line_start": 59,
+                "line_end": 72,
+                "description": "Loads FER2013 CSV, converts pixel strings to resized arrays and one-hot encodes emotions."
+            },
+            {
+                "id": "datasets.DataManager._load_KDEF",
+                "function_name": "_load_KDEF",
+                "file": "datasets.py",
+                "line_start": 74,
+                "line_end": 102,
+                "description": "Walks KDEF directory, loads, resizes images, maps filenames to emotion classes and builds arrays."
+            },
+            {
+                "id": "datasets.get_labels",
+                "function_name": "get_labels",
+                "file": "datasets.py",
+                "line_start": 105,
+                "line_end": 114,
+                "description": "Returns label mapping for provided dataset name or raises on invalid."
+            },
+            {
+                "id": "datasets.get_class_to_arg",
+                "function_name": "get_class_to_arg",
+                "file": "datasets.py",
+                "line_start": 117,
+                "line_end": 126,
+                "description": "Returns a mapping from class names to integer indices for a given dataset."
+            },
+            {
+                "id": "datasets.split_imdb_data",
+                "function_name": "split_imdb_data",
+                "file": "datasets.py",
+                "line_start": 129,
+                "line_end": 137,
+                "description": "Splits IMDB ground truth dict into training and validation keys, with optional shuffling."
+            },
+            {
+                "id": "datasets.split_data",
+                "function_name": "split_data",
+                "file": "datasets.py",
+                "line_start": 140,
+                "line_end": 149,
+                "description": "Splits arrays x and y into training and validation sets by a given ratio."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "datasets.DataManager.get_data",
+                "target": "datasets.DataManager._load_imdb"
+            },
+            {
+                "id": "e1",
+                "source": "datasets.DataManager.get_data",
+                "target": "datasets.DataManager._load_fer2013"
+            },
+            {
+                "id": "e2",
+                "source": "datasets.DataManager.get_data",
+                "target": "datasets.DataManager._load_KDEF"
+            },
+            {
+                "id": "e3",
+                "source": "datasets.DataManager._load_imdb",
+                "target": "scipy.io.loadmat"
+            },
+            {
+                "id": "e4",
+                "source": "datasets.DataManager._load_imdb",
+                "target": "np.isnan"
+            },
+            {
+                "id": "e5",
+                "source": "datasets.DataManager._load_imdb",
+                "target": "np.logical_not"
+            },
+            {
+                "id": "e6",
+                "source": "datasets.DataManager._load_imdb",
+                "target": "np.logical_and"
+            },
+            {
+                "id": "e7",
+                "source": "datasets.DataManager._load_fer2013",
+                "target": "pd.read_csv"
+            },
+            {
+                "id": "e8",
+                "source": "datasets.DataManager._load_fer2013",
+                "target": "np.asarray"
+            },
+            {
+                "id": "e9",
+                "source": "datasets.DataManager._load_fer2013",
+                "target": "cv2.resize"
+            },
+            {
+                "id": "e10",
+                "source": "datasets.DataManager._load_fer2013",
+                "target": "np.expand_dims"
+            },
+            {
+                "id": "e11",
+                "source": "datasets.DataManager._load_fer2013",
+                "target": "pd.get_dummies"
+            },
+            {
+                "id": "e12",
+                "source": "datasets.DataManager._load_KDEF",
+                "target": "datasets.get_class_to_arg"
+            },
+            {
+                "id": "e13",
+                "source": "datasets.DataManager._load_KDEF",
+                "target": "os.walk"
+            },
+            {
+                "id": "e14",
+                "source": "datasets.DataManager._load_KDEF",
+                "target": "os.path.join"
+            },
+            {
+                "id": "e15",
+                "source": "datasets.DataManager._load_KDEF",
+                "target": "cv2.imread"
+            },
+            {
+                "id": "e16",
+                "source": "datasets.DataManager._load_KDEF",
+                "target": "cv2.resize"
+            },
+            {
+                "id": "e17",
+                "source": "datasets.DataManager._load_KDEF",
+                "target": "np.zeros"
+            },
+            {
+                "id": "e18",
+                "source": "datasets.DataManager._load_KDEF",
+                "target": "np.expand_dims"
+            },
+            {
+                "id": "e19",
+                "source": "datasets.DataManager._load_KDEF",
+                "target": "os.path.basename"
+            },
+            {
+                "id": "e20",
+                "source": "datasets.split_imdb_data",
+                "target": "random.shuffle"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/utils/preprocessor.py": {
+        "nodes": [
+            {
+                "id": "preprocessor.preprocess_input",
+                "function_name": "preprocess_input",
+                "file": "preprocessor.py",
+                "line_start": 5,
+                "line_end": 11,
+                "description": "Normalize image array x to [0,1], then optionally scale to [-1,1] if v2=True."
+            },
+            {
+                "id": "preprocessor._imread",
+                "function_name": "_imread",
+                "file": "preprocessor.py",
+                "line_start": 14,
+                "line_end": 16,
+                "description": "Read image from disk using scipy.misc.imread."
+            },
+            {
+                "id": "preprocessor._imresize",
+                "function_name": "_imresize",
+                "file": "preprocessor.py",
+                "line_start": 18,
+                "line_end": 20,
+                "description": "Resize image array using scipy.misc.imresize."
+            },
+            {
+                "id": "preprocessor.to_categorical",
+                "function_name": "to_categorical",
+                "file": "preprocessor.py",
+                "line_start": 22,
+                "line_end": 27,
+                "description": "Convert integer class labels to one-hot encoded matrix."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "preprocessor._imread",
+                "target": "scipy.misc.imread"
+            },
+            {
+                "id": "e1",
+                "source": "preprocessor._imresize",
+                "target": "scipy.misc.imresize"
+            },
+            {
+                "id": "e2",
+                "source": "preprocessor.to_categorical",
+                "target": "numpy.asarray"
+            },
+            {
+                "id": "e3",
+                "source": "preprocessor.to_categorical",
+                "target": "numpy.zeros"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/utils/grad_cam.py": {
+        "nodes": [
+            {
+                "id": "grad_cam.reset_optimizer_weights",
+                "function_name": "reset_optimizer_weights",
+                "file": "grad_cam.py",
+                "line_start": 15,
+                "line_end": 18,
+                "description": "Remove optimizer weights group from an HDF5 model file."
+            },
+            {
+                "id": "grad_cam.target_category_loss",
+                "function_name": "target_category_loss",
+                "file": "grad_cam.py",
+                "line_start": 21,
+                "line_end": 22,
+                "description": "Zero out all classes except the target category in model output tensor."
+            },
+            {
+                "id": "grad_cam.target_category_loss_output_shape",
+                "function_name": "target_category_loss_output_shape",
+                "file": "grad_cam.py",
+                "line_start": 25,
+                "line_end": 26,
+                "description": "Pass through the output shape for the target category loss layer."
+            },
+            {
+                "id": "grad_cam.normalize",
+                "function_name": "normalize",
+                "file": "grad_cam.py",
+                "line_start": 29,
+                "line_end": 31,
+                "description": "Normalize tensor by its L2 norm."
+            },
+            {
+                "id": "grad_cam.load_image",
+                "function_name": "load_image",
+                "file": "grad_cam.py",
+                "line_start": 34,
+                "line_end": 37,
+                "description": "Expand dims and preprocess an input image array."
+            },
+            {
+                "id": "grad_cam.register_gradient",
+                "function_name": "register_gradient",
+                "file": "grad_cam.py",
+                "line_start": 40,
+                "line_end": 47,
+                "description": "Register a custom guided backpropagation gradient for ReLU."
+            },
+            {
+                "id": "grad_cam.compile_saliency_function",
+                "function_name": "compile_saliency_function",
+                "file": "grad_cam.py",
+                "line_start": 50,
+                "line_end": 55,
+                "description": "Compile a Keras function to compute saliency maps at a given conv layer."
+            },
+            {
+                "id": "grad_cam.modify_backprop",
+                "function_name": "modify_backprop",
+                "file": "grad_cam.py",
+                "line_start": 58,
+                "line_end": 79,
+                "description": "Override ReLU gradient and reload model for guided backpropagation."
+            },
+            {
+                "id": "grad_cam.deprocess_image",
+                "function_name": "deprocess_image",
+                "file": "grad_cam.py",
+                "line_start": 82,
+                "line_end": 102,
+                "description": "Convert a tensor into a displayable uint8 RGB image."
+            },
+            {
+                "id": "grad_cam.compile_gradient_function",
+                "function_name": "compile_gradient_function",
+                "file": "grad_cam.py",
+                "line_start": 105,
+                "line_end": 119,
+                "description": "Build a function that computes conv layer activations and gradients for a target class."
+            },
+            {
+                "id": "grad_cam.calculate_gradient_weighted_CAM",
+                "function_name": "calculate_gradient_weighted_CAM",
+                "file": "grad_cam.py",
+                "line_start": 122,
+                "line_end": 141,
+                "description": "Compute Grad-CAM heatmap and overlay it on the image."
+            },
+            {
+                "id": "grad_cam.calculate_guided_gradient_CAM",
+                "function_name": "calculate_guided_gradient_CAM",
+                "file": "grad_cam.py",
+                "line_start": 144,
+                "line_end": 152,
+                "description": "Combine guided backpropagation saliency with Grad-CAM."
+            },
+            {
+                "id": "grad_cam.calculate_guided_gradient_CAM_v2",
+                "function_name": "calculate_guided_gradient_CAM_v2",
+                "file": "grad_cam.py",
+                "line_start": 155,
+                "line_end": 168,
+                "description": "Alternative guided Grad-CAM combining resized heatmap and saliency."
+            },
+            {
+                "id": "grad_cam.__main__",
+                "function_name": "__main__",
+                "file": "grad_cam.py",
+                "line_start": 170,
+                "line_end": 190,
+                "description": "Script entry point: load model and data, compute and save guided Grad-CAM image."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "grad_cam.reset_optimizer_weights",
+                "target": "h5py.File"
+            },
+            {
+                "id": "e1",
+                "source": "grad_cam.reset_optimizer_weights",
+                "target": "h5py.File.close"
+            },
+            {
+                "id": "e2",
+                "source": "grad_cam.target_category_loss",
+                "target": "tensorflow.multiply"
+            },
+            {
+                "id": "e3",
+                "source": "grad_cam.target_category_loss",
+                "target": "keras.backend.one_hot"
+            },
+            {
+                "id": "e4",
+                "source": "grad_cam.normalize",
+                "target": "keras.backend.sqrt"
+            },
+            {
+                "id": "e5",
+                "source": "grad_cam.normalize",
+                "target": "keras.backend.mean"
+            },
+            {
+                "id": "e6",
+                "source": "grad_cam.normalize",
+                "target": "keras.backend.square"
+            },
+            {
+                "id": "e7",
+                "source": "grad_cam.load_image",
+                "target": "numpy.expand_dims"
+            },
+            {
+                "id": "e8",
+                "source": "grad_cam.load_image",
+                "target": "grad_cam.preprocess_input"
+            },
+            {
+                "id": "e9",
+                "source": "grad_cam.register_gradient",
+                "target": "tensorflow.python.framework.ops._gradient_registry"
+            },
+            {
+                "id": "e10",
+                "source": "grad_cam.compile_saliency_function",
+                "target": "K.max"
+            },
+            {
+                "id": "e11",
+                "source": "grad_cam.compile_saliency_function",
+                "target": "K.gradients"
+            },
+            {
+                "id": "e12",
+                "source": "grad_cam.compile_saliency_function",
+                "target": "K.function"
+            },
+            {
+                "id": "e13",
+                "source": "grad_cam.modify_backprop",
+                "target": "tensorflow.get_default_graph"
+            },
+            {
+                "id": "e14",
+                "source": "grad_cam.modify_backprop",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e15",
+                "source": "grad_cam.deprocess_image",
+                "target": "numpy.ndim"
+            },
+            {
+                "id": "e16",
+                "source": "grad_cam.deprocess_image",
+                "target": "numpy.squeeze"
+            },
+            {
+                "id": "e17",
+                "source": "grad_cam.deprocess_image",
+                "target": "keras.backend.image_dim_ordering"
+            },
+            {
+                "id": "e18",
+                "source": "grad_cam.compile_gradient_function",
+                "target": "grad_cam.target_category_loss"
+            },
+            {
+                "id": "e19",
+                "source": "grad_cam.compile_gradient_function",
+                "target": "grad_cam.target_category_loss_output_shape"
+            },
+            {
+                "id": "e20",
+                "source": "grad_cam.compile_gradient_function",
+                "target": "grad_cam.normalize"
+            },
+            {
+                "id": "e21",
+                "source": "grad_cam.compile_gradient_function",
+                "target": "K.gradients"
+            },
+            {
+                "id": "e22",
+                "source": "grad_cam.compile_gradient_function",
+                "target": "K.function"
+            },
+            {
+                "id": "e23",
+                "source": "grad_cam.calculate_gradient_weighted_CAM",
+                "target": "cv2.resize"
+            },
+            {
+                "id": "e24",
+                "source": "grad_cam.calculate_gradient_weighted_CAM",
+                "target": "numpy.mean"
+            },
+            {
+                "id": "e25",
+                "source": "grad_cam.calculate_gradient_weighted_CAM",
+                "target": "cv2.applyColorMap"
+            },
+            {
+                "id": "e26",
+                "source": "grad_cam.calculate_guided_gradient_CAM",
+                "target": "grad_cam.calculate_gradient_weighted_CAM"
+            },
+            {
+                "id": "e27",
+                "source": "grad_cam.calculate_guided_gradient_CAM",
+                "target": "grad_cam.deprocess_image"
+            },
+            {
+                "id": "e28",
+                "source": "grad_cam.calculate_guided_gradient_CAM",
+                "target": "saliency_function"
+            },
+            {
+                "id": "e29",
+                "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+                "target": "grad_cam.calculate_gradient_weighted_CAM"
+            },
+            {
+                "id": "e30",
+                "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+                "target": "grad_cam.deprocess_image"
+            },
+            {
+                "id": "e31",
+                "source": "grad_cam.__main__",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e32",
+                "source": "grad_cam.__main__",
+                "target": "grad_cam.load_image"
+            },
+            {
+                "id": "e33",
+                "source": "grad_cam.__main__",
+                "target": "model.predict"
+            },
+            {
+                "id": "e34",
+                "source": "grad_cam.__main__",
+                "target": "numpy.argmax"
+            },
+            {
+                "id": "e35",
+                "source": "grad_cam.__main__",
+                "target": "grad_cam.compile_gradient_function"
+            },
+            {
+                "id": "e36",
+                "source": "grad_cam.__main__",
+                "target": "grad_cam.register_gradient"
+            },
+            {
+                "id": "e37",
+                "source": "grad_cam.__main__",
+                "target": "grad_cam.modify_backprop"
+            },
+            {
+                "id": "e38",
+                "source": "grad_cam.__main__",
+                "target": "grad_cam.compile_saliency_function"
+            },
+            {
+                "id": "e39",
+                "source": "grad_cam.__main__",
+                "target": "grad_cam.calculate_guided_gradient_CAM"
+            },
+            {
+                "id": "e40",
+                "source": "grad_cam.__main__",
+                "target": "cv2.imwrite"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/utils/inference.py": {
+        "nodes": [
+            {
+                "id": "inference.load_image",
+                "function_name": "load_image",
+                "file": "inference.py",
+                "line_start": 6,
+                "line_end": 8,
+                "description": "Loads an image from disk and converts it to a NumPy array."
+            },
+            {
+                "id": "inference.load_detection_model",
+                "function_name": "load_detection_model",
+                "file": "inference.py",
+                "line_start": 10,
+                "line_end": 12,
+                "description": "Loads a face detection model using OpenCV CascadeClassifier."
+            },
+            {
+                "id": "inference.detect_faces",
+                "function_name": "detect_faces",
+                "file": "inference.py",
+                "line_start": 14,
+                "line_end": 15,
+                "description": "Detects faces in a grayscale image array using the provided detection model."
+            },
+            {
+                "id": "inference.draw_bounding_box",
+                "function_name": "draw_bounding_box",
+                "file": "inference.py",
+                "line_start": 17,
+                "line_end": 20,
+                "description": "Draws a rectangle on the image array around detected face coordinates."
+            },
+            {
+                "id": "inference.apply_offsets",
+                "function_name": "apply_offsets",
+                "file": "inference.py",
+                "line_start": 21,
+                "line_end": 24,
+                "description": "Applies offsets to face coordinates to expand the bounding box region."
+            },
+            {
+                "id": "inference.draw_text",
+                "function_name": "draw_text",
+                "file": "inference.py",
+                "line_start": 26,
+                "line_end": 31,
+                "description": "Overlays text on the image at specified coordinates with styling options."
+            },
+            {
+                "id": "inference.get_colors",
+                "function_name": "get_colors",
+                "file": "inference.py",
+                "line_start": 33,
+                "line_end": 36,
+                "description": "Generates a list of distinct colors for plotting based on the number of classes."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "inference.load_image",
+                "target": "keras.preprocessing.image.load_img"
+            },
+            {
+                "id": "e1",
+                "source": "inference.load_image",
+                "target": "keras.preprocessing.image.img_to_array"
+            },
+            {
+                "id": "e2",
+                "source": "inference.load_detection_model",
+                "target": "cv2.CascadeClassifier"
+            },
+            {
+                "id": "e3",
+                "source": "inference.detect_faces",
+                "target": "cv2.CascadeClassifier.detectMultiScale"
+            },
+            {
+                "id": "e4",
+                "source": "inference.draw_bounding_box",
+                "target": "cv2.rectangle"
+            },
+            {
+                "id": "e5",
+                "source": "inference.draw_text",
+                "target": "cv2.putText"
+            },
+            {
+                "id": "e6",
+                "source": "inference.get_colors",
+                "target": "matplotlib.pyplot.cm.hsv"
+            },
+            {
+                "id": "e7",
+                "source": "inference.get_colors",
+                "target": "numpy.linspace"
+            },
+            {
+                "id": "e8",
+                "source": "inference.get_colors",
+                "target": "numpy.asarray"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/utils/data_augmentation.py": {
+        "nodes": [
+            {
+                "id": "ImageGenerator",
+                "function_name": "ImageGenerator",
+                "file": "data_augmentation.py",
+                "line_start": 11,
+                "line_end": 20,
+                "description": "Class defining image data augmentation generator."
+            },
+            {
+                "id": "ImageGenerator.__init__",
+                "function_name": "__init__",
+                "file": "data_augmentation.py",
+                "line_start": 21,
+                "line_end": 60,
+                "description": "Constructor initializing augmentation parameters."
+            },
+            {
+                "id": "ImageGenerator._do_random_crop",
+                "function_name": "_do_random_crop",
+                "file": "data_augmentation.py",
+                "line_start": 61,
+                "line_end": 81,
+                "description": "Applies random crop and scaling to an image."
+            },
+            {
+                "id": "ImageGenerator.do_random_rotation",
+                "function_name": "do_random_rotation",
+                "file": "data_augmentation.py",
+                "line_start": 83,
+                "line_end": 103,
+                "description": "Applies random rotation and scaling to an image."
+            },
+            {
+                "id": "ImageGenerator._gray_scale",
+                "function_name": "_gray_scale",
+                "file": "data_augmentation.py",
+                "line_start": 105,
+                "line_end": 107,
+                "description": "Converts an RGB image to grayscale."
+            },
+            {
+                "id": "ImageGenerator.saturation",
+                "function_name": "saturation",
+                "file": "data_augmentation.py",
+                "line_start": 108,
+                "line_end": 115,
+                "description": "Applies random saturation jitter."
+            },
+            {
+                "id": "ImageGenerator.brightness",
+                "function_name": "brightness",
+                "file": "data_augmentation.py",
+                "line_start": 116,
+                "line_end": 120,
+                "description": "Applies random brightness jitter."
+            },
+            {
+                "id": "ImageGenerator.contrast",
+                "function_name": "contrast",
+                "file": "data_augmentation.py",
+                "line_start": 122,
+                "line_end": 128,
+                "description": "Applies random contrast jitter."
+            },
+            {
+                "id": "ImageGenerator.lighting",
+                "function_name": "lighting",
+                "file": "data_augmentation.py",
+                "line_start": 130,
+                "line_end": 137,
+                "description": "Applies PCA-based lighting noise."
+            },
+            {
+                "id": "ImageGenerator.horizontal_flip",
+                "function_name": "horizontal_flip",
+                "file": "data_augmentation.py",
+                "line_start": 139,
+                "line_end": 145,
+                "description": "Randomly flips image horizontally and adjusts boxes."
+            },
+            {
+                "id": "ImageGenerator.vertical_flip",
+                "function_name": "vertical_flip",
+                "file": "data_augmentation.py",
+                "line_start": 146,
+                "line_end": 152,
+                "description": "Randomly flips image vertically and adjusts boxes."
+            },
+            {
+                "id": "ImageGenerator.transform",
+                "function_name": "transform",
+                "file": "data_augmentation.py",
+                "line_start": 153,
+                "line_end": 168,
+                "description": "Applies full sequence of color and geometric augmentations."
+            },
+            {
+                "id": "ImageGenerator.preprocess_images",
+                "function_name": "preprocess_images",
+                "file": "data_augmentation.py",
+                "line_start": 170,
+                "line_end": 172,
+                "description": "Applies preprocessing to batch of images."
+            },
+            {
+                "id": "ImageGenerator.flow",
+                "function_name": "flow",
+                "file": "data_augmentation.py",
+                "line_start": 173,
+                "line_end": 232,
+                "description": "Yields augmented batches of images and targets."
+            },
+            {
+                "id": "ImageGenerator._wrap_in_dictionary",
+                "function_name": "_wrap_in_dictionary",
+                "file": "data_augmentation.py",
+                "line_start": 233,
+                "line_end": 235,
+                "description": "Wraps inputs and targets into dict for model input."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "ImageGenerator.saturation",
+                "target": "ImageGenerator._gray_scale"
+            },
+            {
+                "id": "e1",
+                "source": "ImageGenerator.contrast",
+                "target": "ImageGenerator._gray_scale"
+            },
+            {
+                "id": "e2",
+                "source": "ImageGenerator.transform",
+                "target": "ImageGenerator.saturation"
+            },
+            {
+                "id": "e3",
+                "source": "ImageGenerator.transform",
+                "target": "ImageGenerator.brightness"
+            },
+            {
+                "id": "e4",
+                "source": "ImageGenerator.transform",
+                "target": "ImageGenerator.contrast"
+            },
+            {
+                "id": "e5",
+                "source": "ImageGenerator.transform",
+                "target": "ImageGenerator.lighting"
+            },
+            {
+                "id": "e6",
+                "source": "ImageGenerator.transform",
+                "target": "ImageGenerator.horizontal_flip"
+            },
+            {
+                "id": "e7",
+                "source": "ImageGenerator.transform",
+                "target": "ImageGenerator.vertical_flip"
+            },
+            {
+                "id": "e8",
+                "source": "ImageGenerator.flow",
+                "target": "preprocessor._imread"
+            },
+            {
+                "id": "e9",
+                "source": "ImageGenerator.flow",
+                "target": "preprocessor._imresize"
+            },
+            {
+                "id": "e10",
+                "source": "ImageGenerator.flow",
+                "target": "ImageGenerator._do_random_crop"
+            },
+            {
+                "id": "e11",
+                "source": "ImageGenerator.flow",
+                "target": "ImageGenerator.transform"
+            },
+            {
+                "id": "e12",
+                "source": "ImageGenerator.flow",
+                "target": "preprocessor.to_categorical"
+            },
+            {
+                "id": "e13",
+                "source": "ImageGenerator.flow",
+                "target": "ImageGenerator.preprocess_images"
+            },
+            {
+                "id": "e14",
+                "source": "ImageGenerator.flow",
+                "target": "ImageGenerator._wrap_in_dictionary"
+            },
+            {
+                "id": "e15",
+                "source": "ImageGenerator.preprocess_images",
+                "target": "preprocessor.preprocess_input"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/utils/visualizer.py": {
+        "nodes": [
+            {
+                "id": "visualizer.make_mosaic",
+                "function_name": "make_mosaic",
+                "file": "visualizer.py",
+                "line_start": 8,
+                "line_end": 24,
+                "description": "Arrange a batch of images into a mosaic grid with optional border."
+            },
+            {
+                "id": "visualizer.make_mosaic_v2",
+                "function_name": "make_mosaic_v2",
+                "file": "visualizer.py",
+                "line_start": 27,
+                "line_end": 50,
+                "description": "Alternate mosaic builder that infers grid size if not provided."
+            },
+            {
+                "id": "visualizer.pretty_imshow",
+                "function_name": "pretty_imshow",
+                "file": "visualizer.py",
+                "line_start": 53,
+                "line_end": 66,
+                "description": "Display an image with a colorbar alongside using fancy layout."
+            },
+            {
+                "id": "visualizer.normal_imshow",
+                "function_name": "normal_imshow",
+                "file": "visualizer.py",
+                "line_start": 68,
+                "line_end": 80,
+                "description": "Display an image on an axis with optional axis off."
+            },
+            {
+                "id": "visualizer.display_image",
+                "function_name": "display_image",
+                "file": "visualizer.py",
+                "line_start": 83,
+                "line_end": 100,
+                "description": "Show a single face image, optionally with predicted class title."
+            },
+            {
+                "id": "visualizer.draw_mosaic",
+                "function_name": "draw_mosaic",
+                "file": "visualizer.py",
+                "line_start": 102,
+                "line_end": 127,
+                "description": "Draw a grid of images with optional class titles using subplots."
+            },
+            {
+                "id": "visualizer.__main__",
+                "function_name": "main",
+                "file": "visualizer.py",
+                "line_start": 129,
+                "line_end": 177,
+                "description": "Script entrypoint: load data, build mosaics, visualize kernels from a trained model."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "visualizer.make_mosaic",
+                "target": "numpy.floor"
+            },
+            {
+                "id": "e1",
+                "source": "visualizer.make_mosaic",
+                "target": "numpy.squeeze"
+            },
+            {
+                "id": "e2",
+                "source": "visualizer.make_mosaic_v2",
+                "target": "numpy.squeeze"
+            },
+            {
+                "id": "e3",
+                "source": "visualizer.make_mosaic_v2",
+                "target": "numpy.ceil"
+            },
+            {
+                "id": "e4",
+                "source": "visualizer.make_mosaic_v2",
+                "target": "numpy.sqrt"
+            },
+            {
+                "id": "e5",
+                "source": "visualizer.pretty_imshow",
+                "target": "mpl_toolkits.axes_grid1.make_axes_locatable"
+            },
+            {
+                "id": "e6",
+                "source": "visualizer.pretty_imshow",
+                "target": "axis.imshow"
+            },
+            {
+                "id": "e7",
+                "source": "visualizer.pretty_imshow",
+                "target": "matplotlib.pyplot.colorbar"
+            },
+            {
+                "id": "e8",
+                "source": "visualizer.normal_imshow",
+                "target": "axis.imshow"
+            },
+            {
+                "id": "e9",
+                "source": "visualizer.normal_imshow",
+                "target": "matplotlib.pyplot.axis"
+            },
+            {
+                "id": "e10",
+                "source": "visualizer.display_image",
+                "target": "numpy.squeeze"
+            },
+            {
+                "id": "e11",
+                "source": "visualizer.display_image",
+                "target": "numpy.argmax"
+            },
+            {
+                "id": "e12",
+                "source": "visualizer.display_image",
+                "target": "matplotlib.pyplot.figure"
+            },
+            {
+                "id": "e13",
+                "source": "visualizer.display_image",
+                "target": "matplotlib.pyplot.title"
+            },
+            {
+                "id": "e14",
+                "source": "visualizer.display_image",
+                "target": "visualizer.pretty_imshow"
+            },
+            {
+                "id": "e15",
+                "source": "visualizer.draw_mosaic",
+                "target": "numpy.argmax"
+            },
+            {
+                "id": "e16",
+                "source": "visualizer.draw_mosaic",
+                "target": "matplotlib.pyplot.subplots"
+            },
+            {
+                "id": "e17",
+                "source": "visualizer.draw_mosaic",
+                "target": "matplotlib.pyplot.tight_layout"
+            },
+            {
+                "id": "e18",
+                "source": "visualizer.__main__",
+                "target": "utils.utils.get_labels"
+            },
+            {
+                "id": "e19",
+                "source": "visualizer.__main__",
+                "target": "pickle.load"
+            },
+            {
+                "id": "e20",
+                "source": "visualizer.__main__",
+                "target": "visualizer.make_mosaic"
+            },
+            {
+                "id": "e21",
+                "source": "visualizer.__main__",
+                "target": "visualizer.pretty_imshow"
+            },
+            {
+                "id": "e22",
+                "source": "visualizer.__main__",
+                "target": "matplotlib.pyplot.show"
+            },
+            {
+                "id": "e23",
+                "source": "visualizer.__main__",
+                "target": "keras.models.load_model"
+            },
+            {
+                "id": "e24",
+                "source": "visualizer.__main__",
+                "target": "visualizer.make_mosaic"
+            },
+            {
+                "id": "e25",
+                "source": "visualizer.__main__",
+                "target": "visualizer.pretty_imshow"
+            },
+            {
+                "id": "e26",
+                "source": "visualizer.__main__",
+                "target": "matplotlib.pyplot.show"
+            }
+        ]
+    },
+    "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/face_classification/src/models/cnn.py": {
+        "nodes": [
+            {
+                "id": "cnn.simple_CNN",
+                "function_name": "simple_CNN",
+                "file": "cnn.py",
+                "line_start": 14,
+                "line_end": 56,
+                "description": "Builds a simple sequential CNN model with multiple Conv2D, BatchNormalization, Activation, Pooling, Dropout, and GlobalAveragePooling layers."
+            },
+            {
+                "id": "cnn.simpler_CNN",
+                "function_name": "simpler_CNN",
+                "file": "cnn.py",
+                "line_start": 59,
+                "line_end": 108,
+                "description": "Builds a reduced sequential CNN with strided convolutions, BatchNormalization, Activation, Dropout, and Flatten layers."
+            },
+            {
+                "id": "cnn.tiny_XCEPTION",
+                "function_name": "tiny_XCEPTION",
+                "file": "cnn.py",
+                "line_start": 111,
+                "line_end": 205,
+                "description": "Constructs a compact Xception-style model with separable convolutions, residual connections, BatchNormalization, Activation, Pooling, and GlobalAveragePooling."
+            },
+            {
+                "id": "cnn.mini_XCEPTION",
+                "function_name": "mini_XCEPTION",
+                "file": "cnn.py",
+                "line_start": 207,
+                "line_end": 301,
+                "description": "Smaller Xception-style model variant with fewer filters and separable convolution modules, residual connections, and GlobalAveragePooling."
+            },
+            {
+                "id": "cnn.big_XCEPTION",
+                "function_name": "big_XCEPTION",
+                "file": "cnn.py",
+                "line_start": 303,
+                "line_end": 345,
+                "description": "Larger Xception-style architecture with initial Conv2D blocks, separable convolution modules, residual merges, and GlobalAveragePooling."
+            },
+            {
+                "id": "cnn.main",
+                "function_name": "main",
+                "file": "cnn.py",
+                "line_start": 348,
+                "line_end": 358,
+                "description": "Entry point: sets input shape and num_classes, invokes simple_CNN and prints model summary."
+            }
+        ],
+        "edges": [
+            {
+                "id": "e0",
+                "source": "cnn.main",
+                "target": "cnn.simple_CNN"
+            },
+            {
+                "id": "e1",
+                "source": "cnn.simple_CNN",
+                "target": "keras.models.Sequential"
+            },
+            {
+                "id": "e2",
+                "source": "cnn.simple_CNN",
+                "target": "keras.layers.Convolution2D"
+            },
+            {
+                "id": "e3",
+                "source": "cnn.simple_CNN",
+                "target": "keras.layers.BatchNormalization"
+            },
+            {
+                "id": "e4",
+                "source": "cnn.simple_CNN",
+                "target": "keras.layers.Activation"
+            },
+            {
+                "id": "e5",
+                "source": "cnn.simple_CNN",
+                "target": "keras.layers.AveragePooling2D"
+            },
+            {
+                "id": "e6",
+                "source": "cnn.simple_CNN",
+                "target": "keras.layers.Dropout"
+            },
+            {
+                "id": "e7",
+                "source": "cnn.simple_CNN",
+                "target": "keras.layers.GlobalAveragePooling2D"
+            },
+            {
+                "id": "e8",
+                "source": "cnn.simpler_CNN",
+                "target": "keras.models.Sequential"
+            },
+            {
+                "id": "e9",
+                "source": "cnn.simpler_CNN",
+                "target": "keras.layers.Convolution2D"
+            },
+            {
+                "id": "e10",
+                "source": "cnn.simpler_CNN",
+                "target": "keras.layers.BatchNormalization"
+            },
+            {
+                "id": "e11",
+                "source": "cnn.simpler_CNN",
+                "target": "keras.layers.Activation"
+            },
+            {
+                "id": "e12",
+                "source": "cnn.simpler_CNN",
+                "target": "keras.layers.Dropout"
+            },
+            {
+                "id": "e13",
+                "source": "cnn.simpler_CNN",
+                "target": "keras.layers.Flatten"
+            },
+            {
+                "id": "e14",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.regularizers.l2"
+            },
+            {
+                "id": "e15",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.layers.Input"
+            },
+            {
+                "id": "e16",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.layers.Conv2D"
+            },
+            {
+                "id": "e17",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.layers.BatchNormalization"
+            },
+            {
+                "id": "e18",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.layers.Activation"
+            },
+            {
+                "id": "e19",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.layers.SeparableConv2D"
+            },
+            {
+                "id": "e20",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.layers.MaxPooling2D"
+            },
+            {
+                "id": "e21",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.layers.add"
+            },
+            {
+                "id": "e22",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.layers.GlobalAveragePooling2D"
+            },
+            {
+                "id": "e23",
+                "source": "cnn.tiny_XCEPTION",
+                "target": "keras.models.Model"
+            },
+            {
+                "id": "e24",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.regularizers.l2"
+            },
+            {
+                "id": "e25",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.layers.Input"
+            },
+            {
+                "id": "e26",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.layers.Conv2D"
+            },
+            {
+                "id": "e27",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.layers.BatchNormalization"
+            },
+            {
+                "id": "e28",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.layers.Activation"
+            },
+            {
+                "id": "e29",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.layers.SeparableConv2D"
+            },
+            {
+                "id": "e30",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.layers.MaxPooling2D"
+            },
+            {
+                "id": "e31",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.layers.add"
+            },
+            {
+                "id": "e32",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.layers.GlobalAveragePooling2D"
+            },
+            {
+                "id": "e33",
+                "source": "cnn.mini_XCEPTION",
+                "target": "keras.models.Model"
+            },
+            {
+                "id": "e34",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.layers.Input"
+            },
+            {
+                "id": "e35",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.layers.Conv2D"
+            },
+            {
+                "id": "e36",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.layers.BatchNormalization"
+            },
+            {
+                "id": "e37",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.layers.Activation"
+            },
+            {
+                "id": "e38",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.layers.SeparableConv2D"
+            },
+            {
+                "id": "e39",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.layers.MaxPooling2D"
+            },
+            {
+                "id": "e40",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.layers.add"
+            },
+            {
+                "id": "e41",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.layers.GlobalAveragePooling2D"
+            },
+            {
+                "id": "e42",
+                "source": "cnn.big_XCEPTION",
+                "target": "keras.models.Model"
+            }
+        ]
+    }
+}
