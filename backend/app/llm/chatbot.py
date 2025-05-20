@@ -81,7 +81,7 @@ class LangGraphChatbotEngine:
         self.graph.add_edge("llm", END)
         self.app = self.graph.compile()
 
-    async def ask(self, code: str, query: str, diagram: str = None, history: list = None):
+    async def ask(self, query: str, code: str = None, diagram: str = None, history: list = None):
         state: ChatbotState = {
             "code": code,
             "query": query,
@@ -93,13 +93,13 @@ class LangGraphChatbotEngine:
         result = await self.app.ainvoke(state)
         return result['answer'], result['highlight'], result['history']
 
-async def generate_chatbot_answer_with_session(session_id: str, code: str, diagram: str, query: str):
+async def generate_chatbot_answer_with_session(session_id: str, query: str, code: str = None, diagram: str = None):
     """
     세션 기반 챗봇 답변 생성. 세션별 history를 서버에서 관리.
     """
     session = get_session(session_id)
     engine = session["engine"]
     history = session["history"]
-    answer, highlight, updated_history = await engine.ask(code, query, diagram, history)
+    answer, highlight, updated_history = await engine.ask(query, code, diagram, history)
     session["history"] = updated_history  # 서버에 최신 history 저장
     return answer, highlight

@@ -2,6 +2,7 @@ import logging
 import inspect
 import traceback
 import os
+import asyncio
 from fastapi import HTTPException
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
@@ -52,15 +53,20 @@ async def generate_control_flow_graphs_for_directory(root_path: str, file_type: 
     source_files = get_source_files(root_path, file_type)
     print(f"Source files found: {source_files}")
     results = {}
-    for file_path in source_files:
+
+    async def process_file(file_path):
+        # print(f"Processing file: {file_path}")
         try:
             output_json = await generate_control_flow_graph_for_file(root_path, file_path)
-            results[file_path] = output_json
-            #Test
-            # break
+            return (file_path, output_json)
         except Exception as e:
-            # Optionally log or collect errors per file
-            results[file_path] = {"error": str(e)}
+            return (file_path, {"error": str(e)})
+
+    tasks = [process_file(file_path) for file_path in source_files]
+    results_list = await asyncio.gather(*tasks)
+    # print(f"Results: {results_list}")
+    for file_path, output in results_list:
+        results[file_path] = output
     return results
 
 async def generate_control_flow_graph_for_file(root_path: str, file_path: str):
@@ -74,9 +80,9 @@ async def generate_control_flow_graph_for_file(root_path: str, file_path: str):
             model_kwargs={"reasoning": reasoning}
         )
         messages = create_messages(file_path)
-        response = llm.invoke(messages)
+        # 비동기 메서드가 있다면 이렇게!
+        response = await llm.ainvoke(messages)
         print(f"Output for {file_path}: {response.text()}")
-        # print(f"Reasoning: {response.additional_kwargs['reasoning']}")
         text = response.text().strip()
         # JSON 파싱 전, ```json ... ``` 블록 처리
         if text.startswith("```json"):
@@ -110,7 +116,8 @@ async def generate_control_flow_graph(root_path: str, file_type: Optional[str]):
         # Save the results to a JSON file
         results_str = ""
         with open(CFG_JSON_OUTPUT, "w", encoding="utf-8") as f:
-            results_str = json.dump(results, f, indent=4, ensure_ascii=False)
+            json.dump(results, f, indent=4, ensure_ascii=False)
+            results_str = json.dumps(results, indent=4, ensure_ascii=False)
         print(f"Control flow graphs saved to {CFG_JSON_OUTPUT}")
         #results should be json string
         return results_str

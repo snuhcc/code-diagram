@@ -24,12 +24,13 @@ class SessionResponse(BaseModel):
 
 # 챗봇 쿼리 요청 모델
 class ChatbotQueryRequest(BaseModel):
-    session_id: str
-    code: str  # 사용자가 탐색하고자 하는 코드
-    diagram: Optional[str] = None  # 관련 다이어그램 정보 (json string 등)
+    session_id: str # 세션 ID
     query: str  # 사용자의 자연어 질문
-
+    code: Optional[str] = None # 사용자가 탐색하고자 하는 코드
+    diagram: Optional[str] = None # 관련 다이어그램 정보 (json string 등)
+    
 # 챗봇 응답 모델
 class ChatbotQueryResponse(BaseModel):
     answer: str  # 챗봇의 자연어 답변
+    # 아직 아래는 어떻게 처리할지 모르겟음, 
     highlight: Optional[list] = None  # 강조할 코드/다이어그램 부분 (예: 라인 번호, 노드 id 등)

@@ -62,19 +62,27 @@ async def sample_cfg():
 
 @app.post("/api/chatbot/session/open")
 async def api_open_session():
-    session_id = create_session()
-    return SessionResponse(session_id=session_id)
+    try:
+        session_id = create_session()
+        return SessionResponse(session_id=session_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/chatbot/session/close")
 async def api_close_session(req: SessionRequest):
-    remove_session(req.session_id)
-    return {"status": "closed"}
+    try:
+        if not req.session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        remove_session(req.session_id)
+        return {"status": "closed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/chatbot/session/chat", response_model=ChatbotQueryResponse)
 async def api_session_chat(req: ChatbotQueryRequest):
     try:
         answer, highlight = await generate_chatbot_answer_with_session(
-            req.session_id, req.code, req.diagram, req.query
+            req.session_id, req.query, req.code, req.diagram
         )
         return ChatbotQueryResponse(answer=answer, highlight=highlight)
     except KeyError:
