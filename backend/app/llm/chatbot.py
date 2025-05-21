@@ -1,6 +1,8 @@
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
 from typing_extensions import TypedDict
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
 import uuid
 from llm.constants import OPENAI_GPT_4_1
 
@@ -20,6 +22,7 @@ def create_session() -> str:
         "engine": LangGraphChatbotEngine(),
         "history": [],
     }
+    print(f"Session {session_id} opened.")
     return session_id
 
 def get_session(session_id: str) -> SessionData:
@@ -28,11 +31,19 @@ def get_session(session_id: str) -> SessionData:
     """
     return session_store[session_id]
 
+def get_session_history(session_id: str) -> list:
+    """
+    세션 ID로 세션 히스토리 반환. 없으면 KeyError.
+    """
+    session = get_session(session_id)
+    return session["history"]
+
 def remove_session(session_id: str):
     """
     세션 종료 및 데이터 삭제.
     """
     if session_id in session_store:
+        print(f"Session {session_id} closed.")
         del session_store[session_id]
 
 class ChatbotState(TypedDict, total=False):
@@ -43,20 +54,26 @@ class ChatbotState(TypedDict, total=False):
     answer: str | None
     highlight: list
 
+SYSTEM_PROMPT = "당신은 친절하고 유능한 Python 소프트웨어 전문가 입니다. 사용자의 질문에 정확하고 간결하게 한국어로 답변하세요."
+
 def llm_node(state: ChatbotState, llm):
     """
     LLM을 호출해 답변을 생성하는 LangGraph 노드 함수.
     """
-    prompt = f"""아래 코드를 참고해서 사용자의 질문에 답변해 주세요.
-            <code>
-            {state['code']}
-            </code>
-            """
+    human_prompt = """아래 INPUT 정보를 참고해서 충분히 고민한 후 사용자의 질문에 정확하고 간결하게 답변하세요.
+    INPUT: 질문, 채팅 히스토리, 코드[Optional], 다이어그램[Optional]"""
+    human_prompt += f"\n[질문]: {state['query']}"
+    if state.get('history'):
+        human_prompt += f"\n[채팅 히스토리]: {state['history']}"
+    if state.get('code'):
+        human_prompt += f"\n<code>\n{state['code']}\n</code>\n"
     if state.get('diagram'):
-        prompt += f"\n<diagram>\n{state['diagram']}\n</diagram>\n"
-    prompt += f"\n[질문]: {state['query']}"
+        human_prompt += f"\n<diagram>\n{state['diagram']}\n</diagram>\n"
+    system_message = SystemMessage(content=SYSTEM_PROMPT)
+    human_message = HumanMessage(content=human_prompt)
 
-    response = llm.invoke(prompt)
+    messages = [system_message] + [human_message]
+    response = llm.invoke(messages)
     if hasattr(response, "content") and isinstance(response.content, list) and response.content and "text" in response.content[0]:
         state['answer'] = response.content[0]["text"]
     else:
@@ -64,8 +81,9 @@ def llm_node(state: ChatbotState, llm):
     state['highlight'] = []
     if 'history' not in state or state['history'] is None:
         state['history'] = []
-    state['history'].append({"role": "user", "content": prompt})
-    state['history'].append({"role": "assistant", "content": state['answer']})
+    state['history'].append({"USER": state['query']})
+    state['history'].append({"AI": state['answer']})
+
     return state
 
 class LangGraphChatbotEngine:

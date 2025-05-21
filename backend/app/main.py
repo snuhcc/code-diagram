@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from schemas.common import *
 from llm.diagram_generator import generate_control_flow_graph
-from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session
+from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
 from fastapi.responses import JSONResponse
 
 import json
@@ -60,7 +60,7 @@ async def sample_cfg():
     data = json.loads(json_path.read_text(encoding="utf-8"))
     return JSONResponse(content=data)
 
-@app.post("/api/chatbot/session/open")
+@app.get("/api/chatbot/session/open")
 async def api_open_session():
     try:
         session_id = create_session()
@@ -81,11 +81,27 @@ async def api_close_session(req: SessionRequest):
 @app.post("/api/chatbot/session/chat", response_model=ChatbotQueryResponse)
 async def api_session_chat(req: ChatbotQueryRequest):
     try:
+        if not req.session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        if not req.query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        print(f"Session ID: {req.session_id}")
+        print(f"Query: {req.query}")
+        print(f"Code: {req.code}")
+        print(f"Diagram: {req.diagram}")
         answer, highlight = await generate_chatbot_answer_with_session(
             req.session_id, req.query, req.code, req.diagram
         )
         return ChatbotQueryResponse(answer=answer, highlight=highlight)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Session not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/chatbot/session/get_history")
+async def api_get_session_history(session_id: str):
+    try:
+        if not session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        history = get_session_history(session_id)
+        return {"session_id": session_id, "history": history}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
