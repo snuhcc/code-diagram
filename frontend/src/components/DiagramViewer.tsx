@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ReactFlow,
   Background,
@@ -10,6 +10,8 @@ import {
   type Node,
   type Edge,
   type NodeMouseHandler,
+  applyNodeChanges,
+  NodeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
@@ -60,7 +62,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function DiagramViewer() {
   // State
-  const [baseNodes, setBaseNodes] = useState<Node[]>([]);
+  const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState<string>();
@@ -168,6 +170,14 @@ export default function DiagramViewer() {
     setSnippet('');
   };
 
+  // Handle node changes (dragging, etc.)
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      setNodes((nds) => applyNodeChanges(changes, nds));
+    },
+    [setNodes]
+  );
+
   // Load diagram data and cache it
   useEffect(() => {
     (async () => {
@@ -196,7 +206,7 @@ export default function DiagramViewer() {
         hydrate(json);
       } catch (e: any) {
         setErr(String(e));
-        setBaseNodes([]);
+        setNodes([]);
         setEdges([]);
       } finally {
         setLoad(false);
@@ -205,7 +215,7 @@ export default function DiagramViewer() {
   }, []);
 
   // Compute node styles
-  const nodes = baseNodes.map((n) => {
+  const finalNodes = nodes.map((n) => {
     const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
     const isActive = clean === activePath;
     const isHover = hoverId === n.id;
@@ -234,17 +244,16 @@ export default function DiagramViewer() {
     return <div className="p-4 text-sm text-slate-500">diagram loading…</div>;
   if (error)
     return (
-      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">
-        {error}
-      </div>
+      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
     );
 
   // Render
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
-        nodes={nodes}
+        nodes={finalNodes}
         edges={edges}
+        onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
         onNodeMouseEnter={onEnter}
         onNodeMouseLeave={onLeave}
@@ -308,16 +317,14 @@ export default function DiagramViewer() {
       allEdges = allEdges.concat(fileEdges);
     });
 
-    setBaseNodes(layout(allNodes, allEdges));
+    const laidOutNodes = layout(allNodes, allEdges);
+    setNodes(laidOutNodes);
     setEdges(allEdges);
   }
 }
 
 // Utility to find FileNode by path
-function findByPath(
-  nodes: FileNode[] = [],
-  p: string
-): FileNode | undefined {
+function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
   for (const n of nodes) {
     if (n.path?.replace(/^poc[\\/]/, '') === p) return n;
     if (n.children) {

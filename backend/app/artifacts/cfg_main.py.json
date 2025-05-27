@@ -6,29 +6,33 @@
             "file": "poc/main.py",
             "line_start": 7,
             "line_end": 15,
-            "description": "Main function that orchestrates data fetching, processing, analysis, and reporting; wraps calls in a try/except."
+            "description": "Main function that orchestrates the data fetching, processing, analysis, and reporting workflow."
         }
     ],
     "edges": [
         {
             "id": "e0",
             "source": "main.main",
-            "target": "fetcher.fetch_data"
+            "target": "fetcher.fetch_data",
+            "comment": "Call to fetch_data from fetcher module"
         },
         {
             "id": "e1",
             "source": "main.main",
-            "target": "processor.process_data"
+            "target": "processor.process_data",
+            "comment": "Call to process_data from processor module"
         },
         {
             "id": "e2",
             "source": "main.main",
-            "target": "analyzer.analyze_data"
+            "target": "analyzer.analyze_data",
+            "comment": "Call to analyze_data from analyzer module"
         },
         {
             "id": "e3",
             "source": "main.main",
-            "target": "reporter.generate_report"
+            "target": "reporter.generate_report",
+            "comment": "Call to generate_report from reporter module"
         }
     ]
 }

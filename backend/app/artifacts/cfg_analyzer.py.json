@@ -6,19 +6,8 @@
             "file": "poc/analyzer.py",
             "line_start": 4,
             "line_end": 16,
-            "description": "Function that computes average, median, and partitions data into high and low values."
+            "description": "Function that computes average, median, and splits data into high and low values."
         }
     ],
-    "edges": [
-        {
-            "id": "e0",
-            "source": "analyzer.analyze_data",
-            "target": "statistics.mean"
-        },
-        {
-            "id": "e1",
-            "source": "analyzer.analyze_data",
-            "target": "statistics.median"
-        }
-    ]
+    "edges": []
 }

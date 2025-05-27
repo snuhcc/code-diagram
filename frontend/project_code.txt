@@ -941,7 +941,6 @@ export default function SearchPanel() {
       return;
     }
 
-    // fileContents를 사용해 프론트엔드에서 검색
     const results = allFiles.filter((file) => {
       const content = fileContents[file];
       return content && content.toLowerCase().includes(query.toLowerCase());
@@ -952,11 +951,22 @@ export default function SearchPanel() {
   const handleFileClick = (path: string) => {
     const cleanPath = path.replace(/^poc[\\/]/, '');
     const name = cleanPath.split('/').pop() || cleanPath;
-    useEditor.getState().open({
+    const editorState = useEditor.getState();
+    editorState.open({
       id: nanoid(),
       path: cleanPath,
       name,
     });
+    // 검색어가 있으면 하이라이트를 위해 저장
+    if (query.trim()) {
+      // 파일 내용에서 검색어의 첫 번째 위치를 찾아 라인 번호를 계산
+      const content = fileContents[path] || '';
+      const lines = content.split('\n');
+      const line = lines.findIndex((line) => line.toLowerCase().includes(query.toLowerCase())) + 1;
+      if (line > 0) {
+        editorState.setSearchHighlights(line, query);
+      }
+    }
   };
 
   return (
@@ -970,7 +980,7 @@ export default function SearchPanel() {
       />
       <div className="overflow-y-auto max-h-[calc(100%-2rem)]">
         {query.trim() === '' ? (
-          <p className="text-xs text-gray-500">검색어를 입력하세요</p>
+          <p className="text-xs text-gray-500">Enter a keyword</p>
         ) : searchResults.length > 0 ? (
           searchResults.map((file, i) => (
             <div
@@ -982,7 +992,7 @@ export default function SearchPanel() {
             </div>
           ))
         ) : (
-          <p className="text-xs text-gray-500">검색 결과가 없습니다</p>
+          <p className="text-xs text-gray-500">No search results found</p>
         )}
       </div>
     </div>

@@ -6,7 +6,7 @@
             "file": "poc/reporter.py",
             "line_start": 2,
             "line_end": 21,
-            "description": "Function to generate and print a report based on analysis data, including average, median, counts, and comparison of high vs low values."
+            "description": "Generates a report by printing average, median, high/low counts and comparing high vs low counts.\n- Lines 3–7: retrieve and assign analysis values\n- Lines 9–13: print report header and values\n- Lines 15–20: conditional branch to compare counts"
         }
     ],
     "edges": []
