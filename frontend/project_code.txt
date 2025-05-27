@@ -1,4 +1,4 @@
-[frontend/src/components/ChatUI.tsx]
+[src/components/ChatUI.tsx]
 'use client';
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
@@ -11,21 +11,73 @@ function SendIcon() {
   );
 }
 
+const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
 export default function ChatUI() {
   const [input, setInput] = useState('');
   const [log, setLog] = useState<{ role: 'user' | 'bot'; t: string }[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    async function openSession() {
+      try {
+        const res = await fetch(`${apiUrl}/api/chatbot/session/open`, { method: 'GET' });
+        if (!res.ok) throw new Error(`Failed to open session: ${res.status} ${res.statusText}`);
+        const data = await res.json();
+        setSessionId(data.session_id);
+        sessionIdRef.current = data.session_id;
+      } catch (error) {
+        console.error('Failed to open session:', error);
+        setError('Failed to connect to chatbot. Please try again later.');
+      }
+    }
+    openSession();
+
+    return () => {
+      const id = sessionIdRef.current;
+      if (id) {
+        fetch(`${apiUrl}/api/chatbot/session/close`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: id }),
+        });
+      }
+    };
+  }, []);
 
   async function send(e: FormEvent) {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !sessionId) return;
 
     setLog((l) => [...l, { role: 'user', t: input }]);
 
-    const res = await fetch('/api/chat', { method: 'POST', body: input });
-    const text = await res.text();
+    const body = JSON.stringify({
+      session_id: sessionId,
+      query: input,
+      code: '',
+      diagram: '',
+    });
 
-    setLog((l) => [...l, { role: 'bot', t: text }]);
+    try {
+      const res = await fetch(`${apiUrl}/api/chatbot/session/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+      console.log('res', res);
+      if (!res.ok) throw new Error(`Failed to send message: ${res.status} ${res.statusText}`);
+      const data = await res.json();
+      const text = data.answer;
+      console.log('text', text);
+      setLog((l) => [...l, { role: 'bot', t: text }]);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setLog((l) => [...l, { role: 'bot', t: 'Error: Failed to send message. Please try again.' }]);
+    }
+
     setInput('');
   }
 
@@ -36,19 +88,25 @@ export default function ChatUI() {
   return (
     <div className="flex flex-col h-full bg-slate-50 border-t border-slate-300">
       <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-2">
-        {log.map((m, i) => (
-          <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-            <div
-              className={
-                m.role === 'user'
-                  ? 'bg-sky-100 text-sky-800 rounded-md px-3 py-2 max-w-[70%] whitespace-pre-wrap'
-                  : 'bg-gray-200 text-gray-800 rounded-md px-3 py-2 max-w-[70%] whitespace-pre-wrap'
-              }
-            >
-              {m.t}
+        {error ? (
+          <div className="p-2 text-red-600">{error}</div>
+        ) : log.length === 0 && !sessionId ? (
+          <div className="text-center text-gray-500">Connecting to chatbot...</div>
+        ) : (
+          log.map((m, i) => (
+            <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+              <div
+                className={
+                  m.role === 'user'
+                    ? 'bg-sky-100 text-sky-800 rounded-md px-3 py-2 max-w-[70%] whitespace-pre-wrap'
+                    : 'bg-gray-200 text-gray-800 rounded-md px-3 py-2 max-w-[70%] whitespace-pre-wrap'
+                }
+              >
+                {m.t}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <form onSubmit={send} className="flex items-center border-t border-slate-300 p-2">
@@ -59,10 +117,12 @@ export default function ChatUI() {
           rows={1}
           placeholder="Ask something…"
         />
-
         <button
           type="submit"
-          className="ml-2 w-10 h-10 flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white rounded transition-colors"
+          disabled={!sessionId}
+          className={`ml-2 w-10 h-10 flex items-center justify-center rounded transition-colors ${
+            sessionId ? 'bg-sky-600 hover:bg-sky-700' : 'bg-gray-400 cursor-not-allowed'
+          } text-white`}
         >
           <SendIcon />
         </button>
@@ -72,7 +132,7 @@ export default function ChatUI() {
 }
 
 
-[frontend/src/components/CodeViewer.tsx]
+[src/components/CodeViewer.tsx]
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -122,8 +182,8 @@ export default function CodeViewer({ filePath }: { filePath: string }) {
 }
 
 
-[frontend/src/components/DiagramViewer.tsx]
-// src/components/DiagramViewer.tsx
+[src/components/DiagramViewer.tsx]
+// frontend/src/components/DiagramViewer.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -139,11 +199,16 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
-import { nanoid } from 'nanoid';              // 🔸 (1) 탭 id용
-import { useEditor } from '@/store/editor';   // 🔸 (1) 에디터 스토어
+import { nanoid } from 'nanoid';
+import { useEditor } from '@/store/editor';
+import { useFS, type FileNode } from '@/store/files';
 
-/* ───────────── dagre helper ───────────── */
-function layout(nodes: Node[] = [], edges: Edge[] = []) {
+/* ────────────────────────── 전역 캐시 ────────────────────────── */
+let diagramCache: DiagramJSON | null = null;
+const snippetCache = new Map<string, string>(); // <cleanPath, preview>
+
+/* ─────────────────── dagre 레이아웃 유틸 ──────────────────── */
+function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
   const g = new dagre.graphlib.Graph().setGraph({
     rankdir: 'TB',
     nodesep: 50,
@@ -161,11 +226,11 @@ function layout(nodes: Node[] = [], edges: Edge[] = []) {
   });
 }
 
-/* ──────────── 타입 (백엔드 공통) ─────────── */
+/* ────────────────────── 공통 타입 ─────────────────────────── */
 interface RawNode {
   id: string;
   label: string;
-  file: string;       // ← JSON에 이미 포함
+  file: string;
 }
 interface RawEdge {
   id: string;
@@ -178,34 +243,87 @@ interface DiagramJSON {
   edges: RawEdge[];
 }
 
-/* ──────────── 엔드포인트 ──────────── */
+/* ──────────────────── API ENDPOINT ───────────────────────── */
 const ENDPOINT = '/api/generate_control_flow_graph';
 
+/* ──────────────────── 컴포넌트 ───────────────────────────── */
 export default function DiagramViewer({ filePath }: { filePath: string }) {
-  const [nodes, setNodes] = useState<Node[]>([]);
+  /* ─── 상태 ────────────────────────────────────────────── */
+  const [baseNodes, setBaseNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState<string>();
-  const openTab = useEditor((s) => s.open);           // 🔸 (1) 탭 열기 함수
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [snippet, setSnippet] = useState<string>('');
 
-  /* ───── 노드 클릭 시 코드 탭 열기 ───── */
+  /* ─── zustand 스토어 ─────────────────────────────────── */
+  const editorState = useEditor.getState();
+  const fsState = useFS.getState();
+
+  /* ─── 현재 에디터에 열린 파일 경로 ─────────────────────── */
+  const activePath =
+    editorState.tabs.find((t) => t.id === editorState.activeId)?.path ??
+    editorState.tabs.at(-1)?.path ??
+    '';
+
+  /* ─── 노드 클릭: 코드 탭 열고 탐색기 하이라이트 ────────── */
   const onNodeClick: NodeMouseHandler = (_, node) => {
-    const file: string | undefined = (node.data as any)?.file;
-    if (!file) return;
+    const raw = (node.data as any)?.file as string | undefined;
+    if (!raw) return;
 
-    // 'poc/...' 앞부분 제거
-    const clean = file.replace(/^poc[\\/]/, '');
-    openTab({
+    const clean = raw.replace(/^poc[\\/]/, '');
+    editorState.open({
       id: nanoid(),
       path: clean,
       name: clean.split(/[\\/]/).pop() ?? clean,
     });
+
+    const target = findByPath(fsState.tree, clean);
+    if (target) fsState.setCurrent(target.id);
   };
 
-  useEffect(() => {
-    if (!filePath) return;
+  /* ─── hover 진입/이탈 ─────────────────────────────────── */
+  const onEnter: NodeMouseHandler = async (_, node) => {
+    setHoverId(node.id);
 
+    const raw = (node.data as any)?.file as string | undefined;
+    if (!raw) {
+      setSnippet('');
+      return;
+    }
+    const clean = raw.replace(/^poc[\\/]/, '');
+
+    if (snippetCache.has(clean)) {
+      setSnippet(snippetCache.get(clean)!);
+      return;
+    }
+
+    try {
+      const txt = await fetch(
+        `/api/file?path=${encodeURIComponent(clean)}`
+      ).then((r) => r.text());
+      const preview = txt.split('\n').slice(0, 15).join('\n');
+      snippetCache.set(clean, preview);
+      setSnippet(preview);
+    } catch {
+      setSnippet('(preview unavailable)');
+    }
+  };
+
+  const onLeave: NodeMouseHandler = () => {
+    setHoverId(null);
+    setSnippet('');
+  };
+
+  /* ─── 다이어그램 로딩 & 캐시 ───────────────────────────── */
+  useEffect(() => {
     (async () => {
+      if (diagramCache) {
+        hydrate(diagramCache);
+        setLoad(false);
+        return;
+      }
+
       setLoad(true);
       setErr(undefined);
 
@@ -213,12 +331,11 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
         const res = await fetch(`http://localhost:8000${ENDPOINT}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}), // 기본값
+          body: JSON.stringify({}),
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
-        const raw: any = await res.json();
-
+        const raw = await res.json();
         const json: DiagramJSON =
           typeof raw === 'string'
             ? JSON.parse(raw)
@@ -226,32 +343,11 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
             ? JSON.parse(raw.data)
             : raw?.data ?? raw;
 
-        /* ─── 노드/엣지 변환 ───────────────────────── */
-        const n: Node[] = json.nodes.map((r) => ({
-          id: r.id,
-          data: { label: r.label, file: r.file },   // 🔸 (2) file 경로 보관
-          position: { x: 0, y: 0 },
-          style: {
-            padding: 6,
-            borderRadius: 4,
-            border: '1px solid #3b82f6',
-            background: '#fff',
-          },
-        }));
-
-        const e: Edge[] = json.edges.map((r) => ({
-          id: r.id,
-          source: r.source,
-          target: r.target,
-          animated: true,
-          markerEnd: { type: MarkerType.ArrowClosed },
-        }));
-
-        setNodes(layout(n, e));
-        setEdges(e);
-      } catch (e) {
+        diagramCache = json;
+        hydrate(json);
+      } catch (e: any) {
         setErr(String(e));
-        setNodes([]);
+        setBaseNodes([]);
         setEdges([]);
       } finally {
         setLoad(false);
@@ -259,19 +355,50 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     })();
   }, [filePath]);
 
+  /* ─── 노드 스타일 계산 ───────────────────────────────── */
+  const nodes = baseNodes.map((n) => {
+    const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
+    const isActive = clean === activePath;
+    const isHover = hoverId === n.id;
+
+    return {
+      ...n,
+      style: {
+        ...n.style,
+        background: isHover
+          ? '#fef9c3' // yellow-100
+          : isActive
+          ? '#dbeafe' // sky-100
+          : '#ffffff',
+        border: isHover
+          ? '2px solid #eab308' // yellow-600
+          : isActive
+          ? '2px solid #0284c7' // sky-600
+          : '1px solid #3b82f6',
+        transition: 'all 0.1s ease-in-out',
+      },
+    };
+  });
+
+  /* ─── 로딩·에러 분기 ──────────────────────────────────── */
   if (loading)
     return <div className="p-4 text-sm text-slate-500">diagram loading…</div>;
   if (error)
     return (
-      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
+      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">
+        {error}
+      </div>
     );
 
+  /* ─── 렌더링 ──────────────────────────────────────────── */
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodeClick={onNodeClick}          // 🔸 (2) 클릭 핸들러 연결
+        onNodeClick={onNodeClick}
+        onNodeMouseEnter={onEnter}
+        onNodeMouseLeave={onLeave}
         fitView
         minZoom={0.2}
         maxZoom={2}
@@ -281,12 +408,64 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
         <MiniMap pannable zoomable />
         <Controls />
       </ReactFlow>
+
+      {/* ─── 우측 하단 코드 스니펫 패널 ─────────────────── */}
+      {hoverId && snippet && (
+        <div
+          className="absolute bottom-2 right-2 w-[340px] max-h-[220px]
+                     bg-slate-800 text-slate-100 text-xs
+                     rounded shadow-lg p-3 overflow-auto
+                     whitespace-pre font-mono"
+        >
+          {snippet}
+        </div>
+      )}
     </div>
   );
+
+  /* ─── JSON → 상태 반영 ───────────────────────────────── */
+  function hydrate(json: DiagramJSON) {
+    const n: Node[] = json.nodes.map((r) => ({
+      id: r.id,
+      data: { label: r.label, file: r.file },
+      position: { x: 0, y: 0 },
+      style: {
+        padding: 6,
+        borderRadius: 4,
+        border: '1px solid #3b82f6',
+        background: '#fff',
+      },
+    }));
+
+    const e: Edge[] = json.edges.map((r) => ({
+      id: r.id,
+      source: r.source,
+      target: r.target,
+      markerEnd: { type: MarkerType.ArrowClosed },
+      animated: true,
+    }));
+
+    setBaseNodes(layout(n, e));
+    setEdges(e);
+  }
+}
+
+/* ─────────────────── FileNode 경로 매칭 ─────────────────── */
+function findByPath(
+  nodes: FileNode[] = [],
+  p: string
+): FileNode | undefined {
+  for (const n of nodes) {
+    if (n.path?.replace(/^poc[\\/]/, '') === p) return n;
+    if (n.children) {
+      const r = findByPath(n.children, p);
+      if (r) return r;
+    }
+  }
 }
 
 
-[frontend/src/components/EditorTabs.tsx]
+[src/components/EditorTabs.tsx]
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -400,7 +579,8 @@ export default function EditorTabs() {
 }
 
 
-[frontend/src/components/FileExplorer.tsx]
+[src/components/FileExplorer.tsx]
+// frontend/src/components/FileExplorer.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -411,24 +591,31 @@ import { nanoid } from 'nanoid';
 
 function filterTree(nodes: FileNode[] = []): FileNode[] {
   return nodes
-    .filter((n) => n.name !== '__pycache__')           // ① 현재 노드 제외
+    .filter((n) => n.name !== '__pycache__')
     .map((n) =>
-      Array.isArray(n.children)                        // ② 자식도 재귀적으로 필터
+      Array.isArray(n.children)
         ? { ...n, children: filterTree(n.children) }
-        : n,
+        : n
     );
 }
 
-/* 배열/객체/undefined → 배열 */
 const arr = (x: FileNode[] | FileNode | undefined): FileNode[] =>
   Array.isArray(x) ? x : x ? [x] : [];
 
-/* 한 줄 UI */
 function Row({
-  n, depth, isDir, isOpen, isActive, onClick,
+  n,
+  depth,
+  isDir,
+  isOpen,
+  isActive,
+  onClick,
 }: {
-  n: FileNode; depth: number; isDir: boolean; isOpen: boolean;
-  isActive: boolean; onClick: () => void;
+  n: FileNode;
+  depth: number;
+  isDir: boolean;
+  isOpen: boolean;
+  isActive: boolean;
+  onClick: () => void;
 }) {
   return (
     <div
@@ -449,46 +636,44 @@ function Row({
 export default function FileExplorer() {
   const { tree, current, setCurrent, load } = useFS();
   const [open, setOpen] = useState<Record<string, boolean>>({ poc: true });
+  const { activePath } = useEditor(); // 추가: 활성화된 파일 경로 가져오기
 
-  /* 트리 로드 */
   useEffect(() => {
     (async () => {
       const data: FileNode[] = await fetch('/api/files').then((r) => r.json());
-      load(filterTree(data));                          // ← 필터링 후 저장
+      load(filterTree(data));
     })();
   }, [load]);
 
-  /* 클릭 동작 */
   const click = (n: FileNode) => {
     if (Array.isArray(n.children)) {
-      setOpen(o => ({ ...o, [n.path ?? '']: !o[n.path ?? ''] }));
+      setOpen((o) => ({ ...o, [n.path ?? '']: !o[n.path ?? ''] }));
     } else if (n.path) {
       const clean = n.path.replace(/^poc[\\/]/, '');
-      console.log(clean)
-      // 2) 상태 업데이트
       setCurrent(n.id);
       useEditor.getState().open({
         id: nanoid(),
         path: clean,
         name: n.name,
       });
-
-
     }
   };
 
-  /* 재귀 렌더 */
   const render = (nodes: FileNode[] | FileNode | undefined, depth = 0): JSX.Element[] =>
-    arr(nodes).map(n => {
+    arr(nodes).map((n) => {
       const isDir = Array.isArray(n.children);
       const isOpen = !!open[n.path ?? ''];
-      const isActive = current?.id === n.id;
+      const isActive = n.path?.replace(/^poc[\\/]/, '') === activePath; // 수정: activePath로 비교
 
       return (
         <div key={n.id}>
           <Row
-            n={n} depth={depth} isDir={isDir} isOpen={isOpen}
-            isActive={isActive} onClick={() => click(n)}
+            n={n}
+            depth={depth}
+            isDir={isDir}
+            isOpen={isOpen}
+            isActive={isActive}
+            onClick={() => click(n)}
           />
           {isDir && isOpen && render(n.children, depth + 1)}
         </div>
@@ -502,8 +687,7 @@ export default function FileExplorer() {
   );
 }
 
-
-[frontend/src/components/IconBar.tsx]
+[src/components/IconBar.tsx]
 'use client';
 
 import {
@@ -550,7 +734,7 @@ export default function IconBar({ states, toggle }: Props) {
 }
 
 
-[frontend/src/app/page.tsx]
+[src/app/page.tsx]
 'use client';
 
 import { useState } from 'react';
@@ -642,7 +826,7 @@ export default function Home() {
 }
 
 
-[frontend/src/app/globals.css]
+[src/app/globals.css]
 /* src/app/globals.css */
 @import 'tailwindcss';
 
@@ -707,11 +891,13 @@ body {
 }
 
 
-[frontend/src/store/editor.ts]
+[src/store/editor.ts]
+// frontend/src/store/editor.ts
 'use client';
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { useFS } from '@/store/files'; // 추가: 파일 탐색기 상태 접근
 
 export interface TabMeta {
   id: string;    // nanoid()
@@ -722,8 +908,9 @@ export interface TabMeta {
 interface State {
   tabs: TabMeta[];
   activeId?: string;
-  open:  (file: TabMeta) => void;
-  close: (id: string)    => void;
+  activePath?: string; // 추가: 활성화된 파일 경로 추적
+  open: (file: TabMeta) => void;
+  close: (id: string) => void;
   setActive: (id: string) => void;
 }
 
@@ -731,25 +918,46 @@ export const useEditor = create<State>()(
   immer((set) => ({
     tabs: [],
     activeId: undefined,
-
+    activePath: undefined, // 초기값 설정
     open: (file) =>
       set((s) => {
         if (!s.tabs.find((t) => t.path === file.path)) s.tabs.push(file);
         s.activeId = s.tabs.find((t) => t.path === file.path)?.id ?? file.id;
+        s.activePath = file.path; // 파일 열 때 경로 설정
       }),
-
     close: (id) =>
       set((s) => {
         s.tabs = s.tabs.filter((t) => t.id !== id);
-        if (s.activeId === id) s.activeId = s.tabs.at(-1)?.id;
+        if (s.activeId === id) {
+          const lastTab = s.tabs.at(-1);
+          s.activeId = lastTab?.id;
+          s.activePath = lastTab?.path; // 탭 닫을 때 경로 업데이트
+        }
       }),
-
-    setActive: (id) => set({ activeId: id }),
+    setActive: (id) =>
+      set((s) => {
+        s.activeId = id;
+        s.activePath = s.tabs.find((t) => t.id === id)?.path; // 탭 변경 시 경로 업데이트
+        if (s.activePath) {
+          const node = findByPath(useFS.getState().tree, s.activePath);
+          if (node) useFS.getState().setCurrent(node.id); // 파일 탐색기 동기화
+        }
+      }),
   }))
 );
 
+// 파일 경로로 FileNode를 찾는 유틸리티 함수
+function findByPath(nodes: FileNode[], path: string): FileNode | undefined {
+  for (const n of nodes) {
+    if (n.path?.replace(/^poc[\\/]/, '') === path) return n;
+    if (n.children) {
+      const r = findByPath(n.children, path);
+      if (r) return r;
+    }
+  }
+}
 
-[frontend/src/store/files.ts]
+[src/store/files.ts]
 import { create } from 'zustand'
 
 export type FileNode = { id: string; name: string; path: string; children?: FileNode[] }
@@ -778,4 +986,113 @@ function find(nodes: FileNode[], id: string): FileNode | undefined {
   }
 }
 
+
+[backend/app/main.py]
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+from pathlib import Path
+from schemas.common import *
+from llm.diagram_generator import generate_control_flow_graph
+from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
+from fastapi.responses import JSONResponse
+
+import json
+
+# .env file loading
+load_dotenv()
+
+# FastAPI app initialization
+app = FastAPI(title="Code-Diagram API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 프론트엔드 도메인으로 제한 가능
+    allow_credentials=True,
+    allow_methods=["*"],  # 모든 HTTP 메서드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
+)
+
+# Define the path to the HTML template
+HTML_PATH = Path(__file__).parent / "html" / "root.html"
+
+# API Endpoint
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    try:
+        # Read the HTML content from the file
+        html_content = HTML_PATH.read_text(encoding="utf-8")
+        return HTMLResponse(content=html_content)
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>Template not found</h1>", status_code=404)
+
+@app.post("/api/generate_control_flow_graph", response_model=DiagramResponse)
+async def api_generate_control_flow_graph(request: DiagramRequest):
+    """
+    Generate a control flow graph (CFG) for the given code.
+    """
+    try:
+
+        json_data = await generate_control_flow_graph(request.path, request.file_type)
+        result = {
+            "data": json_data
+        }
+        print(result)
+        return DiagramResponse(**result)
+    except Exception as e:
+        return DiagramResponse(status=500, data=str(e))
+    
+@app.get("/api/sample_cfg")
+async def sample_cfg():
+    """artifacts/cfg_json_output.json 파일 그대로 반환"""
+    json_path = Path(__file__).parent / "artifacts" / "stored_poc" / "cfg_json_output_all.json"
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    return JSONResponse(content=data)
+
+@app.get("/api/chatbot/session/open")
+async def api_open_session():
+    try:
+        session_id = create_session()
+        return SessionResponse(session_id=session_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/chatbot/session/close")
+async def api_close_session(req: SessionRequest):
+    try:
+        if not req.session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        remove_session(req.session_id)
+        return {"status": "closed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/chatbot/session/chat", response_model=ChatbotQueryResponse)
+async def api_session_chat(req: ChatbotQueryRequest):
+    try:
+        if not req.session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        if not req.query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        print(f"Session ID: {req.session_id}")
+        print(f"Query: {req.query}")
+        print(f"Code: {req.code}")
+        print(f"Diagram: {req.diagram}")
+        answer, highlight = await generate_chatbot_answer_with_session(
+            req.session_id, req.query, req.code, req.diagram
+        )
+        return ChatbotQueryResponse(answer=answer, highlight=highlight)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/chatbot/session/get_history")
+async def api_get_session_history(session_id: str):
+    try:
+        if not session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        history = get_session_history(session_id)
+        return {"session_id": session_id, "history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,0 +1,13 @@
+{
+    "nodes": [
+        {
+            "id": "reporter.generate_report",
+            "function_name": "generate_report",
+            "file": "poc/reporter.py",
+            "line_start": 2,
+            "line_end": 21,
+            "description": "Generates a textual report from the provided analysis dictionary, printing statistics and comparative messages."
+        }
+    ],
+    "edges": []
+}

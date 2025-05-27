@@ -1,0 +1,56 @@
+{
+    "nodes": [
+        {
+            "id": "processor.process_data",
+            "function_name": "process_data",
+            "file": "poc/processor.py",
+            "line_start": 3,
+            "line_end": 15,
+            "description": "Iterates over data, dispatching each number to a handler based on divisibility."
+        },
+        {
+            "id": "processor.handle_div3",
+            "function_name": "handle_div3",
+            "file": "poc/processor.py",
+            "line_start": 17,
+            "line_end": 19,
+            "description": "Handles numbers divisible by 3, prints log and returns num // 3."
+        },
+        {
+            "id": "processor.handle_even",
+            "function_name": "handle_even",
+            "file": "poc/processor.py",
+            "line_start": 21,
+            "line_end": 23,
+            "description": "Handles even numbers, prints log and returns num / 2."
+        },
+        {
+            "id": "processor.handle_other",
+            "function_name": "handle_other",
+            "file": "poc/processor.py",
+            "line_start": 25,
+            "line_end": 27,
+            "description": "Handles all other numbers, prints log and returns num * 3 + 1."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "processor.process_data",
+            "target": "processor.handle_div3",
+            "description": "Call when num % 3 == 0"
+        },
+        {
+            "id": "e1",
+            "source": "processor.process_data",
+            "target": "processor.handle_even",
+            "description": "Call when num % 2 == 0 and not divisible by 3"
+        },
+        {
+            "id": "e2",
+            "source": "processor.process_data",
+            "target": "processor.handle_other",
+            "description": "Call for all other cases"
+        }
+    ]
+}
