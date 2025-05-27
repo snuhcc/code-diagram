@@ -48,7 +48,7 @@ async def api_generate_control_flow_graph(request: DiagramRequest):
         result = {
             "data": json_data
         }
-        print(result)
+        print(f'result in main.py: \\{result}')
         return DiagramResponse(**result)
     except Exception as e:
         return DiagramResponse(status=500, data=str(e))

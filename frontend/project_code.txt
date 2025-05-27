@@ -248,7 +248,6 @@ export default function CodeViewer({ filePath }: { filePath: string }) {
 
 
 [src/components/DiagramViewer.tsx]
-// frontend/src/components/DiagramViewer.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -268,11 +267,11 @@ import { nanoid } from 'nanoid';
 import { useEditor } from '@/store/editor';
 import { useFS, type FileNode } from '@/store/files';
 
-/* ────────────────────────── 전역 캐시 ────────────────────────── */
-let diagramCache: DiagramJSON | null = null;
+// Global cache for diagram data and snippets
+let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
 const snippetCache = new Map<string, string>(); // <cleanPath, preview>
 
-/* ─────────────────── dagre 레이아웃 유틸 ──────────────────── */
+// Dagre layout utility
 function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
   const g = new dagre.graphlib.Graph().setGraph({
     rankdir: 'TB',
@@ -291,7 +290,7 @@ function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
   });
 }
 
-/* ────────────────────── 공통 타입 ─────────────────────────── */
+// Common types
 interface RawNode {
   id: string;
   label: string;
@@ -303,18 +302,13 @@ interface RawEdge {
   target: string;
   type?: string;
 }
-interface DiagramJSON {
-  nodes: RawNode[];
-  edges: RawEdge[];
-}
 
-/* ──────────────────── API ENDPOINT ───────────────────────── */
+// API endpoint
 const ENDPOINT = '/api/generate_control_flow_graph';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
-/* ──────────────────── 컴포넌트 ───────────────────────────── */
-export default function DiagramViewer({ filePath }: { filePath: string }) {
-  /* ─── 상태 ────────────────────────────────────────────── */
+export default function DiagramViewer() {
+  // State
   const [baseNodes, setBaseNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoad] = useState(true);
@@ -322,17 +316,17 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<string>('');
 
-  /* ─── zustand 스토어 ─────────────────────────────────── */
+  // Zustand stores
   const editorState = useEditor.getState();
   const fsState = useFS.getState();
 
-  /* ─── 현재 에디터에 열린 파일 경로 ─────────────────────── */
+  // Current active file path
   const activePath =
     editorState.tabs.find((t) => t.id === editorState.activeId)?.path ??
     editorState.tabs.at(-1)?.path ??
     '';
 
-  /* ─── 노드 클릭: 코드 탭 열고 탐색기 하이라이트 ────────── */
+  // Node click handler: open file in editor and highlight in explorer
   const onNodeClick: NodeMouseHandler = (_, node) => {
     const raw = (node.data as any)?.file as string | undefined;
     if (!raw) return;
@@ -348,7 +342,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     if (target) fsState.setCurrent(target.id);
   };
 
-  /* ─── hover 진입/이탈 ─────────────────────────────────── */
+  // Hover handlers
   const onEnter: NodeMouseHandler = async (_, node) => {
     setHoverId(node.id);
 
@@ -381,7 +375,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     setSnippet('');
   };
 
-  /* ─── 다이어그램 로딩 & 캐시 ───────────────────────────── */
+  // Load diagram data and cache it
   useEffect(() => {
     (async () => {
       if (diagramCache) {
@@ -397,17 +391,13 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
         const res = await fetch(`${apiUrl}${ENDPOINT}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ path: '/Users/kyochul_jang/Desktop/Project/code-diagram/poc', file_type: 'py' }),
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
         const raw = await res.json();
-        const json: DiagramJSON =
-          typeof raw === 'string'
-            ? JSON.parse(raw)
-            : typeof raw?.data === 'string'
-            ? JSON.parse(raw.data)
-            : raw?.data ?? raw;
+        const json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> =
+          typeof raw?.data === 'string' ? JSON.parse(raw.data) : raw.data;
 
         diagramCache = json;
         hydrate(json);
@@ -419,9 +409,9 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
         setLoad(false);
       }
     })();
-  }, [filePath]);
+  }, []);
 
-  /* ─── 노드 스타일 계산 ───────────────────────────────── */
+  // Compute node styles
   const nodes = baseNodes.map((n) => {
     const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
     const isActive = clean === activePath;
@@ -446,7 +436,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     };
   });
 
-  /* ─── 로딩·에러 분기 ──────────────────────────────────── */
+  // Loading and error states
   if (loading)
     return <div className="p-4 text-sm text-slate-500">diagram loading…</div>;
   if (error)
@@ -456,7 +446,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
       </div>
     );
 
-  /* ─── 렌더링 ──────────────────────────────────────────── */
+  // Render
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
@@ -475,7 +465,7 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
         <Controls />
       </ReactFlow>
 
-      {/* ─── 우측 하단 코드 스니펫 패널 ─────────────────── */}
+      {/* Code snippet panel */}
       {hoverId && snippet && (
         <div
           className="absolute bottom-2 right-2 w-[340px] max-h-[220px]
@@ -489,34 +479,48 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     </div>
   );
 
-  /* ─── JSON → 상태 반영 ───────────────────────────────── */
-  function hydrate(json: DiagramJSON) {
-    const n: Node[] = json.nodes.map((r) => ({
-      id: r.id,
-      data: { label: r.label, file: r.file },
-      position: { x: 0, y: 0 },
-      style: {
-        padding: 6,
-        borderRadius: 4,
-        border: '1px solid #3b82f6',
-        background: '#fff',
-      },
-    }));
+  // Hydrate JSON data into state
+  function hydrate(json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) {
+    let allNodes: Node[] = [];
+    let allEdges: Edge[] = [];
 
-    const e: Edge[] = json.edges.map((r) => ({
-      id: r.id,
-      source: r.source,
-      target: r.target,
-      markerEnd: { type: MarkerType.ArrowClosed },
-      animated: true,
-    }));
+    Object.entries(json).forEach(([file, data]) => {
+      const { nodes: rawNodes, edges: rawEdges } = data;
 
-    setBaseNodes(layout(n, e));
-    setEdges(e);
+      // Filter edges to remove those referencing non-existent nodes
+      const nodeIds = new Set(rawNodes.map((n) => n.id));
+      const validEdges = rawEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+
+      const fileNodes: Node[] = rawNodes.map((r) => ({
+        id: r.id,
+        data: { label: r.label || r.function_name || r.id, file: r.file }, // Use function_name if label is missing
+        position: { x: 0, y: 0 },
+        style: {
+          padding: 6,
+          borderRadius: 4,
+          border: '1px solid #3b82f6',
+          background: '#fff',
+        },
+      }));
+
+      const fileEdges: Edge[] = validEdges.map((r) => ({
+        id: r.id,
+        source: r.source,
+        target: r.target,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        animated: true,
+      }));
+
+      allNodes = allNodes.concat(fileNodes);
+      allEdges = allEdges.concat(fileEdges);
+    });
+
+    setBaseNodes(layout(allNodes, allEdges));
+    setEdges(allEdges);
   }
 }
 
-/* ─────────────────── FileNode 경로 매칭 ─────────────────── */
+// Utility to find FileNode by path
 function findByPath(
   nodes: FileNode[] = [],
   p: string
@@ -529,7 +533,6 @@ function findByPath(
     }
   }
 }
-
 
 [src/components/EditorTabs.tsx]
 'use client';
@@ -1104,7 +1107,7 @@ async def api_generate_control_flow_graph(request: DiagramRequest):
         result = {
             "data": json_data
         }
-        print(result)
+        print(f'result in main.py: \\{result}')
         return DiagramResponse(**result)
     except Exception as e:
         return DiagramResponse(status=500, data=str(e))

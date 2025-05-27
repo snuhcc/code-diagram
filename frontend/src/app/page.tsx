@@ -67,7 +67,7 @@ export default function Home() {
               {showDia && (
                 <>
                   <Panel defaultSize={70} minSize={30}>
-                    {current && <DiagramViewer filePath={current.path} />}
+                    <DiagramViewer />
                   </Panel>
                   {showChat && <VHandle />}
                 </>

@@ -6,7 +6,7 @@
             "file": "poc/fetcher.py",
             "line_start": 4,
             "line_end": 13,
-            "description": "Function that attempts to fetch data up to a given number of retries, returning a list of random integers on success or raising on failure."
+            "description": "Attempts to fetch data up to a number of retries; returns a list of random integers on success or raises ConnectionError after exhausting retries."
         }
     ],
     "edges": [
