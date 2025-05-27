@@ -1,4 +1,3 @@
-// frontend/src/components/FileExplorer.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -54,12 +53,14 @@ function Row({
 export default function FileExplorer() {
   const { tree, current, setCurrent, load } = useFS();
   const [open, setOpen] = useState<Record<string, boolean>>({ poc: true });
-  const { activePath } = useEditor(); // 추가: 활성화된 파일 경로 가져오기
+  const { activePath } = useEditor();
 
   useEffect(() => {
     (async () => {
       const data: FileNode[] = await fetch('/api/files').then((r) => r.json());
-      load(filterTree(data));
+      const filteredTree = filterTree(data);
+      load(filteredTree);
+      useFS.getState().loadContents(); // 파일 내용 로드
     })();
   }, [load]);
 
@@ -81,7 +82,7 @@ export default function FileExplorer() {
     arr(nodes).map((n) => {
       const isDir = Array.isArray(n.children);
       const isOpen = !!open[n.path ?? ''];
-      const isActive = n.path?.replace(/^poc[\\/]/, '') === activePath; // 수정: activePath로 비교
+      const isActive = n.path?.replace(/^poc[\\/]/, '') === activePath;
 
       return (
         <div key={n.id}>

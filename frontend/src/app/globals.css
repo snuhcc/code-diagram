@@ -60,3 +60,10 @@ body {
 .transition-colors {
   transition: color 0.15s ease, background-color 0.15s ease;
 }
+
+.highlight-line {
+  background-color: rgba(255, 255, 0, 0.2);
+}
+.highlight-text {
+  background-color: rgba(255, 255, 0, 0.5);
+}

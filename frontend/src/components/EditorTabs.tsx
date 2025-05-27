@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { useEditor } from '@/store/editor';
 
-/* ─── 개별 코드 탭 ─────────────────────────────────────────── */
-function CodePane({ path }: { path: string }) {
+function CodePane({ path, highlights }: { path: string; highlights?: { line: number; query: string } }) {
   const [code, setCode] = useState('// loading…');
   const [err, setErr] = useState<string>();
+  const [editor, setEditor] = useState<any>(null);
 
   useEffect(() => {
     let active = true;
@@ -27,6 +27,25 @@ function CodePane({ path }: { path: string }) {
     };
   }, [path]);
 
+  useEffect(() => {
+    if (editor && highlights) {
+      const { line, query } = highlights;
+      editor.revealLineInCenter(line);
+      editor.deltaDecorations([], [
+        {
+          range: new monaco.Range(line, 1, line, 1),
+          options: { isWholeLine: true, className: 'highlight-line' },
+        },
+      ]);
+      const matches = editor.getModel().findMatches(query, true, false, true, null, true);
+      const decorations = matches.map((match) => ({
+        range: match.range,
+        options: { inlineClassName: 'highlight-text' },
+      }));
+      editor.deltaDecorations([], decorations);
+    }
+  }, [editor, highlights]);
+
   const lang = (() => {
     if (path.endsWith('.py')) return 'python';
     if (path.endsWith('.tsx') || path.endsWith('.ts')) return 'typescript';
@@ -42,10 +61,11 @@ function CodePane({ path }: { path: string }) {
 
   return (
     <Editor
-      height="calc(100% - 2rem)" // 상단 탭바 높이 제외
+      height="calc(100% - 2rem)"
       defaultLanguage={lang}
       value={code}
       theme="vs-dark"
+      onMount={(editor) => setEditor(editor)}
       options={{
         readOnly: true,
         fontSize: 14,
@@ -56,9 +76,8 @@ function CodePane({ path }: { path: string }) {
   );
 }
 
-/* ─── 탭 컨테이너 ─────────────────────────────────────────── */
 export default function EditorTabs() {
-  const { tabs, activeId, setActive, close } = useEditor();
+  const { tabs, activeId, setActive, close, searchHighlights } = useEditor();
 
   if (!tabs.length) {
     return (
@@ -72,7 +91,6 @@ export default function EditorTabs() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* 탭 헤더 */}
       <div className="h-8 flex items-center bg-slate-200 border-b border-slate-300 select-none">
         {tabs.map((t) => {
           const on = t.id === active.id;
@@ -101,10 +119,8 @@ export default function EditorTabs() {
           );
         })}
       </div>
-
-      {/* 코드 영역 */}
       <div className="flex-1">
-        <CodePane path={active.path} />
+        <CodePane path={active.path} highlights={searchHighlights} />
       </div>
     </div>
   );

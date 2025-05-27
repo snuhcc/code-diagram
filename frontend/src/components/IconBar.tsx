@@ -1,7 +1,6 @@
-'use client';
-
 import {
   FolderIcon,
+  MagnifyingGlassIcon,
   Squares2X2Icon,
   ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
@@ -9,18 +8,28 @@ import type { ComponentType, SVGProps } from 'react';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 interface Props {
-  states: { exp: boolean; dia: boolean; chat: boolean };
-  toggle: { exp: () => void; dia: () => void; chat: () => void };
+  states?: {
+    explorer?: boolean;
+    search?: boolean;
+    diagram?: boolean;
+    chat?: boolean;
+  };
+  toggle?: {
+    explorer?: () => void;
+    search?: () => void;
+    diagram?: () => void;
+    chat?: () => void;
+  };
 }
 
-export default function IconBar({ states, toggle }: Props) {
+export default function IconBar({ states = {}, toggle = {} }: Props) {
   const Btn = ({
-    on,
-    click,
+    on = false,
+    click = () => {},
     Icon,
   }: {
-    on: boolean;
-    click: () => void;
+    on?: boolean;
+    click?: () => void;
     Icon: IconType;
   }) => (
     <button
@@ -36,8 +45,9 @@ export default function IconBar({ states, toggle }: Props) {
 
   return (
     <div className="flex flex-col border-r border-slate-300 bg-slate-200">
-      <Btn on={states.exp} click={toggle.exp} Icon={FolderIcon} />
-      <Btn on={states.dia} click={toggle.dia} Icon={Squares2X2Icon} />
+      <Btn on={states.explorer} click={toggle.explorer} Icon={FolderIcon} />
+      <Btn on={states.search} click={toggle.search} Icon={MagnifyingGlassIcon} />
+      <Btn on={states.diagram} click={toggle.diagram} Icon={Squares2X2Icon} />
       <Btn on={states.chat} click={toggle.chat} Icon={ChatBubbleLeftRightIcon} />
     </div>
   );

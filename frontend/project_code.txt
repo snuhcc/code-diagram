@@ -1,6 +1,7 @@
 [src/components/ChatUI.tsx]
 import { useState, useEffect, FormEvent } from 'react';
 import { XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { useFS, getAllFilePaths } from '@/store/files';
 
 interface Message {
   role: 'user' | 'bot';
@@ -19,18 +20,18 @@ export default function ChatUI() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownItems, setDropdownItems] = useState<string[]>([]);
+  const { tree } = useFS();
+  const allFiles = getAllFilePaths(tree); // Retrieve all file paths from POC folder
 
-  // Open initial session on mount
   useEffect(() => {
     async function init() {
       const newSessionId = await openNewSession();
-      if (newSessionId) {
-        setCurrentSessionId(newSessionId);
-      }
+      if (newSessionId) setCurrentSessionId(newSessionId);
     }
     init();
 
-    // Cleanup: close all remaining sessions on unmount
     return () => {
       sessions.forEach((session) => {
         fetch(`${apiUrl}/api/chatbot/session/close`, {
@@ -45,11 +46,9 @@ export default function ChatUI() {
   const openNewSession = async () => {
     try {
       const res = await fetch(`${apiUrl}/api/chatbot/session/open`, { method: 'GET' });
-      console.log('res', res);
       if (!res.ok) throw new Error(`Failed to open session: ${res.status}`);
       const data = await res.json();
       const newSessionId = data.session_id;
-      console.log('newSessionId', newSessionId);
       setSessions((prev) => [...prev, { id: newSessionId, log: [] }]);
       setCurrentSessionId(newSessionId);
       return newSessionId;
@@ -80,29 +79,64 @@ export default function ChatUI() {
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInput(value);
+
+    const atIndex = value.lastIndexOf('@');
+    if (atIndex >= 0) {
+      const afterAt = value.slice(atIndex + 1);
+      const spaceIndex = afterAt.indexOf(' ');
+      const word = spaceIndex >= 0 ? afterAt.slice(0, spaceIndex) : afterAt;
+      if (word) {
+        const filtered = allFiles.filter((path) =>
+          path.toLowerCase().includes(word.toLowerCase())
+        );
+        setDropdownItems(filtered);
+        setShowDropdown(true);
+      } else {
+        setDropdownItems(allFiles); // Show all files when just "@" is typed
+        setShowDropdown(true);
+      }
+    } else {
+      setShowDropdown(false); // Hide dropdown if no "@" present
+    }
+  };
+
+  const handleSelectItem = (selected: string) => {
+    const atIndex = input.lastIndexOf('@');
+    if (atIndex >= 0) {
+      const beforeAt = input.slice(0, atIndex + 1);
+      const afterAt = input.slice(atIndex + 1);
+      const spaceIndex = afterAt.indexOf(' ');
+      const endIndex = spaceIndex >= 0 ? atIndex + 1 + spaceIndex : input.length;
+      const newInput = beforeAt + selected + input.slice(endIndex);
+      setInput(newInput); // Update input with selected file
+    }
+    setShowDropdown(false); // Hide dropdown after selection
+  };
+
   const send = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !currentSessionId) return;
 
-    // Add user message
     setSessions((prev) =>
       prev.map((s) =>
         s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'user', t: input }] } : s
       )
     );
 
-    const body = JSON.stringify({
-      session_id: currentSessionId,
-      query: input,
-      code: '',
-      diagram: '',
-    });
-
     try {
       const res = await fetch(`${apiUrl}/api/chatbot/session/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body,
+        body: JSON.stringify({
+          session_id: currentSessionId,
+          query: input,
+          code: '',
+          diagram: '',
+          context_files: input.match(/@(\S+)/g)?.map((m) => m.slice(1)) || [],
+        }),
       });
       if (!res.ok) throw new Error(`Failed to send message: ${res.status}`);
       const data = await res.json();
@@ -129,7 +163,6 @@ export default function ChatUI() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Session Tabs */}
       <div className="flex items-center space-x-2 bg-slate-200 border-b border-slate-300 p-2 overflow-x-auto">
         {sessions.map((session, index) => (
           <div
@@ -156,7 +189,6 @@ export default function ChatUI() {
         </button>
       </div>
 
-      {/* Chat Area */}
       <div className="flex-1 p-4 overflow-y-auto">
         {sessions.length === 0 ? (
           <p className="text-center text-gray-500">
@@ -178,20 +210,37 @@ export default function ChatUI() {
         {error && <p className="text-red-500">{error}</p>}
       </div>
 
-      {/* Input Form */}
       {currentSessionId && (
-        <form onSubmit={send} className="p-4 border-t border-slate-300">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="w-full p-2 border rounded"
-            placeholder="Type your message..."
-          />
-          <button type="submit" className="hidden">
-            Send
-          </button>
-        </form>
+        <div className="relative p-4 border-t border-slate-300">
+          <form onSubmit={send}>
+            <input
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded"
+              placeholder="Type your message..."
+            />
+            <button type="submit" className="hidden">
+              Send
+            </button>
+          </form>
+          {showDropdown && (
+            <div
+              className="absolute z-10 bg-white border border-slate-300 rounded shadow-md max-h-60 overflow-y-auto"
+              style={{ bottom: '100%', left: 0 }}
+            >
+              {dropdownItems.map((item, i) => (
+                <div
+                  key={i}
+                  onClick={() => handleSelectItem(item)}
+                  className="px-3 py-1 hover:bg-slate-100 cursor-pointer"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -269,7 +318,7 @@ import { useFS, type FileNode } from '@/store/files';
 
 // Global cache for diagram data and snippets
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
-const snippetCache = new Map<string, string>(); // <cleanPath, preview>
+const snippetCache = new Map<string, string>(); // <cleanPath_functionName, preview>
 
 // Dagre layout utility
 function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
@@ -293,7 +342,8 @@ function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
 // Common types
 interface RawNode {
   id: string;
-  label: string;
+  label?: string;
+  function_name?: string;
   file: string;
 }
 interface RawEdge {
@@ -326,6 +376,38 @@ export default function DiagramViewer() {
     editorState.tabs.at(-1)?.path ??
     '';
 
+  // Utility to extract function snippet from code
+  function extractFunctionSnippet(code: string, functionName: string): string | null {
+    const lines = code.split('\n');
+    let startLine = -1;
+
+    // Find the start of the function definition at indentation level 0
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.trim().startsWith(`def ${functionName}(`)) {
+        if (line === line.trim()) { // No leading spaces
+          startLine = i;
+          break;
+        }
+      }
+    }
+
+    if (startLine === -1) {
+      return null;
+    }
+
+    // Find the end of the function (next line with indentation 0)
+    for (let i = startLine + 1; i < lines.length; i++) {
+      if (lines[i].trim() === '') {
+        continue;
+      }
+      if (!lines[i].startsWith(' ') && !lines[i].startsWith('\t')) {
+        return lines.slice(startLine, i).join('\n');
+      }
+    }
+    return lines.slice(startLine).join('\n');
+  }
+
   // Node click handler: open file in editor and highlight in explorer
   const onNodeClick: NodeMouseHandler = (_, node) => {
     const raw = (node.data as any)?.file as string | undefined;
@@ -347,14 +429,18 @@ export default function DiagramViewer() {
     setHoverId(node.id);
 
     const raw = (node.data as any)?.file as string | undefined;
-    if (!raw) {
+    const functionName = (node.data as any)?.label as string | undefined;
+
+    if (!raw || !functionName) {
       setSnippet('');
       return;
     }
-    const clean = raw.replace(/^poc[\\/]/, '');
 
-    if (snippetCache.has(clean)) {
-      setSnippet(snippetCache.get(clean)!);
+    const clean = raw.replace(/^poc[\\/]/, '');
+    const cacheKey = `${clean}_${functionName}`;
+
+    if (snippetCache.has(cacheKey)) {
+      setSnippet(snippetCache.get(cacheKey)!);
       return;
     }
 
@@ -362,9 +448,15 @@ export default function DiagramViewer() {
       const txt = await fetch(
         `/api/file?path=${encodeURIComponent(clean)}`
       ).then((r) => r.text());
-      const preview = txt.split('\n').slice(0, 15).join('\n');
-      snippetCache.set(clean, preview);
-      setSnippet(preview);
+
+      const snippet = extractFunctionSnippet(txt, functionName);
+      if (snippet) {
+        const preview = snippet.split('\n').slice(0, 15).join('\n');
+        snippetCache.set(cacheKey, preview);
+        setSnippet(preview);
+      } else {
+        setSnippet('(function not found)');
+      }
     } catch {
       setSnippet('(preview unavailable)');
     }
@@ -391,7 +483,7 @@ export default function DiagramViewer() {
         const res = await fetch(`${apiUrl}${ENDPOINT}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: '/Users/kyochul_jang/Desktop/Project/code-diagram/poc', file_type: 'py' }),
+          body: JSON.stringify({ path: '../../poc', file_type: 'py' }),
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
@@ -493,7 +585,7 @@ export default function DiagramViewer() {
 
       const fileNodes: Node[] = rawNodes.map((r) => ({
         id: r.id,
-        data: { label: r.label || r.function_name || r.id, file: r.file }, // Use function_name if label is missing
+        data: { label: r.label || r.function_name || r.id, file: r.file },
         position: { x: 0, y: 0 },
         style: {
           padding: 6,
@@ -541,10 +633,10 @@ import { useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { useEditor } from '@/store/editor';
 
-/* ─── 개별 코드 탭 ─────────────────────────────────────────── */
-function CodePane({ path }: { path: string }) {
+function CodePane({ path, highlights }: { path: string; highlights?: { line: number; query: string } }) {
   const [code, setCode] = useState('// loading…');
   const [err, setErr] = useState<string>();
+  const [editor, setEditor] = useState<any>(null);
 
   useEffect(() => {
     let active = true;
@@ -564,6 +656,25 @@ function CodePane({ path }: { path: string }) {
     };
   }, [path]);
 
+  useEffect(() => {
+    if (editor && highlights) {
+      const { line, query } = highlights;
+      editor.revealLineInCenter(line);
+      editor.deltaDecorations([], [
+        {
+          range: new monaco.Range(line, 1, line, 1),
+          options: { isWholeLine: true, className: 'highlight-line' },
+        },
+      ]);
+      const matches = editor.getModel().findMatches(query, true, false, true, null, true);
+      const decorations = matches.map((match) => ({
+        range: match.range,
+        options: { inlineClassName: 'highlight-text' },
+      }));
+      editor.deltaDecorations([], decorations);
+    }
+  }, [editor, highlights]);
+
   const lang = (() => {
     if (path.endsWith('.py')) return 'python';
     if (path.endsWith('.tsx') || path.endsWith('.ts')) return 'typescript';
@@ -579,10 +690,11 @@ function CodePane({ path }: { path: string }) {
 
   return (
     <Editor
-      height="calc(100% - 2rem)" // 상단 탭바 높이 제외
+      height="calc(100% - 2rem)"
       defaultLanguage={lang}
       value={code}
       theme="vs-dark"
+      onMount={(editor) => setEditor(editor)}
       options={{
         readOnly: true,
         fontSize: 14,
@@ -593,9 +705,8 @@ function CodePane({ path }: { path: string }) {
   );
 }
 
-/* ─── 탭 컨테이너 ─────────────────────────────────────────── */
 export default function EditorTabs() {
-  const { tabs, activeId, setActive, close } = useEditor();
+  const { tabs, activeId, setActive, close, searchHighlights } = useEditor();
 
   if (!tabs.length) {
     return (
@@ -609,7 +720,6 @@ export default function EditorTabs() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* 탭 헤더 */}
       <div className="h-8 flex items-center bg-slate-200 border-b border-slate-300 select-none">
         {tabs.map((t) => {
           const on = t.id === active.id;
@@ -638,18 +748,14 @@ export default function EditorTabs() {
           );
         })}
       </div>
-
-      {/* 코드 영역 */}
       <div className="flex-1">
-        <CodePane path={active.path} />
+        <CodePane path={active.path} highlights={searchHighlights} />
       </div>
     </div>
   );
 }
 
-
 [src/components/FileExplorer.tsx]
-// frontend/src/components/FileExplorer.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -705,12 +811,14 @@ function Row({
 export default function FileExplorer() {
   const { tree, current, setCurrent, load } = useFS();
   const [open, setOpen] = useState<Record<string, boolean>>({ poc: true });
-  const { activePath } = useEditor(); // 추가: 활성화된 파일 경로 가져오기
+  const { activePath } = useEditor();
 
   useEffect(() => {
     (async () => {
       const data: FileNode[] = await fetch('/api/files').then((r) => r.json());
-      load(filterTree(data));
+      const filteredTree = filterTree(data);
+      load(filteredTree);
+      useFS.getState().loadContents(); // 파일 내용 로드
     })();
   }, [load]);
 
@@ -732,7 +840,7 @@ export default function FileExplorer() {
     arr(nodes).map((n) => {
       const isDir = Array.isArray(n.children);
       const isOpen = !!open[n.path ?? ''];
-      const isActive = n.path?.replace(/^poc[\\/]/, '') === activePath; // 수정: activePath로 비교
+      const isActive = n.path?.replace(/^poc[\\/]/, '') === activePath;
 
       return (
         <div key={n.id}>
@@ -757,10 +865,9 @@ export default function FileExplorer() {
 }
 
 [src/components/IconBar.tsx]
-'use client';
-
 import {
   FolderIcon,
+  MagnifyingGlassIcon,
   Squares2X2Icon,
   ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
@@ -768,18 +875,28 @@ import type { ComponentType, SVGProps } from 'react';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 interface Props {
-  states: { exp: boolean; dia: boolean; chat: boolean };
-  toggle: { exp: () => void; dia: () => void; chat: () => void };
+  states?: {
+    explorer?: boolean;
+    search?: boolean;
+    diagram?: boolean;
+    chat?: boolean;
+  };
+  toggle?: {
+    explorer?: () => void;
+    search?: () => void;
+    diagram?: () => void;
+    chat?: () => void;
+  };
 }
 
-export default function IconBar({ states, toggle }: Props) {
+export default function IconBar({ states = {}, toggle = {} }: Props) {
   const Btn = ({
-    on,
-    click,
+    on = false,
+    click = () => {},
     Icon,
   }: {
-    on: boolean;
-    click: () => void;
+    on?: boolean;
+    click?: () => void;
     Icon: IconType;
   }) => (
     <button
@@ -795,30 +912,99 @@ export default function IconBar({ states, toggle }: Props) {
 
   return (
     <div className="flex flex-col border-r border-slate-300 bg-slate-200">
-      <Btn on={states.exp} click={toggle.exp} Icon={FolderIcon} />
-      <Btn on={states.dia} click={toggle.dia} Icon={Squares2X2Icon} />
+      <Btn on={states.explorer} click={toggle.explorer} Icon={FolderIcon} />
+      <Btn on={states.search} click={toggle.search} Icon={MagnifyingGlassIcon} />
+      <Btn on={states.diagram} click={toggle.diagram} Icon={Squares2X2Icon} />
       <Btn on={states.chat} click={toggle.chat} Icon={ChatBubbleLeftRightIcon} />
     </div>
   );
 }
 
+[src/components/SearchPanel.tsx]
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useEditor } from '@/store/editor';
+import { nanoid } from 'nanoid';
+import { useFS, getAllFilePaths } from '@/store/files';
+
+export default function SearchPanel() {
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const { tree, fileContents } = useFS();
+
+  const allFiles = getAllFilePaths(tree, false); // 폴더 제외, 파일만
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    // fileContents를 사용해 프론트엔드에서 검색
+    const results = allFiles.filter((file) => {
+      const content = fileContents[file];
+      return content && content.toLowerCase().includes(query.toLowerCase());
+    });
+    setSearchResults(results);
+  }, [query, allFiles, fileContents]);
+
+  const handleFileClick = (path: string) => {
+    const cleanPath = path.replace(/^poc[\\/]/, '');
+    const name = cleanPath.split('/').pop() || cleanPath;
+    useEditor.getState().open({
+      id: nanoid(),
+      path: cleanPath,
+      name,
+    });
+  };
+
+  return (
+    <div className="w-full h-full p-2 bg-slate-50 border-r border-slate-300">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search files..."
+        className="w-full p-2 mb-2 border rounded"
+      />
+      <div className="overflow-y-auto max-h-[calc(100%-2rem)]">
+        {query.trim() === '' ? (
+          <p className="text-xs text-gray-500">검색어를 입력하세요</p>
+        ) : searchResults.length > 0 ? (
+          searchResults.map((file, i) => (
+            <div
+              key={i}
+              onClick={() => handleFileClick(file)}
+              className="text-xs py-1 px-2 hover:bg-slate-100 cursor-pointer"
+            >
+              {file}
+            </div>
+          ))
+        ) : (
+          <p className="text-xs text-gray-500">검색 결과가 없습니다</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 [src/app/page.tsx]
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useFS } from '@/store/files';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import IconBar      from '@/components/IconBar';
+import IconBar from '@/components/IconBar';
 import FileExplorer from '@/components/FileExplorer';
+import SearchPanel from '@/components/SearchPanel';
 
-const EditorTabs    = dynamic(() => import('@/components/EditorTabs'),    { ssr: false });
+const EditorTabs = dynamic(() => import('@/components/EditorTabs'), { ssr: false });
 const DiagramViewer = dynamic(() => import('@/components/DiagramViewer'), { ssr: false });
-const ChatUI        = dynamic(() => import('@/components/ChatUI'),        { ssr: false });
+const ChatUI = dynamic(() => import('@/components/ChatUI'), { ssr: false });
 
-/* ─── Resize handles ────────────────────────────────────────────── */
 const HHandle = () => (
   <PanelResizeHandle className="w-[4px] bg-slate-300 hover:bg-sky-600 cursor-col-resize transition-colors" />
 );
@@ -827,65 +1013,83 @@ const VHandle = () => (
 );
 
 export default function Home() {
-  const { current }         = useFS();
-  const [showExp, setExp]   = useState(true);
-  const [showDia, setDia]   = useState(true);
+  const { current } = useFS();
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [sidebarContent, setSidebarContent] = useState<'explorer' | 'search'>('explorer');
+  const [showDia, setDia] = useState(true);
   const [showChat, setChat] = useState(true);
+
+  useEffect(() => {
+    setSidebarContent('explorer');
+    setShowSidebar(true);
+  }, []);
+
+  const toggleExplorer = () => {
+    if (sidebarContent === 'explorer' && showSidebar) {
+      setShowSidebar(false);
+    } else {
+      setSidebarContent('explorer');
+      setShowSidebar(true);
+    }
+  };
+
+  const toggleSearch = () => {
+    if (sidebarContent === 'search' && showSidebar) {
+      setShowSidebar(false);
+    } else {
+      setSidebarContent('search');
+      setShowSidebar(true);
+    }
+  };
+
+  const toggleDia = () => setDia(!showDia);
+  const toggleChat = () => setChat(!showChat);
 
   return (
     <div className="flex h-full">
-      {/* ─── Activity / Icon bar ─────────────────────────────────── */}
       <IconBar
-        states={{ exp: showExp, dia: showDia, chat: showChat }}
+        states={{
+          explorer: sidebarContent === 'explorer' && showSidebar,
+          search: !(sidebarContent === 'search' && showSidebar),
+          diagram: showDia,
+          chat: showChat,
+        }}
         toggle={{
-          exp:  () => setExp(!showExp),
-          dia:  () => setDia(!showDia),
-          chat: () => setChat(!showChat),
+          explorer: toggleExplorer,
+          search: toggleSearch,
+          diagram: toggleDia,
+          chat: toggleChat,
         }}
       />
-
-      {/* ─── Main panel group (horizontal) ───────────────────────── */}
       <PanelGroup direction="horizontal" className="flex-1">
-
-        {/* ─── File-explorer column ──────────────────────────────── */}
-        {showExp && (
+        {showSidebar && (
           <>
             <Panel defaultSize={15} minSize={12}>
-              <FileExplorer />
+              {sidebarContent === 'explorer' ? <FileExplorer /> : <SearchPanel />}
             </Panel>
             <HHandle />
           </>
         )}
-
-        {/* ─── Code-editor column ────────────────────────────────── */}
         <Panel defaultSize={55} minSize={30} className="border-x border-slate-300">
           <EditorTabs />
         </Panel>
-
         {(showDia || showChat) && <HHandle />}
-
-        {/* ─── Diagram / Chat column (vertical split) ────────────── */}
         {(showDia || showChat) && (
           <Panel defaultSize={30} minSize={18} className="flex-1 min-w-0">
             <PanelGroup direction="vertical">
-
-              {/* ── Diagram viewer ─────────────────────────────── */}
               {showDia && (
                 <>
                   <Panel defaultSize={70} minSize={30}>
-                    {current && <DiagramViewer filePath={current.path} />}
+                    <DiagramViewer />
                   </Panel>
                   {showChat && <VHandle />}
                 </>
               )}
-
-              {/* ── Chat UI ─────────────────────────────────────── */}
               {showChat && (
                 <Panel defaultSize={30} minSize={20}>
                   <ChatUI />
                 </Panel>
               )}
-
             </PanelGroup>
           </Panel>
         )}
@@ -893,7 +1097,6 @@ export default function Home() {
     </div>
   );
 }
-
 
 [src/app/globals.css]
 /* src/app/globals.css */
@@ -959,40 +1162,49 @@ body {
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 
+.highlight-line {
+  background-color: rgba(255, 255, 0, 0.2);
+}
+.highlight-text {
+  background-color: rgba(255, 255, 0, 0.5);
+}
 
 [src/store/editor.ts]
-// frontend/src/store/editor.ts
 'use client';
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { useFS } from '@/store/files'; // 추가: 파일 탐색기 상태 접근
+import { useFS } from '@/store/files';
 
 export interface TabMeta {
-  id: string;    // nanoid()
-  path: string;  // '/src/App.tsx'
-  name: string;  // 'App.tsx'
+  id: string;
+  path: string;
+  name: string;
 }
 
 interface State {
   tabs: TabMeta[];
   activeId?: string;
-  activePath?: string; // 추가: 활성화된 파일 경로 추적
+  activePath?: string;
+  searchHighlights?: { line: number; query: string };
   open: (file: TabMeta) => void;
   close: (id: string) => void;
   setActive: (id: string) => void;
+  setSearchHighlights: (line: number, query: string) => void;
 }
 
 export const useEditor = create<State>()(
   immer((set) => ({
     tabs: [],
     activeId: undefined,
-    activePath: undefined, // 초기값 설정
+    activePath: undefined,
+    searchHighlights: undefined,
     open: (file) =>
       set((s) => {
         if (!s.tabs.find((t) => t.path === file.path)) s.tabs.push(file);
         s.activeId = s.tabs.find((t) => t.path === file.path)?.id ?? file.id;
-        s.activePath = file.path; // 파일 열 때 경로 설정
+        s.activePath = file.path;
+        s.searchHighlights = undefined;
       }),
     close: (id) =>
       set((s) => {
@@ -1000,22 +1212,27 @@ export const useEditor = create<State>()(
         if (s.activeId === id) {
           const lastTab = s.tabs.at(-1);
           s.activeId = lastTab?.id;
-          s.activePath = lastTab?.path; // 탭 닫을 때 경로 업데이트
+          s.activePath = lastTab?.path;
         }
+        s.searchHighlights = undefined;
       }),
     setActive: (id) =>
       set((s) => {
         s.activeId = id;
-        s.activePath = s.tabs.find((t) => t.id === id)?.path; // 탭 변경 시 경로 업데이트
+        s.activePath = s.tabs.find((t) => t.id === id)?.path;
         if (s.activePath) {
           const node = findByPath(useFS.getState().tree, s.activePath);
-          if (node) useFS.getState().setCurrent(node.id); // 파일 탐색기 동기화
+          if (node) useFS.getState().setCurrent(node.id);
         }
+        s.searchHighlights = undefined;
+      }),
+    setSearchHighlights: (line, query) =>
+      set((s) => {
+        s.searchHighlights = { line, query };
       }),
   }))
 );
 
-// 파일 경로로 FileNode를 찾는 유틸리티 함수
 function findByPath(nodes: FileNode[], path: string): FileNode | undefined {
   for (const n of nodes) {
     if (n.path?.replace(/^poc[\\/]/, '') === path) return n;
@@ -1027,34 +1244,69 @@ function findByPath(nodes: FileNode[], path: string): FileNode | undefined {
 }
 
 [src/store/files.ts]
-import { create } from 'zustand'
+import { create } from 'zustand';
 
-export type FileNode = { id: string; name: string; path: string; children?: FileNode[] }
+export type FileNode = { id: string; name: string; path: string; children?: FileNode[] };
 
 interface FSState {
-  tree: FileNode[]
-  current?: FileNode
-  setCurrent: (id: string) => void
-  load: (t: FileNode[]) => void
+  tree: FileNode[];
+  current?: FileNode;
+  fileContents: Record<string, string>;
+  setCurrent: (id: string) => void;
+  load: (t: FileNode[]) => void;
+  loadContents: () => Promise<void>;
 }
 
-export const useFS = create<FSState>(set => ({
+export const useFS = create<FSState>((set, get) => ({
   tree: [],
   current: undefined,
-  setCurrent: id => set(s => ({ current: find(s.tree, id) })),
-  load: tree => set({ tree })
-}))
+  fileContents: {},
+  setCurrent: (id) => set((state) => ({ current: find(state.tree, id) })),
+  load: (tree) => set({ tree }),
+  loadContents: async () => {
+    const paths = getAllFilePaths(get().tree, false); // 파일만 가져오기
+    for (const path of paths) {
+      try {
+        const response = await fetch(`/api/file?path=${encodeURIComponent(path)}`);
+        if (response.ok) {
+          const content = await response.text();
+          set((state) => ({
+            fileContents: { ...state.fileContents, [path]: content },
+          }));
+        } else {
+          console.error(`Failed to fetch content for ${path}: ${response.status}`);
+        }
+      } catch (err) {
+        console.error(`Error loading content for ${path}:`, err);
+      }
+    }
+  },
+}));
 
 function find(nodes: FileNode[], id: string): FileNode | undefined {
   for (const n of nodes) {
-    if (n.id === id) return n
+    if (n.id === id) return n;
     if (n.children) {
-      const r = find(n.children, id)
-      if (r) return r
+      const r = find(n.children, id);
+      if (r) return r;
     }
   }
 }
 
+export function getAllFilePaths(tree: FileNode[], includeFolders = false): string[] {
+  const paths: string[] = [];
+  const traverse = (nodes: FileNode[]) => {
+    for (const node of nodes) {
+      if (!node.children || includeFolders) {
+        const cleanPath = node.path.replace(/^poc[\\/]/, '');
+        paths.push(cleanPath);
+      }
+      if (node.children) traverse(node.children);
+    }
+  };
+  traverse(tree);
+  return paths;
+}
 
 [backend/app/main.py]
 from fastapi import FastAPI, HTTPException
