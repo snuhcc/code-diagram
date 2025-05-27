@@ -7,7 +7,7 @@
                 "file": "poc/reporter.py",
                 "line_start": 2,
                 "line_end": 21,
-                "description": "Generates a report by printing average, median, counts of high/low values and a comparative message."
+                "description": "Function that prints a summary report based on an analysis dict, including average, median, counts and comparative message."
             }
         ],
         "edges": []
@@ -20,7 +20,7 @@
                 "file": "poc/analyzer.py",
                 "line_start": 4,
                 "line_end": 16,
-                "description": "Function to analyze numerical data: computes average and median, and partitions values into high and low lists."
+                "description": "Computes average and median of data, splits into high and low values, and returns the analysis."
             }
         ],
         "edges": [
@@ -44,7 +44,7 @@
                 "file": "poc/processor.py",
                 "line_start": 3,
                 "line_end": 15,
-                "description": "Entry point for processing a list of numbers with branching handlers."
+                "description": "Main processing function: iterates over input data and dispatches to appropriate handler based on divisibility."
             },
             {
                 "id": "processor.handle_div3",
@@ -52,7 +52,7 @@
                 "file": "poc/processor.py",
                 "line_start": 17,
                 "line_end": 19,
-                "description": "Handles numbers divisible by 3: prints a message and returns num // 3."
+                "description": "Handler for numbers divisible by 3: divides the number by 3."
             },
             {
                 "id": "processor.handle_even",
@@ -60,7 +60,7 @@
                 "file": "poc/processor.py",
                 "line_start": 21,
                 "line_end": 23,
-                "description": "Handles even numbers (not divisible by 3): prints a message and returns num / 2."
+                "description": "Handler for even numbers (but not divisible by 3): divides the number by 2."
             },
             {
                 "id": "processor.handle_other",
@@ -68,27 +68,24 @@
                 "file": "poc/processor.py",
                 "line_start": 25,
                 "line_end": 27,
-                "description": "Handles other numbers: prints a message and returns num * 3 + 1."
+                "description": "Handler for all other numbers: applies num * 3 + 1."
             }
         ],
         "edges": [
             {
                 "id": "e0",
                 "source": "processor.process_data",
-                "target": "processor.handle_div3",
-                "description": "Called when num % 3 == 0"
+                "target": "processor.handle_div3"
             },
             {
                 "id": "e1",
                 "source": "processor.process_data",
-                "target": "processor.handle_even",
-                "description": "Called when num % 3 != 0 and num % 2 == 0"
+                "target": "processor.handle_even"
             },
             {
                 "id": "e2",
                 "source": "processor.process_data",
-                "target": "processor.handle_other",
-                "description": "Called when num is neither divisible by 3 nor even"
+                "target": "processor.handle_other"
             }
         ]
     },
@@ -100,33 +97,29 @@
                 "file": "poc/main.py",
                 "line_start": 7,
                 "line_end": 15,
-                "description": "Main function that orchestrates data fetching, processing, analysis, and report generation with error handling."
+                "description": "Main function that orchestrates the data fetching, processing, analysis, and reporting steps."
             }
         ],
         "edges": [
             {
                 "id": "e0",
                 "source": "main.main",
-                "target": "fetcher.fetch_data",
-                "comment": "Call to fetch_data from fetcher module"
+                "target": "fetcher.fetch_data"
             },
             {
                 "id": "e1",
                 "source": "main.main",
-                "target": "processor.process_data",
-                "comment": "Call to process_data with fetched data"
+                "target": "processor.process_data"
             },
             {
                 "id": "e2",
                 "source": "main.main",
-                "target": "analyzer.analyze_data",
-                "comment": "Call to analyze_data with processed data"
+                "target": "analyzer.analyze_data"
             },
             {
                 "id": "e3",
                 "source": "main.main",
-                "target": "reporter.generate_report",
-                "comment": "Call to generate_report with analysis results"
+                "target": "reporter.generate_report"
             }
         ]
     },
@@ -138,7 +131,7 @@
                 "file": "poc/fetcher.py",
                 "line_start": 4,
                 "line_end": 13,
-                "description": "Function to fetch data with up to `retries` attempts, returning a list of random integers on success or raising ConnectionError on failure."
+                "description": "Function to fetch data with up to `retries` attempts; returns a list of integers on success or raises ConnectionError after exhausting retries."
             }
         ],
         "edges": []

@@ -184,7 +184,7 @@ export default function DiagramViewer() {
         const res = await fetch(`${apiUrl}${ENDPOINT}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: '/Users/kyochul_jang/Desktop/Project/code-diagram/poc', file_type: 'py' }),
+          body: JSON.stringify({ path: '../../poc', file_type: 'py' }),
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
