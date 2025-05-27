@@ -7,7 +7,7 @@
                 "file": "poc/reporter.py",
                 "line_start": 2,
                 "line_end": 21,
-                "description": "Generates a report from the analysis dict: prints average, median, counts of high/low values, and compares their counts."
+                "description": "Generates a report by printing average, median, counts of high/low values and a comparative message."
             }
         ],
         "edges": []
@@ -20,21 +20,19 @@
                 "file": "poc/analyzer.py",
                 "line_start": 4,
                 "line_end": 16,
-                "description": "Function that computes average, median, and partitions data into high and low values."
+                "description": "Function to analyze numerical data: computes average and median, and partitions values into high and low lists."
             }
         ],
         "edges": [
             {
                 "id": "e0",
                 "source": "analyzer.analyze_data",
-                "target": "statistics.mean",
-                "description": "Call to imported mean function"
+                "target": "statistics.mean"
             },
             {
                 "id": "e1",
                 "source": "analyzer.analyze_data",
-                "target": "statistics.median",
-                "description": "Call to imported median function"
+                "target": "statistics.median"
             }
         ]
     },
@@ -46,7 +44,7 @@
                 "file": "poc/processor.py",
                 "line_start": 3,
                 "line_end": 15,
-                "description": "Processes a list of numbers, applying different handlers based on divisibility rules."
+                "description": "Entry point for processing a list of numbers with branching handlers."
             },
             {
                 "id": "processor.handle_div3",
@@ -54,7 +52,7 @@
                 "file": "poc/processor.py",
                 "line_start": 17,
                 "line_end": 19,
-                "description": "Handles numbers divisible by 3 by dividing them by 3."
+                "description": "Handles numbers divisible by 3: prints a message and returns num // 3."
             },
             {
                 "id": "processor.handle_even",
@@ -62,7 +60,7 @@
                 "file": "poc/processor.py",
                 "line_start": 21,
                 "line_end": 23,
-                "description": "Handles even numbers by dividing them by 2."
+                "description": "Handles even numbers (not divisible by 3): prints a message and returns num / 2."
             },
             {
                 "id": "processor.handle_other",
@@ -70,24 +68,27 @@
                 "file": "poc/processor.py",
                 "line_start": 25,
                 "line_end": 27,
-                "description": "Handles all other numbers by applying the 3n+1 transformation."
+                "description": "Handles other numbers: prints a message and returns num * 3 + 1."
             }
         ],
         "edges": [
             {
                 "id": "e0",
                 "source": "processor.process_data",
-                "target": "processor.handle_div3"
+                "target": "processor.handle_div3",
+                "description": "Called when num % 3 == 0"
             },
             {
                 "id": "e1",
                 "source": "processor.process_data",
-                "target": "processor.handle_even"
+                "target": "processor.handle_even",
+                "description": "Called when num % 3 != 0 and num % 2 == 0"
             },
             {
                 "id": "e2",
                 "source": "processor.process_data",
-                "target": "processor.handle_other"
+                "target": "processor.handle_other",
+                "description": "Called when num is neither divisible by 3 nor even"
             }
         ]
     },
@@ -99,7 +100,7 @@
                 "file": "poc/main.py",
                 "line_start": 7,
                 "line_end": 15,
-                "description": "Main function that orchestrates data fetching, processing, analysis, and reporting."
+                "description": "Main function that orchestrates data fetching, processing, analysis, and report generation with error handling."
             }
         ],
         "edges": [
@@ -107,25 +108,25 @@
                 "id": "e0",
                 "source": "main.main",
                 "target": "fetcher.fetch_data",
-                "description": "Call to fetch_data to retrieve raw data"
+                "comment": "Call to fetch_data from fetcher module"
             },
             {
                 "id": "e1",
                 "source": "main.main",
                 "target": "processor.process_data",
-                "description": "Call to process_data to transform fetched data"
+                "comment": "Call to process_data with fetched data"
             },
             {
                 "id": "e2",
                 "source": "main.main",
                 "target": "analyzer.analyze_data",
-                "description": "Call to analyze_data to perform analysis on processed data"
+                "comment": "Call to analyze_data with processed data"
             },
             {
                 "id": "e3",
                 "source": "main.main",
                 "target": "reporter.generate_report",
-                "description": "Call to generate_report to create final report"
+                "comment": "Call to generate_report with analysis results"
             }
         ]
     },
@@ -137,20 +138,9 @@
                 "file": "poc/fetcher.py",
                 "line_start": 4,
                 "line_end": 13,
-                "description": "Attempts to fetch data up to a number of retries; returns a list of random integers on success or raises ConnectionError after exhausting retries."
+                "description": "Function to fetch data with up to `retries` attempts, returning a list of random integers on success or raising ConnectionError on failure."
             }
         ],
-        "edges": [
-            {
-                "id": "e0",
-                "source": "fetcher.fetch_data",
-                "target": "random.random"
-            },
-            {
-                "id": "e1",
-                "source": "fetcher.fetch_data",
-                "target": "random.randint"
-            }
-        ]
+        "edges": []
     }
 }

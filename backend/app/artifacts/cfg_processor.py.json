@@ -6,7 +6,7 @@
             "file": "poc/processor.py",
             "line_start": 3,
             "line_end": 15,
-            "description": "Iterates over input data, applies branching handlers based on divisibility, collects and returns results."
+            "description": "Entry point for processing a list of numbers with branching handlers."
         },
         {
             "id": "processor.handle_div3",
@@ -14,7 +14,7 @@
             "file": "poc/processor.py",
             "line_start": 17,
             "line_end": 19,
-            "description": "Handles numbers divisible by 3 by dividing them by 3."
+            "description": "Handles numbers divisible by 3: prints a message and returns num // 3."
         },
         {
             "id": "processor.handle_even",
@@ -22,7 +22,7 @@
             "file": "poc/processor.py",
             "line_start": 21,
             "line_end": 23,
-            "description": "Handles even numbers by halving them."
+            "description": "Handles even numbers (not divisible by 3): prints a message and returns num / 2."
         },
         {
             "id": "processor.handle_other",
@@ -30,7 +30,7 @@
             "file": "poc/processor.py",
             "line_start": 25,
             "line_end": 27,
-            "description": "Handles all other numbers using the formula num * 3 + 1."
+            "description": "Handles other numbers: prints a message and returns num * 3 + 1."
         }
     ],
     "edges": [

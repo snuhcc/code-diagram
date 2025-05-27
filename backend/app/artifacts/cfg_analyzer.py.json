@@ -1,23 +1,23 @@
 {
     "nodes": [
         {
-            "id": "poc.analyzer.analyze_data",
+            "id": "analyzer.analyze_data",
             "function_name": "analyze_data",
             "file": "poc/analyzer.py",
             "line_start": 4,
             "line_end": 16,
-            "description": "Analyzes a list of numeric data: computes average, median, and partitions values above and below the average."
+            "description": "Function to analyze numerical data: computes average and median, and partitions values into high and low lists."
         }
     ],
     "edges": [
         {
             "id": "e0",
-            "source": "poc.analyzer.analyze_data",
+            "source": "analyzer.analyze_data",
             "target": "statistics.mean"
         },
         {
             "id": "e1",
-            "source": "poc.analyzer.analyze_data",
+            "source": "analyzer.analyze_data",
             "target": "statistics.median"
         }
     ]

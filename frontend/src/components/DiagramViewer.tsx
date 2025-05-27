@@ -19,7 +19,7 @@ import { useFS, type FileNode } from '@/store/files';
 
 // Global cache for diagram data and snippets
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
-const snippetCache = new Map<string, string>(); // <cleanPath, preview>
+const snippetCache = new Map<string, string>(); // <cleanPath_functionName, preview>
 
 // Dagre layout utility
 function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
@@ -43,7 +43,8 @@ function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
 // Common types
 interface RawNode {
   id: string;
-  label: string;
+  label?: string;
+  function_name?: string;
   file: string;
 }
 interface RawEdge {
@@ -76,6 +77,38 @@ export default function DiagramViewer() {
     editorState.tabs.at(-1)?.path ??
     '';
 
+  // Utility to extract function snippet from code
+  function extractFunctionSnippet(code: string, functionName: string): string | null {
+    const lines = code.split('\n');
+    let startLine = -1;
+
+    // Find the start of the function definition at indentation level 0
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.trim().startsWith(`def ${functionName}(`)) {
+        if (line === line.trim()) { // No leading spaces
+          startLine = i;
+          break;
+        }
+      }
+    }
+
+    if (startLine === -1) {
+      return null;
+    }
+
+    // Find the end of the function (next line with indentation 0)
+    for (let i = startLine + 1; i < lines.length; i++) {
+      if (lines[i].trim() === '') {
+        continue;
+      }
+      if (!lines[i].startsWith(' ') && !lines[i].startsWith('\t')) {
+        return lines.slice(startLine, i).join('\n');
+      }
+    }
+    return lines.slice(startLine).join('\n');
+  }
+
   // Node click handler: open file in editor and highlight in explorer
   const onNodeClick: NodeMouseHandler = (_, node) => {
     const raw = (node.data as any)?.file as string | undefined;
@@ -97,14 +130,18 @@ export default function DiagramViewer() {
     setHoverId(node.id);
 
     const raw = (node.data as any)?.file as string | undefined;
-    if (!raw) {
+    const functionName = (node.data as any)?.label as string | undefined;
+
+    if (!raw || !functionName) {
       setSnippet('');
       return;
     }
-    const clean = raw.replace(/^poc[\\/]/, '');
 
-    if (snippetCache.has(clean)) {
-      setSnippet(snippetCache.get(clean)!);
+    const clean = raw.replace(/^poc[\\/]/, '');
+    const cacheKey = `${clean}_${functionName}`;
+
+    if (snippetCache.has(cacheKey)) {
+      setSnippet(snippetCache.get(cacheKey)!);
       return;
     }
 
@@ -112,9 +149,15 @@ export default function DiagramViewer() {
       const txt = await fetch(
         `/api/file?path=${encodeURIComponent(clean)}`
       ).then((r) => r.text());
-      const preview = txt.split('\n').slice(0, 15).join('\n');
-      snippetCache.set(clean, preview);
-      setSnippet(preview);
+
+      const snippet = extractFunctionSnippet(txt, functionName);
+      if (snippet) {
+        const preview = snippet.split('\n').slice(0, 15).join('\n');
+        snippetCache.set(cacheKey, preview);
+        setSnippet(preview);
+      } else {
+        setSnippet('(function not found)');
+      }
     } catch {
       setSnippet('(preview unavailable)');
     }
@@ -243,7 +286,7 @@ export default function DiagramViewer() {
 
       const fileNodes: Node[] = rawNodes.map((r) => ({
         id: r.id,
-        data: { label: r.label || r.function_name || r.id, file: r.file }, // Use function_name if label is missing
+        data: { label: r.label || r.function_name || r.id, file: r.file },
         position: { x: 0, y: 0 },
         style: {
           padding: 6,
