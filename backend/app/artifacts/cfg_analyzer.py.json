@@ -6,7 +6,7 @@
             "file": "poc/analyzer.py",
             "line_start": 4,
             "line_end": 16,
-            "description": "Function that computes average and median of the data and partitions values into high and low lists."
+            "description": "Function that analyzes a list of numeric data: computes average, median, and partitions high/low values."
         }
     ],
     "edges": [

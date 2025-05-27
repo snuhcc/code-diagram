@@ -6,29 +6,39 @@
             "file": "poc/main.py",
             "line_start": 7,
             "line_end": 15,
-            "description": "Main function orchestrating the workflow: fetch data, process it, analyze results, and generate a report. Includes error handling."
+            "description": "Main function that orchestrates the data fetching, processing, analysis, and reporting workflow."
         }
     ],
     "edges": [
         {
             "id": "e0",
             "source": "main.main",
-            "target": "fetcher.fetch_data"
+            "target": "fetcher.fetch_data",
+            "description": "Call to fetch_data() to retrieve raw data"
         },
         {
             "id": "e1",
             "source": "main.main",
-            "target": "processor.process_data"
+            "target": "processor.process_data",
+            "description": "Call to process_data() to process fetched data"
         },
         {
             "id": "e2",
             "source": "main.main",
-            "target": "analyzer.analyze_data"
+            "target": "analyzer.analyze_data",
+            "description": "Call to analyze_data() to analyze processed data"
         },
         {
             "id": "e3",
             "source": "main.main",
-            "target": "reporter.generate_report"
+            "target": "reporter.generate_report",
+            "description": "Call to generate_report() to produce the final report"
+        },
+        {
+            "id": "e4",
+            "source": "main.main",
+            "target": "builtins.print",
+            "description": "Error handling prints exception message"
         }
     ]
 }

@@ -6,37 +6,19 @@
             "file": "poc/fetcher.py",
             "line_start": 4,
             "line_end": 13,
-            "description": "Function to attempt data fetching up to a specified number of retries, returns data list on success or raises ConnectionError after failures."
-        },
-        {
-            "id": "random.random",
-            "function_name": "random.random",
-            "file": "random",
-            "line_start": null,
-            "line_end": null,
-            "description": "Imported function used to simulate success probability."
-        },
-        {
-            "id": "random.randint",
-            "function_name": "random.randint",
-            "file": "random",
-            "line_start": null,
-            "line_end": null,
-            "description": "Imported function used to generate random integer values for the data list."
+            "description": "Function that attempts to fetch data up to a given number of retries, returning a list of random integers on success or raising on failure."
         }
     ],
     "edges": [
         {
             "id": "e0",
             "source": "fetcher.fetch_data",
-            "target": "random.random",
-            "description": "Check if fetch attempt succeeds"
+            "target": "random.random"
         },
         {
             "id": "e1",
             "source": "fetcher.fetch_data",
-            "target": "random.randint",
-            "description": "Generate data values when fetch succeeds"
+            "target": "random.randint"
         }
     ]
 }

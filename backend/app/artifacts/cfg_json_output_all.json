@@ -7,7 +7,7 @@
                 "file": "poc/reporter.py",
                 "line_start": 2,
                 "line_end": 21,
-                "description": "Generates a textual report from the provided analysis dictionary, printing statistics and comparative messages."
+                "description": "Function that prints a summary report based on the provided analysis dictionary, including comparisons of high and low value counts."
             }
         ],
         "edges": []
@@ -20,7 +20,7 @@
                 "file": "poc/analyzer.py",
                 "line_start": 4,
                 "line_end": 16,
-                "description": "Function that computes average and median of the data and partitions values into high and low lists."
+                "description": "Function that analyzes a list of numeric data: computes average, median, and partitions high/low values."
             }
         ],
         "edges": [
@@ -44,15 +44,15 @@
                 "file": "poc/processor.py",
                 "line_start": 3,
                 "line_end": 15,
-                "description": "Iterates over input data, applies branching handlers based on divisibility, and returns the transformed list."
+                "description": "Processes a list of numbers, branching on divisibility and applying handlers."
             },
             {
                 "id": "processor.handle_div3",
                 "function_name": "handle_div3",
                 "file": "poc/processor.py",
                 "line_start": 17,
-                "line_end": 19,
-                "description": "Handles numbers divisible by 3 by dividing them by 3."
+                "line_end": 20,
+                "description": "Handles numbers divisible by 3, performing integer division by 3."
             },
             {
                 "id": "processor.handle_even",
@@ -60,7 +60,7 @@
                 "file": "poc/processor.py",
                 "line_start": 21,
                 "line_end": 23,
-                "description": "Handles even numbers by dividing them by 2."
+                "description": "Handles even numbers, dividing by 2."
             },
             {
                 "id": "processor.handle_other",
@@ -68,24 +68,27 @@
                 "file": "poc/processor.py",
                 "line_start": 25,
                 "line_end": 27,
-                "description": "Handles all other numbers by applying the 3n+1 transformation."
+                "description": "Handles all other numbers, applying num * 3 + 1."
             }
         ],
         "edges": [
             {
                 "id": "e0",
                 "source": "processor.process_data",
-                "target": "processor.handle_div3"
+                "target": "processor.handle_div3",
+                "description": "Called when num % 3 == 0"
             },
             {
                 "id": "e1",
                 "source": "processor.process_data",
-                "target": "processor.handle_even"
+                "target": "processor.handle_even",
+                "description": "Called when num % 2 == 0 and not divisible by 3"
             },
             {
                 "id": "e2",
                 "source": "processor.process_data",
-                "target": "processor.handle_other"
+                "target": "processor.handle_other",
+                "description": "Called for all other cases"
             }
         ]
     },
@@ -97,7 +100,7 @@
                 "file": "poc/main.py",
                 "line_start": 7,
                 "line_end": 15,
-                "description": "Main function that orchestrates the data fetching, processing, analysis, and reporting."
+                "description": "Main function that orchestrates the data fetching, processing, analysis, and reporting workflow."
             }
         ],
         "edges": [
@@ -105,25 +108,31 @@
                 "id": "e0",
                 "source": "main.main",
                 "target": "fetcher.fetch_data",
-                "description": "Call to fetch_data from fetcher module"
+                "description": "Call to fetch_data() to retrieve raw data"
             },
             {
                 "id": "e1",
                 "source": "main.main",
                 "target": "processor.process_data",
-                "description": "Call to process_data from processor module"
+                "description": "Call to process_data() to process fetched data"
             },
             {
                 "id": "e2",
                 "source": "main.main",
                 "target": "analyzer.analyze_data",
-                "description": "Call to analyze_data from analyzer module"
+                "description": "Call to analyze_data() to analyze processed data"
             },
             {
                 "id": "e3",
                 "source": "main.main",
                 "target": "reporter.generate_report",
-                "description": "Call to generate_report from reporter module"
+                "description": "Call to generate_report() to produce the final report"
+            },
+            {
+                "id": "e4",
+                "source": "main.main",
+                "target": "builtins.print",
+                "description": "Error handling prints exception message"
             }
         ]
     },
@@ -135,9 +144,20 @@
                 "file": "poc/fetcher.py",
                 "line_start": 4,
                 "line_end": 13,
-                "description": "Attempts up to `retries` times to fetch data; returns a list of random integers on success, raises ConnectionError after exhausting retries."
+                "description": "Function that attempts to fetch data up to a given number of retries, returning a list of random integers on success or raising on failure."
             }
         ],
-        "edges": []
+        "edges": [
+            {
+                "id": "e0",
+                "source": "fetcher.fetch_data",
+                "target": "random.random"
+            },
+            {
+                "id": "e1",
+                "source": "fetcher.fetch_data",
+                "target": "random.randint"
+            }
+        ]
     }
 }

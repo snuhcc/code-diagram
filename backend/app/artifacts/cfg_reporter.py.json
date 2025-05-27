@@ -6,7 +6,7 @@
             "file": "poc/reporter.py",
             "line_start": 2,
             "line_end": 21,
-            "description": "Generates a textual report from the provided analysis dictionary, printing statistics and comparative messages."
+            "description": "Function that prints a summary report based on the provided analysis dictionary, including comparisons of high and low value counts."
         }
     ],
     "edges": []
