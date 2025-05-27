@@ -1,3 +1,4 @@
+// frontend/src/components/DiagramViewer.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,11 +18,12 @@ import { nanoid } from 'nanoid';
 import { useEditor } from '@/store/editor';
 import { useFS, type FileNode } from '@/store/files';
 
-/* ────────────── 세션-전역 다이어그램 캐시 ────────────── */
+/* ────────────────────────── 전역 캐시 ────────────────────────── */
 let diagramCache: DiagramJSON | null = null;
+const snippetCache = new Map<string, string>(); // <cleanPath, preview>
 
-/* ───────────── dagre helper ───────────── */
-function layout(nodes: Node[] = [], edges: Edge[] = []) {
+/* ─────────────────── dagre 레이아웃 유틸 ──────────────────── */
+function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
   const g = new dagre.graphlib.Graph().setGraph({
     rankdir: 'TB',
     nodesep: 50,
@@ -39,7 +41,7 @@ function layout(nodes: Node[] = [], edges: Edge[] = []) {
   });
 }
 
-/* ──────────── 타입 (백엔드 공통) ─────────── */
+/* ────────────────────── 공통 타입 ─────────────────────────── */
 interface RawNode {
   id: string;
   label: string;
@@ -56,31 +58,36 @@ interface DiagramJSON {
   edges: RawEdge[];
 }
 
-/* ──────────── 엔드포인트 ──────────── */
+/* ──────────────────── API ENDPOINT ───────────────────────── */
 const ENDPOINT = '/api/generate_control_flow_graph';
 
+/* ──────────────────── 컴포넌트 ───────────────────────────── */
 export default function DiagramViewer({ filePath }: { filePath: string }) {
   /* ─── 상태 ────────────────────────────────────────────── */
-  const [nodes, setNodes] = useState<Node[]>([]);
+  const [baseNodes, setBaseNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState<string>();
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [snippet, setSnippet] = useState<string>('');
 
-  /* ─── 외부 스토어 ─────────────────────────────────────── */
-  const { open: openTab, tabs, activeId } = useEditor.getState();
+  /* ─── zustand 스토어 ─────────────────────────────────── */
+  const editorState = useEditor.getState();
   const fsState = useFS.getState();
 
-  /* ─── 현재 에디터에서 열려 있는 파일 경로 ----------------- */
+  /* ─── 현재 에디터에 열린 파일 경로 ─────────────────────── */
   const activePath =
-    tabs.find((t) => t.id === activeId)?.path ?? tabs.at(-1)?.path ?? '';
+    editorState.tabs.find((t) => t.id === editorState.activeId)?.path ??
+    editorState.tabs.at(-1)?.path ??
+    '';
 
-  /* ─── 노드 클릭: 코드 탭 + 탐색기 하이라이트 -------------- */
+  /* ─── 노드 클릭: 코드 탭 열고 탐색기 하이라이트 ────────── */
   const onNodeClick: NodeMouseHandler = (_, node) => {
-    const file: string | undefined = (node.data as any)?.file;
-    if (!file) return;
+    const raw = (node.data as any)?.file as string | undefined;
+    if (!raw) return;
 
-    const clean = file.replace(/^poc[\\/]/, '');
-    openTab({
+    const clean = raw.replace(/^poc[\\/]/, '');
+    editorState.open({
       id: nanoid(),
       path: clean,
       name: clean.split(/[\\/]/).pop() ?? clean,
@@ -90,7 +97,40 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     if (target) fsState.setCurrent(target.id);
   };
 
-  /* ─── 다이어그램 로딩 & 캐시 ------------------------------ */
+  /* ─── hover 진입/이탈 ─────────────────────────────────── */
+  const onEnter: NodeMouseHandler = async (_, node) => {
+    setHoverId(node.id);
+
+    const raw = (node.data as any)?.file as string | undefined;
+    if (!raw) {
+      setSnippet('');
+      return;
+    }
+    const clean = raw.replace(/^poc[\\/]/, '');
+
+    if (snippetCache.has(clean)) {
+      setSnippet(snippetCache.get(clean)!);
+      return;
+    }
+
+    try {
+      const txt = await fetch(
+        `/api/file?path=${encodeURIComponent(clean)}`
+      ).then((r) => r.text());
+      const preview = txt.split('\n').slice(0, 15).join('\n');
+      snippetCache.set(clean, preview);
+      setSnippet(preview);
+    } catch {
+      setSnippet('(preview unavailable)');
+    }
+  };
+
+  const onLeave: NodeMouseHandler = () => {
+    setHoverId(null);
+    setSnippet('');
+  };
+
+  /* ─── 다이어그램 로딩 & 캐시 ───────────────────────────── */
   useEffect(() => {
     (async () => {
       if (diagramCache) {
@@ -118,11 +158,11 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
             ? JSON.parse(raw.data)
             : raw?.data ?? raw;
 
-        diagramCache = json; // 캐시
+        diagramCache = json;
         hydrate(json);
       } catch (e: any) {
         setErr(String(e));
-        setNodes([]);
+        setBaseNodes([]);
         setEdges([]);
       } finally {
         setLoad(false);
@@ -130,39 +170,50 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
     })();
   }, [filePath]);
 
-  /* ─── 에디터 활성 파일 바뀔 때마다 노드 하이라이트 --------- */
-  useEffect(() => {
-    setNodes((prev) =>
-      prev.map((n) => {
-        const file = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
-        const on = file === activePath;
-        return {
-          ...n,
-          style: {
-            ...n.style,
-            background: on ? '#dbeafe' /* sky-100 */ : '#ffffff',
-            border: on ? '2px solid #0284c7' /* sky-600 */ : '1px solid #3b82f6',
-          },
-        };
-      }),
-    );
-  }, [activePath]);
+  /* ─── 노드 스타일 계산 ───────────────────────────────── */
+  const nodes = baseNodes.map((n) => {
+    const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
+    const isActive = clean === activePath;
+    const isHover = hoverId === n.id;
 
-  /* ─── 로딩·에러 분기 ------------------------------------ */
+    return {
+      ...n,
+      style: {
+        ...n.style,
+        background: isHover
+          ? '#fef9c3' // yellow-100
+          : isActive
+          ? '#dbeafe' // sky-100
+          : '#ffffff',
+        border: isHover
+          ? '2px solid #eab308' // yellow-600
+          : isActive
+          ? '2px solid #0284c7' // sky-600
+          : '1px solid #3b82f6',
+        transition: 'all 0.1s ease-in-out',
+      },
+    };
+  });
+
+  /* ─── 로딩·에러 분기 ──────────────────────────────────── */
   if (loading)
     return <div className="p-4 text-sm text-slate-500">diagram loading…</div>;
   if (error)
     return (
-      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
+      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">
+        {error}
+      </div>
     );
 
-  /* ─── 렌더링 -------------------------------------------- */
+  /* ─── 렌더링 ──────────────────────────────────────────── */
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodeClick={onNodeClick}
+        onNodeMouseEnter={onEnter}
+        onNodeMouseLeave={onLeave}
         fitView
         minZoom={0.2}
         maxZoom={2}
@@ -172,10 +223,22 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
         <MiniMap pannable zoomable />
         <Controls />
       </ReactFlow>
+
+      {/* ─── 우측 하단 코드 스니펫 패널 ─────────────────── */}
+      {hoverId && snippet && (
+        <div
+          className="absolute bottom-2 right-2 w-[340px] max-h-[220px]
+                     bg-slate-800 text-slate-100 text-xs
+                     rounded shadow-lg p-3 overflow-auto
+                     whitespace-pre font-mono"
+        >
+          {snippet}
+        </div>
+      )}
     </div>
   );
 
-  /* ─── 내부 util ----------------------------------------- */
+  /* ─── JSON → 상태 반영 ───────────────────────────────── */
   function hydrate(json: DiagramJSON) {
     const n: Node[] = json.nodes.map((r) => ({
       id: r.id,
@@ -188,20 +251,25 @@ export default function DiagramViewer({ filePath }: { filePath: string }) {
         background: '#fff',
       },
     }));
+
     const e: Edge[] = json.edges.map((r) => ({
       id: r.id,
       source: r.source,
       target: r.target,
-      animated: true,
       markerEnd: { type: MarkerType.ArrowClosed },
+      animated: true,
     }));
-    setNodes(layout(n, e));
+
+    setBaseNodes(layout(n, e));
     setEdges(e);
   }
 }
 
-/* ──────────── helper: 경로로 FileNode 찾기 ─────────── */
-function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
+/* ─────────────────── FileNode 경로 매칭 ─────────────────── */
+function findByPath(
+  nodes: FileNode[] = [],
+  p: string
+): FileNode | undefined {
   for (const n of nodes) {
     if (n.path?.replace(/^poc[\\/]/, '') === p) return n;
     if (n.children) {
