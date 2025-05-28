@@ -6,6 +6,7 @@ from pathlib import Path
 from schemas.common import *
 from llm.diagram_generator import generate_control_flow_graph
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
+from llm.utils import get_source_file_with_line_number
 from fastapi.responses import JSONResponse
 
 import json
@@ -85,13 +86,27 @@ async def api_session_chat(req: ChatbotQueryRequest):
             raise HTTPException(status_code=400, detail="Session ID is required")
         if not req.query:
             raise HTTPException(status_code=400, detail="Query is required")
+        
+        # Handle Context Files
+        context = ""
+        if hasattr(req, 'context_files') and req.context_files:
+            context += "Below is the context from the provided files:\n"
+            for file_path in req.context_files:
+                context += get_source_file_with_line_number(file_path)
+            context += "Please answer the question based on the above context.\n"
+
+
         print(f"Session ID: {req.session_id}")
         print(f"Query: {req.query}")
         print(f"Code: {req.code}")
         print(f"Diagram: {req.diagram}")
+        print(f"Context Files: {req.context_files}")
+        print(f"Context: {context}")
         answer, highlight = await generate_chatbot_answer_with_session(
-            req.session_id, req.query, req.code, req.diagram
+            req.session_id, req.query + context, req.code, req.diagram
         )
+        print(f"Answer: {answer}")
+        print(f"Highlight: {highlight}")
         return ChatbotQueryResponse(answer=answer, highlight=highlight)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

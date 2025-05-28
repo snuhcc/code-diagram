@@ -26,8 +26,9 @@ class SessionResponse(BaseModel):
 class ChatbotQueryRequest(BaseModel):
     session_id: str # 세션 ID
     query: str  # 사용자의 자연어 질문
-    code: Optional[str] = None # 사용자가 탐색하고자 하는 코드
+    code: Optional[str] = None # 사용자가 탐색하고자 하는 코드 블락 
     diagram: Optional[str] = None # 관련 다이어그램 정보 (json string 등)
+    context_files: Optional[list] = [] # 관련 파일 목록 (예: 코드 파일 경로들)]
     
 # 챗봇 응답 모델
 class ChatbotQueryResponse(BaseModel):

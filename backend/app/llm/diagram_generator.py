@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from llm.prompt_util import *
-from llm.utils import get_source_files
+from llm.utils import get_all_source_files
 from typing import Optional
 import json
 from llm.constants import (
@@ -50,7 +50,7 @@ async def generate_control_flow_graphs_for_directory(root_path: str, file_type: 
     Generate a control flow graph for each file in the directory.
     Returns a dict mapping file paths to their generated graph JSON.
     """
-    source_files = get_source_files(root_path, file_type)
+    source_files = get_all_source_files(root_path, file_type)
     print(f"Source files found: {source_files}")
     results = {}
 
