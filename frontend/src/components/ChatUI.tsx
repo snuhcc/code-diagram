@@ -1,6 +1,7 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useFS, getAllFilePaths } from '@/store/files';
+import { marked } from 'marked'; // 마크다운 파서 추가
 
 interface Message {
   role: 'user' | 'bot';
@@ -21,8 +22,10 @@ export default function ChatUI() {
   const [error, setError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownItems, setDropdownItems] = useState<string[]>([]);
+  const [isBotTyping, setIsBotTyping] = useState(false);
   const { tree } = useFS();
   const allFiles = getAllFilePaths(tree); // Retrieve all file paths from POC folder
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function init() {
@@ -124,6 +127,8 @@ export default function ChatUI() {
         s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'user', t: input }] } : s
       )
     );
+    setInput('');
+    setIsBotTyping(true); // 답변 대기 시작
 
     try {
       const res = await fetch(`${apiUrl}/api/chatbot/session/chat`, {
@@ -145,6 +150,7 @@ export default function ChatUI() {
           s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'bot', t: text }] } : s
         )
       );
+      setIsBotTyping(false); // 답변 도착
     } catch (err) {
       console.error('Failed to send message:', err);
       setSessions((prev) =>
@@ -154,11 +160,17 @@ export default function ChatUI() {
             : s
         )
       );
+      setIsBotTyping(false); // 에러 발생 시도 답변 대기 종료
     }
-    setInput('');
   };
 
   const currentLog = sessions.find((s) => s.id === currentSessionId)?.log || [];
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [currentLog, currentSessionId]);
 
   return (
     <div className="flex flex-col h-full">
@@ -188,7 +200,10 @@ export default function ChatUI() {
         </button>
       </div>
 
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div
+        ref={chatContainerRef}
+        className="flex-1 p-4 overflow-y-auto"
+      >
         {sessions.length === 0 ? (
           <p className="text-center text-gray-500">
             No active sessions. Click '+' to start a new session.
@@ -200,11 +215,18 @@ export default function ChatUI() {
                 className={`inline-block p-2 rounded ${
                   msg.role === 'user' ? 'bg-blue-100' : 'bg-gray-100'
                 }`}
-              >
-                {msg.t}
-              </span>
+                // 마크다운 렌더링
+                dangerouslySetInnerHTML={{ __html: marked.parse(msg.t) }}
+              />
             </div>
           ))
+        )}
+        {isBotTyping && (
+          <div className="mb-2 text-left">
+            <span className="inline-block p-2 rounded bg-gray-100 text-gray-500 animate-pulse">
+              <TypingIndicator />
+            </span>
+          </div>
         )}
         {error && <p className="text-red-500">{error}</p>}
       </div>
@@ -242,5 +264,16 @@ export default function ChatUI() {
         </div>
       )}
     </div>
+  );
+}
+
+// 채팅 타이핑 인디케이터 컴포넌트
+function TypingIndicator() {
+  return (
+    <span>
+      <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-1 animate-bounce" style={{ animationDelay: '0s' }}></span>
+      <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-1 animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+      <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+    </span>
   );
 }
