@@ -8,6 +8,7 @@ from llm.diagram_generator import generate_call_graph
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
 from llm.utils import get_source_file_with_line_number
 from fastapi.responses import JSONResponse
+from llm.constants import SAMPLE_CFG_JSON
 
 import json
 
@@ -46,6 +47,23 @@ async def api_generate_call_graph(request: DiagramRequest):
     try:
 
         json_data = await generate_call_graph(request.path, request.file_type)
+        result = {
+            "data": json_data
+        }
+        print(f'result in main.py: \\{result}')
+        return DiagramResponse(**result)
+    except Exception as e:
+        return DiagramResponse(status=500, data=str(e))
+
+@app.post("/api/generate_control_flow_graph", response_model=DiagramResponse)
+async def api_generate_control_flow_graph(request: DiagramRequest):
+    """
+    Generate a control flow graph for the given code.
+    """
+    try:
+        json_data = ""
+        with open(SAMPLE_CFG_JSON, "r", encoding="utf-8") as f:
+            json_data = json.load(f)
         result = {
             "data": json_data
         }
