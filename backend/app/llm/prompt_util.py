@@ -1,7 +1,7 @@
 from pathlib import Path
 
 # 텍스트로 처리할 확장자
-TEXT_EXTS = {".py", ".md", ".txt", ".json", ".toml", ".yaml", ".yml", ".cfg", ".ini"}
+TEXT_EXTS = {".py", ".md", ".txt", ".json", ".toml", ".yaml", ".yml", ".ini"}
 # 건너뛸 디렉토리 이름
 IGNORE_DIRS = {"__pycache__", ".pytest_cache"}
 
@@ -46,9 +46,9 @@ DIAGRAM_EXAMPLE = {
     ]
 }
 
-PROMPT_CODE_TO_CFG = """
+PROMPT_CODE_TO_CG = """
     You are a SOFTWARE ENGINEERING EXPERT. You are given a Python code file.
-    Please generate a Call Graph or Control Flow Graph (CFG) for the provided code.
+    Please generate a Call Graph for the provided code.
 
     INPUT:
     - The code with line numbers:

@@ -15,7 +15,7 @@ from llm.constants import (
     OPENAI_O4_MINI,
     BACKEND_ROOT_DIR,
     ARTIFACTS_REPO_PROMPT_TXT,
-    CFG_JSON_OUTPUT,
+    CG_JSON_OUTPUT,
 )
 
 reasoning = {
@@ -36,7 +36,7 @@ def create_messages(path: str):
     print(repo_prompt)
 
     chat_prompt = ChatPromptTemplate.from_messages(
-        [HumanMessagePromptTemplate.from_template(PROMPT_CODE_TO_CFG),]
+        [HumanMessagePromptTemplate.from_template(PROMPT_CODE_TO_CG),]
         )  
     
     messages = chat_prompt.format_messages(
@@ -45,9 +45,9 @@ def create_messages(path: str):
         )
     return messages
 
-async def generate_control_flow_graphs_for_directory(root_path: str, file_type: Optional[str]):
+async def generate_call_graphs_for_directory(root_path: str, file_type: Optional[str]):
     """
-    Generate a control flow graph for each file in the directory.
+    Generate a call graph for each file in the directory.
     Returns a dict mapping file paths to their generated graph JSON.
     """
     source_files = get_all_source_files(root_path, file_type)
@@ -57,7 +57,7 @@ async def generate_control_flow_graphs_for_directory(root_path: str, file_type: 
     async def process_file(file_path):
         # print(f"Processing file: {file_path}")
         try:
-            output_json = await generate_control_flow_graph_for_file(root_path, file_path)
+            output_json = await generate_call_graph_for_file(root_path, file_path)
             return (file_path, output_json)
         except Exception as e:
             return (file_path, {"error": str(e)})
@@ -69,9 +69,9 @@ async def generate_control_flow_graphs_for_directory(root_path: str, file_type: 
         results[file_path] = output
     return results
 
-async def generate_control_flow_graph_for_file(root_path: str, file_path: str):
+async def generate_call_graph_for_file(root_path: str, file_path: str):
     """
-    Generate a control flow graph for a single file.
+    Generate a call graph for a single file.
     """
     try:
         llm = ChatOpenAI(
@@ -107,18 +107,18 @@ async def generate_control_flow_graph_for_file(root_path: str, file_path: str):
         log_exception(e, inspect.currentframe().f_code.co_name, f" for file '{file_path}'")
         raise HTTPException(status_code=500, detail=f"Error in {inspect.currentframe().f_code.co_name} for {file_path}: {str(e)}")
 
-async def generate_control_flow_graph(root_path: str, file_type: Optional[str]):
+async def generate_call_graph(root_path: str, file_type: Optional[str]):
     try:
         # path 내의 .., . 등 정규화
         abs_path = os.path.abspath(os.path.normpath(root_path))
         print(f"Path: {abs_path}, File Type: {file_type}")
-        results = await generate_control_flow_graphs_for_directory(abs_path, file_type)
+        results = await generate_call_graphs_for_directory(abs_path, file_type)
         # Save the results to a JSON file
         results_str = ""
-        with open(CFG_JSON_OUTPUT, "w", encoding="utf-8") as f:
+        with open(CG_JSON_OUTPUT, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=4, ensure_ascii=False)
             results_str = json.dumps(results, indent=4, ensure_ascii=False)
-        print(f"Control flow graphs saved to {CFG_JSON_OUTPUT}")
+        print(f"Call graphs saved to {CG_JSON_OUTPUT}")
         #results should be json string
         return results_str
 

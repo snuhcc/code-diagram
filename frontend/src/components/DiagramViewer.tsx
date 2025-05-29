@@ -57,7 +57,7 @@ interface RawEdge {
 }
 
 // API endpoint
-const ENDPOINT = '/api/generate_control_flow_graph';
+const ENDPOINT = '/api/generate_call_graph';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function DiagramViewer() {

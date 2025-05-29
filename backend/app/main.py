@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
 from schemas.common import *
-from llm.diagram_generator import generate_control_flow_graph
+from llm.diagram_generator import generate_call_graph
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
 from llm.utils import get_source_file_with_line_number
 from fastapi.responses import JSONResponse
@@ -38,14 +38,14 @@ async def root():
     except FileNotFoundError:
         return HTMLResponse(content="<h1>Template not found</h1>", status_code=404)
 
-@app.post("/api/generate_control_flow_graph", response_model=DiagramResponse)
-async def api_generate_control_flow_graph(request: DiagramRequest):
+@app.post("/api/generate_call_graph", response_model=DiagramResponse)
+async def api_generate_call_graph(request: DiagramRequest):
     """
-    Generate a control flow graph (CFG) for the given code.
+    Generate a call graph for the given code.
     """
     try:
 
-        json_data = await generate_control_flow_graph(request.path, request.file_type)
+        json_data = await generate_call_graph(request.path, request.file_type)
         result = {
             "data": json_data
         }
@@ -53,13 +53,6 @@ async def api_generate_control_flow_graph(request: DiagramRequest):
         return DiagramResponse(**result)
     except Exception as e:
         return DiagramResponse(status=500, data=str(e))
-    
-@app.get("/api/sample_cfg")
-async def sample_cfg():
-    """artifacts/cfg_json_output.json 파일 그대로 반환"""
-    json_path = Path(__file__).parent / "artifacts" / "stored_poc" / "cfg_json_output_all.json"
-    data = json.loads(json_path.read_text(encoding="utf-8"))
-    return JSONResponse(content=data)
 
 @app.get("/api/chatbot/session/open")
 async def api_open_session():
