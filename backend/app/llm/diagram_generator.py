@@ -99,7 +99,7 @@ async def generate_call_graph_for_file(root_path: str, file_path: str):
         # Save each file's output separately
         rel_path = os.path.relpath(file_path, root_path)
         rel_path_flat = rel_path.replace(os.sep, "_")
-        output_path = os.path.join(BACKEND_ROOT_DIR, "artifacts", f"cfg_{rel_path_flat}.json")
+        output_path = os.path.join(BACKEND_ROOT_DIR, "artifacts", f"cg_{rel_path_flat}.json")
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(json_obj, f, indent=4, ensure_ascii=False)
         return json_obj
