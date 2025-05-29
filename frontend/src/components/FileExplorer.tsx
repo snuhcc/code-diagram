@@ -8,7 +8,7 @@ import { nanoid } from 'nanoid';
 
 function filterTree(nodes: FileNode[] = []): FileNode[] {
   return nodes
-    .filter((n) => n.name !== '__pycache__')
+    .filter((n) => n.name !== '__pycache__' && n.name !== '.DS_Store')
     .map((n) =>
       Array.isArray(n.children)
         ? { ...n, children: filterTree(n.children) }
