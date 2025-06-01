@@ -1,0 +1,144 @@
+{
+    "nodes": [
+        {
+            "id": "process_data.1",
+            "label": "Start of process_data",
+            "file": "script.py",
+            "line_start": 1,
+            "line_end": 1,
+            "description": "Function entry point"
+        },
+        {
+            "id": "process_data.2",
+            "label": "For each num in data",
+            "file": "script.py",
+            "line_start": 3,
+            "line_end": 3,
+            "description": "Loop over input list"
+        },
+        {
+            "id": "process_data.3",
+            "label": "If num % 3 == 0",
+            "file": "script.py",
+            "line_start": 4,
+            "line_end": 4,
+            "description": "Check divisibility by 3"
+        },
+        {
+            "id": "process_data.4",
+            "label": "handle_div3(num)",
+            "file": "script.py",
+            "line_start": 5,
+            "line_end": 5,
+            "description": "Process numbers divisible by 3"
+        },
+        {
+            "id": "process_data.5",
+            "label": "Elif num % 2 == 0",
+            "file": "script.py",
+            "line_start": 6,
+            "line_end": 6,
+            "description": "Check divisibility by 2"
+        },
+        {
+            "id": "process_data.6",
+            "label": "handle_even(num)",
+            "file": "script.py",
+            "line_start": 7,
+            "line_end": 7,
+            "description": "Process even numbers not divisible by 3"
+        },
+        {
+            "id": "process_data.7",
+            "label": "handle_other(num)",
+            "file": "script.py",
+            "line_start": 9,
+            "line_end": 9,
+            "description": "Process all other numbers"
+        },
+        {
+            "id": "process_data.8",
+            "label": "append to result",
+            "file": "script.py",
+            "line_start": 10,
+            "line_end": 10,
+            "description": "Collect transformed value"
+        },
+        {
+            "id": "process_data.9",
+            "label": "Return result",
+            "file": "script.py",
+            "line_start": 12,
+            "line_end": 12,
+            "description": "Function exit with accumulated list"
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "process_data.1",
+            "target": "process_data.2",
+            "description": "enter loop"
+        },
+        {
+            "id": "e1",
+            "source": "process_data.2",
+            "target": "process_data.3",
+            "description": "next iteration"
+        },
+        {
+            "id": "e2",
+            "source": "process_data.3",
+            "target": "process_data.4",
+            "description": "true"
+        },
+        {
+            "id": "e3",
+            "source": "process_data.3",
+            "target": "process_data.5",
+            "description": "false"
+        },
+        {
+            "id": "e4",
+            "source": "process_data.4",
+            "target": "process_data.8",
+            "description": "after div3 handler"
+        },
+        {
+            "id": "e5",
+            "source": "process_data.5",
+            "target": "process_data.6",
+            "description": "true"
+        },
+        {
+            "id": "e6",
+            "source": "process_data.5",
+            "target": "process_data.7",
+            "description": "false"
+        },
+        {
+            "id": "e7",
+            "source": "process_data.6",
+            "target": "process_data.8",
+            "description": "after even handler"
+        },
+        {
+            "id": "e8",
+            "source": "process_data.7",
+            "target": "process_data.8",
+            "description": "after other handler"
+        },
+        {
+            "id": "e9",
+            "source": "process_data.8",
+            "target": "process_data.2",
+            "description": "loop back"
+        },
+        {
+            "id": "e10",
+            "source": "process_data.2",
+            "target": "process_data.9",
+            "description": "exit loop"
+        }
+    ]
+}

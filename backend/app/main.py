@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
 from schemas.common import *
-from llm.diagram_generator import generate_call_graph
+from llm.diagram_generator import generate_call_graph, generate_control_flow_graph
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
 from llm.utils import get_source_file_with_line_number
 from fastapi.responses import JSONResponse
@@ -61,9 +61,7 @@ async def api_generate_control_flow_graph(request: CFGDiagramRequest):
     Generate a control flow graph for the given code.
     """
     try:
-        json_data = ""
-        with open(SAMPLE_CFG_JSON, "r", encoding="utf-8") as f:
-            json_data = json.load(f)
+        json_data = await generate_control_flow_graph(request.file_path, request.function_name)
         result = {
             "data": json_data
         }

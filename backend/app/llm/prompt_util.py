@@ -47,11 +47,11 @@ DIAGRAM_EXAMPLE = {
 }
 
 PROMPT_CODE_TO_CG = """
-    You are a SOFTWARE ENGINEERING EXPERT. You are given a Python code file.
+    You are a SOFTWARE ENGINEERING EXPERT. You are given a Python function.
     Please generate a Call Graph for the provided code.
 
     INPUT:
-    - The code with line numbers:
+    - The function code with line numbers:
     {repo_prompt}
 
     - Example output format (JSON):
@@ -59,12 +59,76 @@ PROMPT_CODE_TO_CG = """
 
     OUTPUT:
     - The output must strictly follow the provided JSON format.
-    - Only create nodes for functions or classes declared in this file.
-    - If a function or class is called but not declared in this file (e.g., imported), do not create a node for it, but do create an edge to it.
+    - Only create nodes for functions or classes declared in this code.
+    - If a function or class is called but not declared in this code (e.g., imported), do not create a node for it, but do create an edge to it.
     - For edges to imported functions or classes, if the import statement is like 'from A.B import C', the edge target should be 'A.B.C'.
     - Edges must represent function calls or class method calls.
     - Ignore built-in functions and standard library calls.
     - The flowchart should accurately represent the code structure.
+    - Add comments in the generated flowchart for clarity.
+"""
+
+PROMPT_CODE_TO_CFG = """
+    You are a SOFTWARE ENGINEERING EXPERT. You are given a Python function.
+    Please generate a Control Flow Graph (CFG) for the provided code.
+
+    INPUT:
+    - The function code:
+    {function_code}
+
+    - Example output format (JSON):
+    {{
+        "nodes": [
+            {{
+                "id": "main.1",
+                "label": "Start of main()",
+                "file": "poc/main.py",
+                "line_start": 1,
+                "line_end": 1,
+                "description": "Entry point of main function."
+            }},
+            {{
+                "id": "main.2",
+                "label": "If condition x > 0",
+                "file": "poc/main.py",
+                "line_start": 2,
+                "line_end": 2,
+                "description": "Conditional branch."
+            }},
+            // ... more nodes ...
+        ],
+        "edges": [
+            {{
+                "id": "e0",
+                "source": "main.1",
+                "target": "main.2",
+                "description": "next number"
+            }},
+            {{
+                "id": "e1",
+                "source": "main.2",
+                "target": "main.3",
+                "description": "true"
+            }},
+            {{
+                "id": "e2",
+                "source": "main.2",
+                "target": "main.4",
+                "description": "false"
+            }}
+            // ... more edges ...
+        ]
+    }}
+
+    OUTPUT:
+    - The output must strictly follow the provided JSON format.
+    - Each node should represent a basic block, statement, or control structure (e.g., condition, loop, return).
+    - Edges must represent possible control flow transitions (e.g., normal, true/false for branches, loop back).
+    - Only include nodes and edges for code declared in this function.
+    - Ignore built-in functions and standard library calls.
+    - Only visualize essential control flow relevant to the main logic of the function.
+    - Omit nodes and edges for logging, debugging, or other non-essential statements that do not affect the core logic or outcome.
+    - The graph should accurately represent the essential control flow structure.
     - Add comments in the generated flowchart for clarity.
 """
 

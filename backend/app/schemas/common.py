@@ -15,7 +15,7 @@ class CGDiagramResponse(BaseModel):
     data: str #Json Str Format or Error Message
 
 class CFGDiagramRequest(BaseModel):
-    file_name: str  # 파일 이름
+    file_path: str  # 파일 이름
     function_name: str # 함수 이름
 
 class CFGDiagramResponse(BaseModel):

@@ -1,5 +1,7 @@
 import os
 import glob
+import traceback
+import json
 
 SEPARATOR = "-------------------------------------------------------------------"
 
@@ -36,3 +38,59 @@ def get_source_file_with_line_number(file_path: str):
         file_context += f"\n\nFile: {file_path}\n{SEPARATOR}\n(Error: {str(e)})"
 
     return file_context
+
+def extract_function_code_from_file(file_path: str, function_name: str) -> str:
+    """
+    Extract the source code of a function with the given name from the specified file.
+    Raises FileNotFoundError or ValueError if not found.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    with open(file_path, "r", encoding="utf-8") as f:
+        code = f.read()
+    if function_name not in code:
+        raise ValueError(f"Function '{function_name}' not found in file '{file_path}'")
+    function_code = ""
+    in_function = False
+    for line in code.splitlines():
+        if line.strip().startswith(f"def {function_name}("):
+            in_function = True
+        if in_function:
+            function_code += line + "\n"
+            if line.strip() == "":
+                in_function = False
+    return function_code
+
+def log_exception(e: Exception, function_name: str, extra_info: str = ""):
+    error_trace = traceback.format_exc()
+    print(f"Error in function '{function_name}'{extra_info}: {e}")
+    print("Full traceback:")
+    print(error_trace)
+
+def extract_json_from_response(text: str) -> dict:
+    """
+    Extract and parse JSON object from LLM response text.
+    Handles ```json ... ``` blocks and parses the JSON.
+    Raises ValueError if parsing fails.
+    """
+    text = text.strip()
+    if text.startswith("```json"):
+        text = text[len("```json"):].strip()
+        if text.endswith("```"):
+            text = text[:-3].strip()
+    if not text:
+        raise ValueError("LLM 응답이 비어 있습니다.")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        print("LLM 응답:", text)
+        raise ValueError(f"LLM 응답이 올바른 JSON이 아닙니다: {e}")
+
+def save_json_and_return_str(obj, output_path: str) -> str:
+    """
+    Save the given object as JSON to the specified path and return its JSON string.
+    """
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=4, ensure_ascii=False)
+        results_str = json.dumps(obj, indent=4, ensure_ascii=False)
+    return results_str
