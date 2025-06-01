@@ -39,8 +39,8 @@ async def root():
     except FileNotFoundError:
         return HTMLResponse(content="<h1>Template not found</h1>", status_code=404)
 
-@app.post("/api/generate_call_graph", response_model=DiagramResponse)
-async def api_generate_call_graph(request: DiagramRequest):
+@app.post("/api/generate_call_graph", response_model=CGDiagramResponse)
+async def api_generate_call_graph(request: CGDiagramResponse):
     """
     Generate a call graph for the given code.
     """
@@ -51,12 +51,12 @@ async def api_generate_call_graph(request: DiagramRequest):
             "data": json_data
         }
         print(f'result in main.py: \\{result}')
-        return DiagramResponse(**result)
+        return CGDiagramResponse(**result)
     except Exception as e:
-        return DiagramResponse(status=500, data=str(e))
+        return CGDiagramResponse(status=500, data=str(e))
 
-@app.post("/api/generate_control_flow_graph", response_model=DiagramResponse)
-async def api_generate_control_flow_graph(request: DiagramRequest):
+@app.post("/api/generate_control_flow_graph", response_model=CFGDiagramResponse)
+async def api_generate_control_flow_graph(request: CFGDiagramRequest):
     """
     Generate a control flow graph for the given code.
     """
@@ -68,9 +68,9 @@ async def api_generate_control_flow_graph(request: DiagramRequest):
             "data": json_data
         }
         print(f'result in main.py: \\{result}')
-        return DiagramResponse(**result)
+        return CFGDiagramResponse(**result)
     except Exception as e:
-        return DiagramResponse(status=500, data=str(e))
+        return CFGDiagramResponse(status=500, data=str(e))
 
 @app.get("/api/chatbot/session/open")
 async def api_open_session():

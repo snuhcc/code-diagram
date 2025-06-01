@@ -6,13 +6,20 @@ backend_root_dir = os.getcwd()
 poc_path = os.path.join(backend_root_dir, "../..", "poc")
 
 # 요청 모델 정의
-class DiagramRequest(BaseModel):
+class CGDiagramRequest(BaseModel):
     path: str = poc_path #Local File Absolute Path or Github URL
     file_type: Optional[str] = None #File Type to render CFG
 
 # 응답 모델 정의
-class DiagramResponse(BaseModel):
+class CGDiagramResponse(BaseModel):
     data: str #Json Str Format or Error Message
+
+class CFGDiagramRequest(BaseModel):
+    file_name: str  # 파일 이름
+    function_name: str # 함수 이름
+
+class CFGDiagramResponse(BaseModel):
+    data: str  # JSON 문자열 형식의 제어 흐름 그래프 데이터
 
 # 세션 요청 모델 정의
 class SessionRequest(BaseModel):
