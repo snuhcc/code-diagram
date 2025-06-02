@@ -150,6 +150,32 @@ export default function DiagramViewer() {
 
   // Node click handler: open file in editor and highlight in explorer
   const onNodeClick: NodeMouseHandler = (_, node) => {
+    // 그룹 노드 클릭 시: 해당 파일 첫번째 라인으로 이동
+    if (node.type === 'group') {
+      const fileLabel = (node.data as any)?.label as string | undefined;
+      if (!fileLabel) return;
+      // 파일 경로를 찾기 위해 nodes에서 해당 그룹의 파일 경로를 역추적
+      // 그룹 노드 id: group-<file_path_escaped>
+      // nodes 중 parentId가 node.id인 첫번째 노드의 file을 사용
+      const childNode = nodes.find(n => n.parentId === node.id);
+      const filePath = childNode ? (childNode.data as any)?.file : undefined;
+      if (!filePath) return;
+
+      const clean = filePath.replace(/^poc[\\/]/, '');
+      editorState.open({
+        id: nanoid(),
+        path: clean,
+        name: clean.split(/[\\/]/).pop() ?? clean,
+        // 첫번째 라인으로 이동 (예시: line: 1)
+        line: 1,
+      });
+
+      const target = findByPath(fsState.tree, clean);
+      if (target) fsState.setCurrent(target.id);
+      return;
+    }
+
+    // 기존 함수 노드 클릭 동작
     const raw = (node.data as any)?.file as string | undefined;
     if (!raw) return;
 
