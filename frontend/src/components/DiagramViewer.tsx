@@ -116,8 +116,8 @@ export default function DiagramViewer() {
     editorState.tabs.at(-1)?.path ??
     '';
 
-  // Utility to extract function snippet from code
-  function extractFunctionSnippet(code: string, functionName: string): string | null {
+  // Utility to extract function snippet and its starting line number from code
+  function extractFunctionSnippetWithLine(code: string, functionName: string): { snippet: string, startLine: number } | null {
     const lines = code.split('\n');
     let startLine = -1;
 
@@ -142,10 +142,28 @@ export default function DiagramViewer() {
         continue;
       }
       if (!lines[i].startsWith(' ') && !lines[i].startsWith('\t')) {
-        return lines.slice(startLine, i).join('\n');
+        return {
+          snippet: lines.slice(startLine, i).join('\n'),
+          startLine: startLine + 1, // 1-based line number
+        };
       }
     }
-    return lines.slice(startLine).join('\n');
+    return {
+      snippet: lines.slice(startLine).join('\n'),
+      startLine: startLine + 1,
+    };
+  }
+
+  // Utility to add line numbers to code snippet
+  function addLineNumbers(snippet: string, start: number = 1): string {
+    const lines = snippet.split('\n');
+    const pad = String(start + lines.length - 1).length;
+    return lines
+      .map((line, idx) => {
+        const num = String(start + idx).padStart(pad, ' ');
+        return `<span style="color:#64748b">${num}</span>  ${line}`;
+      })
+      .join('\n');
   }
 
   // Node click handler: open file in editor and highlight in explorer
@@ -205,8 +223,22 @@ export default function DiagramViewer() {
     const clean = raw.replace(/^poc[\\/]/, '');
     const cacheKey = `${clean}_${functionName}`;
 
+    // snippetCache에는 {snippet}만 저장, startLine은 별도 fetch 필요
     if (snippetCache.has(cacheKey)) {
-      setSnippet(snippetCache.get(cacheKey)!);
+      try {
+        const txt = await fetch(
+          `/api/file?path=${encodeURIComponent(clean)}`
+        ).then((r) => r.text());
+        const result = extractFunctionSnippetWithLine(txt, functionName);
+        if (result) {
+          // snippetCache에는 preview(기존 15줄 제한)가 저장되어 있으므로, 전체 함수코드를 다시 사용
+          setSnippet(addLineNumbers(result.snippet, result.startLine));
+        } else {
+          setSnippet('(function not found)');
+        }
+      } catch {
+        setSnippet('(preview unavailable)');
+      }
       return;
     }
 
@@ -215,11 +247,11 @@ export default function DiagramViewer() {
         `/api/file?path=${encodeURIComponent(clean)}`
       ).then((r) => r.text());
 
-      const snippet = extractFunctionSnippet(txt, functionName);
-      if (snippet) {
-        const preview = snippet.split('\n').slice(0, 15).join('\n');
-        snippetCache.set(cacheKey, preview);
-        setSnippet(preview);
+      const result = extractFunctionSnippetWithLine(txt, functionName);
+      if (result) {
+        // snippetCache에는 preview(기존 15줄 제한)가 저장되어 있으나, 실제 렌더는 전체 함수코드로
+        snippetCache.set(cacheKey, result.snippet);
+        setSnippet(addLineNumbers(result.snippet, result.startLine));
       } else {
         setSnippet('(function not found)');
       }
@@ -476,9 +508,10 @@ export default function DiagramViewer() {
             top: 16,
             right: 16,
             minWidth: 320,
-            maxWidth: '40vw',      // 최대 너비를 뷰포트의 40%로 제한
-            width: 'auto',         // 내용에 따라 자동 너비
-            maxHeight: 320,
+            maxWidth: '40vw',
+            width: 'auto',
+            minHeight: 40,
+            maxHeight: '80vh', // 최대 높이를 뷰포트의 80%로, height는 내용에 따라 자동
             background: '#1e293b',
             color: '#f1f5f9',
             fontSize: 12,
@@ -486,13 +519,13 @@ export default function DiagramViewer() {
             boxShadow: '0 4px 16px #0004',
             padding: 16,
             overflow: 'auto',
-            whiteSpace: 'pre-wrap', // 자동 줄바꿈 허용
-            wordBreak: 'break-all', // 긴 단어도 줄바꿈
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
           }}
-        >
-          {snippet}
-        </div>
+          // 코드에 HTML 라인넘버 span이 포함되므로 dangerouslySetInnerHTML 사용
+          dangerouslySetInnerHTML={{ __html: snippet }}
+        />
       )}
     </div>
   );
