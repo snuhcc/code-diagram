@@ -201,7 +201,6 @@ export default function DiagramViewer() {
         const raw = await res.json();
         const json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> =
           typeof raw?.data === 'string' ? JSON.parse(raw.data) : raw.data;
-
         diagramCache = json;
         hydrate(json);
       } catch (e: any) {
@@ -285,6 +284,7 @@ export default function DiagramViewer() {
         minZoom={0.2}
         maxZoom={2}
         className="bg-gray-50"
+        paneProps={{ style: { zIndex: 0 } }} // 패널의 zIndex를 0으로 설정
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap pannable zoomable />
@@ -305,19 +305,18 @@ export default function DiagramViewer() {
     </div>
   );
 
-  // Hydrate JSON data into state
   function hydrate(json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) {
-    let allNodes: Node[] = [];
+    let allFunctionNodes: Node[] = [];
     let allEdges: Edge[] = [];
 
+    // Step 1: Collect all function nodes and edges from JSON
     Object.entries(json).forEach(([file, data]) => {
       const { nodes: rawNodes, edges: rawEdges } = data;
 
-      // Filter edges to remove those referencing non-existent nodes
       const nodeIds = new Set(rawNodes.map((n) => n.id));
       const validEdges = rawEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
 
-      const fileNodes: Node[] = rawNodes.map((r) => ({
+      const fileFunctionNodes: Node[] = rawNodes.map((r) => ({
         id: r.id,
         data: { label: r.label || r.function_name || r.id, file: r.file },
         position: { x: 0, y: 0 },
@@ -327,22 +326,79 @@ export default function DiagramViewer() {
           border: '1px solid #3b82f6',
           background: '#fff',
         },
+        zIndex: 1, // Function nodes above group nodes
       }));
 
-      const fileEdges: Edge[] = validEdges.map((r) => ({
+      allFunctionNodes = allFunctionNodes.concat(fileFunctionNodes);
+      allEdges = allEdges.concat(validEdges.map((r) => ({
         id: r.id,
         source: r.source,
         target: r.target,
         markerEnd: { type: MarkerType.ArrowClosed },
         animated: true,
-      }));
-
-      allNodes = allNodes.concat(fileNodes);
-      allEdges = allEdges.concat(fileEdges);
+        style: { stroke: '#000', strokeWidth: 2 },
+        zIndex: 10000, // Edges above all nodes, including during drag
+      })));
     });
 
-    const laidOutNodes = layout(allNodes, allEdges);
-    setNodes(laidOutNodes);
+    // Step 2: Dagre를 사용해 모든 함수 노드 배치
+    const laidOutFunctionNodes = layout(allFunctionNodes, allEdges);
+
+    // Step 3: 파일별 그룹 노드 생성
+    const groupNodes: Node[] = [];
+    const padding = 20;
+    const fileToNodes: Record<string, Node[]> = {};
+
+    // 파일별로 함수 노드 그룹화
+    laidOutFunctionNodes.forEach((node) => {
+      const file = (node.data as any).file;
+      if (!fileToNodes[file]) {
+        fileToNodes[file] = [];
+      }
+      fileToNodes[file].push(node);
+    });
+
+    // Step 4: 그룹 노드 생성 및 자식 노드 위치 조정
+    Object.entries(fileToNodes).forEach(([file, nodes]) => {
+      if (nodes.length === 0) return;
+
+      // 그룹의 경계 상자 계산
+      const xs = nodes.map((n) => n.position.x);
+      const ys = nodes.map((n) => n.position.y);
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      const maxX = Math.max(...xs) + 160; // 대략적인 노드 너비
+      const maxY = Math.max(...ys) + 40;  // 대략적인 노드 높이
+
+      const groupId = `group-${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      groupNodes.push({
+        id: groupId,
+        type: 'group',
+        data: { label: file.split('/').pop() || file },
+        position: { x: minX - padding, y: minY - padding },
+        style: {
+          width: maxX - minX + 2 * padding,
+          height: maxY - minY + 2 * padding,
+          background: 'rgba(0, 0, 0, 0.05)',
+          border: '1px dashed #999',
+        },
+        zIndex: 0, // Group nodes below function nodes and edges
+      });
+
+      // 함수 노드 위치를 그룹 기준으로 조정
+      nodes.forEach((node) => {
+        node.position = {
+          x: node.position.x - (minX - padding),
+          y: node.position.y - (minY - padding),
+        };
+        node.parentId = groupId;
+        node.extent = 'parent';
+      });
+    });
+
+    // Step 5: 그룹 노드와 함수 노드 결합 후 상태 설정
+    const allNodes = [...groupNodes, ...laidOutFunctionNodes];
+    setNodes(allNodes);
     setEdges(allEdges);
   }
 }

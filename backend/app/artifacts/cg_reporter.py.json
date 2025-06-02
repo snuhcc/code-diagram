@@ -1,12 +1,12 @@
 {
     "nodes": [
         {
-            "id": "poc.reporter.generate_report",
+            "id": "reporter.generate_report",
             "function_name": "generate_report",
             "file": "poc/reporter.py",
             "line_start": 2,
             "line_end": 21,
-            "description": "Generates a textual report from the analysis dictionary, printing average, median, counts of high/low values, and comparison messages."
+            "description": "Function that generates a textual report from the analysis dict: prints average, median, counts of high/low values, and a summary comparison."
         }
     ],
     "edges": []

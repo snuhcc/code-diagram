@@ -2,12 +2,12 @@
     "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/reporter.py": {
         "nodes": [
             {
-                "id": "poc.reporter.generate_report",
+                "id": "reporter.generate_report",
                 "function_name": "generate_report",
                 "file": "poc/reporter.py",
                 "line_start": 2,
                 "line_end": 21,
-                "description": "Generates a textual report from the analysis dictionary, printing average, median, counts of high/low values, and comparison messages."
+                "description": "Function that generates a textual report from the analysis dict: prints average, median, counts of high/low values, and a summary comparison."
             }
         ],
         "edges": []
@@ -20,7 +20,7 @@
                 "file": "poc/analyzer.py",
                 "line_start": 4,
                 "line_end": 16,
-                "description": "Function that analyzes a list of numbers: computes average and median, and separates values above and below or equal to the average."
+                "description": "Function that computes average and median of input data, and partitions data into high and low values."
             }
         ],
         "edges": [
@@ -44,14 +44,14 @@
                 "file": "poc/processor.py",
                 "line_start": 3,
                 "line_end": 15,
-                "description": "Processes a list of numbers, dispatching each to a branching handler based on divisibility."
+                "description": "Processes a list of numbers, branching to different handlers based on divisibility."
             },
             {
                 "id": "processor.handle_div3",
                 "function_name": "handle_div3",
                 "file": "poc/processor.py",
                 "line_start": 17,
-                "line_end": 19,
+                "line_end": 20,
                 "description": "Handles numbers divisible by 3 by dividing them by 3."
             },
             {
@@ -59,7 +59,7 @@
                 "function_name": "handle_even",
                 "file": "poc/processor.py",
                 "line_start": 21,
-                "line_end": 23,
+                "line_end": 24,
                 "description": "Handles even numbers by dividing them by 2."
             },
             {
@@ -68,27 +68,24 @@
                 "file": "poc/processor.py",
                 "line_start": 25,
                 "line_end": 27,
-                "description": "Handles all other numbers by applying the transformation n*3 + 1."
+                "description": "Handles all other numbers by applying the transformation num * 3 + 1."
             }
         ],
         "edges": [
             {
                 "id": "e0",
                 "source": "processor.process_data",
-                "target": "processor.handle_div3",
-                "description": "Calls when num % 3 == 0"
+                "target": "processor.handle_div3"
             },
             {
                 "id": "e1",
                 "source": "processor.process_data",
-                "target": "processor.handle_even",
-                "description": "Calls when num % 2 == 0 and not divisible by 3"
+                "target": "processor.handle_even"
             },
             {
                 "id": "e2",
                 "source": "processor.process_data",
-                "target": "processor.handle_other",
-                "description": "Calls for all other cases"
+                "target": "processor.handle_other"
             }
         ]
     },
@@ -100,7 +97,7 @@
                 "file": "poc/main.py",
                 "line_start": 7,
                 "line_end": 15,
-                "description": "Main function that orchestrates the workflow: fetching, processing, analysis, and reporting."
+                "description": "Entry point function that orchestrates data fetching, processing, analysis, and reporting."
             }
         ],
         "edges": [
@@ -134,21 +131,19 @@
                 "file": "poc/fetcher.py",
                 "line_start": 4,
                 "line_end": 13,
-                "description": "Function that attempts to fetch data up to a given number of retries, returning a list of random integers on success or raising ConnectionError on failure."
+                "description": "Function to fetch data with up to 3 retries. Uses random.random to simulate success and random.randint to generate data; raises ConnectionError on repeated failure."
             }
         ],
         "edges": [
             {
                 "id": "e0",
                 "source": "fetcher.fetch_data",
-                "target": "random.random",
-                "description": "Checks if a random value is below the success threshold"
+                "target": "random.random"
             },
             {
                 "id": "e1",
                 "source": "fetcher.fetch_data",
-                "target": "random.randint",
-                "description": "Generates random integers for the fetched data list"
+                "target": "random.randint"
             }
         ]
     }

@@ -1,4 +1,4 @@
-/* src/app/globals.css */
+/* 기존 globals.css 내용 유지 */
 @import 'tailwindcss';
 
 /* ─── 라이트 팔레트 ─── */
@@ -66,4 +66,9 @@ body {
 }
 .highlight-text {
   background-color: rgba(255, 255, 0, 0.5);
+}
+
+/* 드래그 중 노드의 zIndex 제한 */
+.react-flow__node.dragging {
+  z-index: 10 !important; /* 엣지의 zIndex(10000)보다 낮게 설정 */
 }
