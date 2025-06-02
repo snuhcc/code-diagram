@@ -6,7 +6,7 @@
             "file": "poc/reporter.py",
             "line_start": 2,
             "line_end": 21,
-            "description": "Function that generates a textual report from the analysis dict: prints average, median, counts of high/low values, and a summary comparison."
+            "description": "Prints a formatted report of statistics from the provided analysis dict: average, median, counts of high/low values, and a comparison summary."
         }
     ],
     "edges": []

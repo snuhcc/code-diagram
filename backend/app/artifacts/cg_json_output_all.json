@@ -7,7 +7,7 @@
                 "file": "poc/reporter.py",
                 "line_start": 2,
                 "line_end": 21,
-                "description": "Function that generates a textual report from the analysis dict: prints average, median, counts of high/low values, and a summary comparison."
+                "description": "Prints a formatted report of statistics from the provided analysis dict: average, median, counts of high/low values, and a comparison summary."
             }
         ],
         "edges": []
@@ -20,7 +20,7 @@
                 "file": "poc/analyzer.py",
                 "line_start": 4,
                 "line_end": 16,
-                "description": "Function that computes average and median of input data, and partitions data into high and low values."
+                "description": "Function that computes average, median, and partitions data into high and low values."
             }
         ],
         "edges": [
@@ -44,23 +44,23 @@
                 "file": "poc/processor.py",
                 "line_start": 3,
                 "line_end": 15,
-                "description": "Processes a list of numbers, branching to different handlers based on divisibility."
+                "description": "Entry point that iterates over data and delegates to branching handlers based on divisibility."
             },
             {
                 "id": "processor.handle_div3",
                 "function_name": "handle_div3",
                 "file": "poc/processor.py",
                 "line_start": 17,
-                "line_end": 20,
-                "description": "Handles numbers divisible by 3 by dividing them by 3."
+                "line_end": 19,
+                "description": "Handles numbers divisible by 3, dividing them by 3."
             },
             {
                 "id": "processor.handle_even",
                 "function_name": "handle_even",
                 "file": "poc/processor.py",
                 "line_start": 21,
-                "line_end": 24,
-                "description": "Handles even numbers by dividing them by 2."
+                "line_end": 23,
+                "description": "Handles even numbers, halving them."
             },
             {
                 "id": "processor.handle_other",
@@ -68,7 +68,7 @@
                 "file": "poc/processor.py",
                 "line_start": 25,
                 "line_end": 27,
-                "description": "Handles all other numbers by applying the transformation num * 3 + 1."
+                "description": "Handles all other numbers with the 3n+1 transformation."
             }
         ],
         "edges": [
@@ -95,9 +95,9 @@
                 "id": "main.main",
                 "function_name": "main",
                 "file": "poc/main.py",
-                "line_start": 7,
-                "line_end": 15,
-                "description": "Entry point function that orchestrates data fetching, processing, analysis, and reporting."
+                "line_start": 1,
+                "line_end": 17,
+                "description": "Main function that orchestrates the data fetching, processing, analysis, and reporting workflow."
             }
         ],
         "edges": [
@@ -131,20 +131,9 @@
                 "file": "poc/fetcher.py",
                 "line_start": 4,
                 "line_end": 13,
-                "description": "Function to fetch data with up to 3 retries. Uses random.random to simulate success and random.randint to generate data; raises ConnectionError on repeated failure."
+                "description": "Attempts to fetch data up to a number of retries, returns a list of random integers on success, raises ConnectionError on failure."
             }
         ],
-        "edges": [
-            {
-                "id": "e0",
-                "source": "fetcher.fetch_data",
-                "target": "random.random"
-            },
-            {
-                "id": "e1",
-                "source": "fetcher.fetch_data",
-                "target": "random.randint"
-            }
-        ]
+        "edges": []
     }
 }

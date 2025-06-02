@@ -27,8 +27,8 @@ const snippetCache = new Map<string, string>(); // <cleanPath_functionName, prev
 function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
   const g = new dagre.graphlib.Graph().setGraph({
     rankdir: 'TB',
-    nodesep: 50,
-    ranksep: 70,
+    nodesep: 100, // 수평 간격 증가로 그룹 노드 겹침 방지
+    ranksep: 100, // 수직 간격 증가로 그룹 노드 겹침 방지
   });
   g.setDefaultEdgeLabel(() => ({}));
 
@@ -201,6 +201,7 @@ export default function DiagramViewer() {
         const raw = await res.json();
         const json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> =
           typeof raw?.data === 'string' ? JSON.parse(raw.data) : raw.data;
+
         diagramCache = json;
         hydrate(json);
       } catch (e: any) {
@@ -284,7 +285,6 @@ export default function DiagramViewer() {
         minZoom={0.2}
         maxZoom={2}
         className="bg-gray-50"
-        paneProps={{ style: { zIndex: 0 } }} // 패널의 zIndex를 0으로 설정
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap pannable zoomable />

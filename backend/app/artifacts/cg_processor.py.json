@@ -6,23 +6,23 @@
             "file": "poc/processor.py",
             "line_start": 3,
             "line_end": 15,
-            "description": "Processes a list of numbers, branching to different handlers based on divisibility."
+            "description": "Entry point that iterates over data and delegates to branching handlers based on divisibility."
         },
         {
             "id": "processor.handle_div3",
             "function_name": "handle_div3",
             "file": "poc/processor.py",
             "line_start": 17,
-            "line_end": 20,
-            "description": "Handles numbers divisible by 3 by dividing them by 3."
+            "line_end": 19,
+            "description": "Handles numbers divisible by 3, dividing them by 3."
         },
         {
             "id": "processor.handle_even",
             "function_name": "handle_even",
             "file": "poc/processor.py",
             "line_start": 21,
-            "line_end": 24,
-            "description": "Handles even numbers by dividing them by 2."
+            "line_end": 23,
+            "description": "Handles even numbers, halving them."
         },
         {
             "id": "processor.handle_other",
@@ -30,7 +30,7 @@
             "file": "poc/processor.py",
             "line_start": 25,
             "line_end": 27,
-            "description": "Handles all other numbers by applying the transformation num * 3 + 1."
+            "description": "Handles all other numbers with the 3n+1 transformation."
         }
     ],
     "edges": [
