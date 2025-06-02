@@ -471,10 +471,25 @@ export default function DiagramViewer() {
       {/* Code snippet panel */}
       {hoverId && snippet && (
         <div
-          className="absolute bottom-2 right-2 w-[340px] max-h-[220px]
-                     bg-slate-800 text-slate-100 text-xs
-                     rounded shadow-lg p-3 overflow-auto
-                     whitespace-pre font-mono"
+          className="fixed z-50"
+          style={{
+            top: 16,
+            right: 16,
+            minWidth: 320,
+            maxWidth: '40vw',      // 최대 너비를 뷰포트의 40%로 제한
+            width: 'auto',         // 내용에 따라 자동 너비
+            maxHeight: 320,
+            background: '#1e293b',
+            color: '#f1f5f9',
+            fontSize: 12,
+            borderRadius: 8,
+            boxShadow: '0 4px 16px #0004',
+            padding: 16,
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap', // 자동 줄바꿈 허용
+            wordBreak: 'break-all', // 긴 단어도 줄바꿈
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+          }}
         >
           {snippet}
         </div>
