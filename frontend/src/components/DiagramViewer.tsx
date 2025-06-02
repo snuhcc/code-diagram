@@ -380,7 +380,36 @@ export default function DiagramViewer() {
         }}
       >
         <Background variant="dots" gap={16} size={1} />
-        <MiniMap pannable zoomable />
+        <MiniMap
+          pannable
+          zoomable
+          nodeColor={n =>
+            n.type === 'group'
+              ? '#bdbdbd'
+              : n.style?.background === '#fef9c3'
+                ? '#facc15'
+                : n.style?.background === '#dbeafe'
+                  ? '#0284c7'
+                  : '#2563eb'
+          }
+          nodeStrokeColor={n =>
+            n.type === 'group'
+              ? '#757575'
+              : n.style?.border?.includes('#eab308')
+                ? '#eab308'
+                : n.style?.border?.includes('#0284c7')
+                  ? '#0284c7'
+                  : '#1e40af'
+          }
+          nodeStrokeWidth={2}
+          maskColor="rgba(255,255,255,0.7)"
+          style={{
+            background: '#f3f4f6', // 밝은 회색 배경 (tailwind gray-100)
+            border: '1.5px solid #cbd5e1', // 테두리 (tailwind slate-300)
+            borderRadius: 6,
+            boxShadow: '0 2px 8px #0002',
+          }}
+        />
         <Controls>
           {/* ...기존 +, -, 잠금 버튼 등... */}
           <button
