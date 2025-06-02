@@ -276,6 +276,59 @@ export default function DiagramViewer() {
     };
   });
 
+  // 레이아웃 재적용 함수
+  const reLayout = useCallback(() => {
+    setNodes((nds) => {
+      // 그룹 노드와 함수 노드 분리
+      const groupNodes = nds.filter((n) => n.type === 'group');
+      const functionNodes = nds.filter((n) => n.type !== 'group');
+      // edges는 상태에서 사용
+      const laidOut = layout(functionNodes, edges);
+      // 그룹 노드의 위치/크기 재계산
+      const padding = 20;
+      const fileToNodes: Record<string, Node[]> = {};
+      laidOut.forEach((node) => {
+        const file = (node.data as any).file;
+        if (!fileToNodes[file]) fileToNodes[file] = [];
+        fileToNodes[file].push(node);
+      });
+      const newGroupNodes = Object.entries(fileToNodes).map(([file, nodes]) => {
+        if (nodes.length === 0) return null;
+        const xs = nodes.map((n) => n.position.x);
+        const ys = nodes.map((n) => n.position.y);
+        const minX = Math.min(...xs);
+        const minY = Math.min(...ys);
+        const maxX = Math.max(...xs) + 160;
+        const maxY = Math.max(...ys) + 40;
+        const groupId = `group-${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        // 자식 노드 위치 재조정
+        nodes.forEach((node) => {
+          node.position = {
+            x: node.position.x - (minX - padding),
+            y: node.position.y - (minY - padding),
+          };
+          node.parentId = groupId;
+          node.extent = 'parent';
+        });
+        return {
+          id: groupId,
+          type: 'group',
+          data: { label: file.split('/').pop() || file },
+          position: { x: minX - padding, y: minY - padding },
+          style: {
+            width: maxX - minX + 2 * padding,
+            height: maxY - minY + 2 * padding,
+            background: 'rgba(0, 0, 0, 0.05)',
+            border: '1px dashed #999',
+            borderRadius: 8,
+          },
+          zIndex: 0,
+        };
+      }).filter(Boolean) as Node[];
+      return [...newGroupNodes, ...laidOut];
+    });
+  }, [edges]);
+
   // Loading and error states
   if (loading)
     return (
@@ -328,7 +381,36 @@ export default function DiagramViewer() {
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap pannable zoomable />
-        <Controls />
+        <Controls>
+          {/* ...기존 +, -, 잠금 버튼 등... */}
+          <button
+            type="button"
+            title="Re-layout"
+            onClick={reLayout}
+            style={{
+              width: 20,
+              height: 20,
+              background: '#fff',
+              padding: 0,
+              margin: 4,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 1px 2px #0001',
+              transition: 'border 0.15s',
+            }}
+          >
+            {/* 흑백 단색 레이아웃(정렬) 아이콘 */}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="2" width="4" height="4" rx="1" fill="#222"/>
+              <rect x="10" y="2" width="4" height="4" rx="1" fill="#222"/>
+              <rect x="2" y="10" width="4" height="4" rx="1" fill="#222"/>
+              <rect x="6" y="6" width="4" height="4" rx="1" fill="#222"/>
+              <rect x="10" y="10" width="4" height="4" rx="1" fill="#222"/>
+            </svg>
+          </button>
+        </Controls>
       </ReactFlow>
 
       {/* Code snippet panel */}
