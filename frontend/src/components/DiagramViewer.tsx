@@ -19,6 +19,11 @@ import { nanoid } from 'nanoid';
 import { useEditor } from '@/store/editor';
 import { useFS, type FileNode } from '@/store/files';
 import { NodeProps } from '@xyflow/react';
+import hljs from 'highlight.js/lib/core';
+import python from 'highlight.js/lib/languages/python';
+import 'highlight.js/styles/atom-one-light.css'; // 원하는 스타일로 변경 가능
+
+hljs.registerLanguage('python', python);
 
 // Global cache for diagram data and snippets
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
@@ -154,9 +159,12 @@ export default function DiagramViewer() {
     };
   }
 
-  // Utility to add line numbers to code snippet
-  function addLineNumbers(snippet: string, start: number = 1): string {
-    const lines = snippet.split('\n');
+  // Utility to add line numbers and syntax highlight to code snippet
+  function addLineNumbersAndHighlight(snippet: string, start: number = 1): string {
+    // highlight.js로 syntax highlight 적용
+    const highlighted = hljs.highlight(snippet, { language: 'python' }).value;
+    // 줄 단위로 쪼개서 라인넘버 span 추가
+    const lines = highlighted.split('\n');
     const pad = String(start + lines.length - 1).length;
     return lines
       .map((line, idx) => {
@@ -223,7 +231,6 @@ export default function DiagramViewer() {
     const clean = raw.replace(/^poc[\\/]/, '');
     const cacheKey = `${clean}_${functionName}`;
 
-    // snippetCache에는 {snippet}만 저장, startLine은 별도 fetch 필요
     if (snippetCache.has(cacheKey)) {
       try {
         const txt = await fetch(
@@ -231,8 +238,7 @@ export default function DiagramViewer() {
         ).then((r) => r.text());
         const result = extractFunctionSnippetWithLine(txt, functionName);
         if (result) {
-          // snippetCache에는 preview(기존 15줄 제한)가 저장되어 있으므로, 전체 함수코드를 다시 사용
-          setSnippet(addLineNumbers(result.snippet, result.startLine));
+          setSnippet(addLineNumbersAndHighlight(result.snippet, result.startLine));
         } else {
           setSnippet('(function not found)');
         }
@@ -249,9 +255,8 @@ export default function DiagramViewer() {
 
       const result = extractFunctionSnippetWithLine(txt, functionName);
       if (result) {
-        // snippetCache에는 preview(기존 15줄 제한)가 저장되어 있으나, 실제 렌더는 전체 함수코드로
         snippetCache.set(cacheKey, result.snippet);
-        setSnippet(addLineNumbers(result.snippet, result.startLine));
+        setSnippet(addLineNumbersAndHighlight(result.snippet, result.startLine));
       } else {
         setSnippet('(function not found)');
       }
@@ -511,9 +516,9 @@ export default function DiagramViewer() {
             maxWidth: '40vw',
             width: 'auto',
             minHeight: 40,
-            maxHeight: '80vh', // 최대 높이를 뷰포트의 80%로, height는 내용에 따라 자동
-            background: '#1e293b',
-            color: '#f1f5f9',
+            maxHeight: '80vh',
+            background: '#fafafa', // atom-one-light에 어울리는 밝은 배경
+            color: '#1e293b',
             fontSize: 12,
             borderRadius: 8,
             boxShadow: '0 4px 16px #0004',
@@ -523,8 +528,8 @@ export default function DiagramViewer() {
             wordBreak: 'break-all',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
           }}
-          // 코드에 HTML 라인넘버 span이 포함되므로 dangerouslySetInnerHTML 사용
-          dangerouslySetInnerHTML={{ __html: snippet }}
+          // highlight.js 스타일 적용을 위해 hljs 클래스 추가
+          dangerouslySetInnerHTML={{ __html: `<pre class="hljs">${snippet}</pre>` }}
         />
       )}
     </div>
