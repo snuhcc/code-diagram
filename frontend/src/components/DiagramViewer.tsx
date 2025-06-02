@@ -18,6 +18,7 @@ import dagre from 'dagre';
 import { nanoid } from 'nanoid';
 import { useEditor } from '@/store/editor';
 import { useFS, type FileNode } from '@/store/files';
+import { NodeProps } from '@xyflow/react';
 
 // Global cache for diagram data and snippets
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
@@ -59,6 +60,42 @@ interface RawEdge {
 // API endpoint
 const ENDPOINT = '/api/generate_call_graph';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
+// Custom group node component
+function CustomGroupNode({ data, style }: NodeProps) {
+  return (
+    <div style={{ position: 'relative', width: style?.width, height: style?.height }}>
+      {/* Label above the group box */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -32, // 기존 -22에서 -32로 더 위로 올림
+          left: 0,
+          width: '100%',
+          textAlign: 'center',
+          fontWeight: 600,
+          fontSize: 13,
+          color: '#444',
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}
+      >
+        {data?.label}
+      </div>
+      {/* Group box */}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: style?.background,
+          border: style?.border,
+          borderRadius: style?.borderRadius,
+          boxSizing: 'border-box',
+        }}
+      />
+    </div>
+  );
+}
 
 export default function DiagramViewer() {
   // State
@@ -285,6 +322,9 @@ export default function DiagramViewer() {
         minZoom={0.2}
         maxZoom={2}
         className="bg-gray-50"
+        nodeTypes={{
+          group: CustomGroupNode, // Register custom group node
+        }}
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap pannable zoomable />
@@ -373,7 +413,7 @@ export default function DiagramViewer() {
       const groupId = `group-${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
       groupNodes.push({
         id: groupId,
-        type: 'group',
+        type: 'group', // This will use CustomGroupNode
         data: { label: file.split('/').pop() || file },
         position: { x: minX - padding, y: minY - padding },
         style: {
@@ -381,6 +421,7 @@ export default function DiagramViewer() {
           height: maxY - minY + 2 * padding,
           background: 'rgba(0, 0, 0, 0.05)',
           border: '1px dashed #999',
+          borderRadius: 8,
         },
         zIndex: 0, // Group nodes below function nodes and edges
       });
