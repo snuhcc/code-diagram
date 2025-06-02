@@ -4,35 +4,31 @@
             "id": "main.main",
             "function_name": "main",
             "file": "poc/main.py",
-            "line_start": 7,
-            "line_end": 15,
+            "line_start": 1,
+            "line_end": 17,
             "description": "Main function that orchestrates the data fetching, processing, analysis, and reporting workflow."
         }
     ],
     "edges": [
         {
-            "id": "e0",
+            "id": "main.e0",
             "source": "main.main",
-            "target": "fetcher.fetch_data",
-            "description": "Call to fetch_data to retrieve raw data."
+            "target": "fetcher.fetch_data"
         },
         {
-            "id": "e1",
+            "id": "main.e1",
             "source": "main.main",
-            "target": "processor.process_data",
-            "description": "Call to process_data to transform fetched data."
+            "target": "processor.process_data"
         },
         {
-            "id": "e2",
+            "id": "main.e2",
             "source": "main.main",
-            "target": "analyzer.analyze_data",
-            "description": "Call to analyze_data to perform analysis on processed data."
+            "target": "analyzer.analyze_data"
         },
         {
-            "id": "e3",
+            "id": "main.e3",
             "source": "main.main",
-            "target": "reporter.generate_report",
-            "description": "Call to generate_report to produce the final report."
+            "target": "reporter.generate_report"
         }
     ]
 }
