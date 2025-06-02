@@ -34,12 +34,12 @@ DIAGRAM_EXAMPLE = {
     ],
     "edges": [
         {
-            "id": "e0",
+            "id": "main.e0",   # file_name.edge_id
             "source": "main.main",
             "target": "fetcher.fetch_data",
         },
         {
-            "id": "e1",
+            "id": "fetcher.e1",
             "source": "fetcher.fetch_data",
             "target": "processor.process_data",
         }

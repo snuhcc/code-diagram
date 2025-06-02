@@ -429,14 +429,11 @@ export default function DiagramViewer() {
 
   function hydrate(json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) {
     let allFunctionNodes: Node[] = [];
-    let allEdges: Edge[] = [];
+    let allRawEdges: RawEdge[] = [];
 
-    // Step 1: Collect all function nodes and edges from JSON
+    // Step 1: Collect all function nodes and all edges from JSON
     Object.entries(json).forEach(([file, data]) => {
       const { nodes: rawNodes, edges: rawEdges } = data;
-
-      const nodeIds = new Set(rawNodes.map((n) => n.id));
-      const validEdges = rawEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
 
       const fileFunctionNodes: Node[] = rawNodes.map((r) => ({
         id: r.id,
@@ -452,7 +449,16 @@ export default function DiagramViewer() {
       }));
 
       allFunctionNodes = allFunctionNodes.concat(fileFunctionNodes);
-      allEdges = allEdges.concat(validEdges.map((r) => ({
+      allRawEdges = allRawEdges.concat(rawEdges);
+    });
+
+    // Step 2: 전체 노드 id 집합 생성
+    const allNodeIds = new Set(allFunctionNodes.map((n) => n.id));
+
+    // Step 3: edge의 source/target이 전체 노드에 있으면 추가 (cross-file edge 지원)
+    const allEdges: Edge[] = allRawEdges
+      .filter((e) => allNodeIds.has(e.source) && allNodeIds.has(e.target))
+      .map((r) => ({
         id: r.id,
         source: r.source,
         target: r.target,
@@ -460,8 +466,7 @@ export default function DiagramViewer() {
         animated: true,
         style: { stroke: '#000', strokeWidth: 2 },
         zIndex: 10000, // Edges above all nodes, including during drag
-      })));
-    });
+      }));
 
     // Step 2: Dagre를 사용해 모든 함수 노드 배치
     const laidOutFunctionNodes = layout(allFunctionNodes, allEdges);
