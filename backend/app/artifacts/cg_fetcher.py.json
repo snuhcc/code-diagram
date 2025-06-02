@@ -6,7 +6,7 @@
             "file": "poc/fetcher.py",
             "line_start": 4,
             "line_end": 13,
-            "description": "Function to fetch data with up to 3 retries; returns a list of random integers on success or raises ConnectionError on failure."
+            "description": "Function to fetch data with up to 3 retries, simulating success/failure using the random module."
         }
     ],
     "edges": [
@@ -14,13 +14,13 @@
             "id": "fetcher.e0",
             "source": "fetcher.fetch_data",
             "target": "random.random",
-            "description": "Checks success probability for each fetch attempt."
+            "description": "Call to random.random() to decide if fetch succeeds"
         },
         {
             "id": "fetcher.e1",
             "source": "fetcher.fetch_data",
             "target": "random.randint",
-            "description": "Generates random integer data when fetch succeeds."
+            "description": "Call to random.randint() to generate fetched data"
         }
     ]
 }

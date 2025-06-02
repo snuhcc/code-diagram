@@ -48,6 +48,43 @@ function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
   });
 }
 
+function layoutWithCluster(
+  files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>
+): Record<string, { x: number; y: number }> {
+  const g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
+    .setGraph({ rankdir: 'TB', nodesep: 100, ranksep: 140 })  // 간격 ↑
+    .setDefaultEdgeLabel(() => ({}));
+
+  /* 1️⃣ 파일을 클러스터로 */
+  Object.keys(files).forEach((file) => {
+    g.setNode(`cluster_${file}`, {});  // 크기는 Dagre가 계산
+  });
+
+  /* 2️⃣ 함수 노드 + 부모 설정 */
+  Object.entries(files).forEach(([file, { nodes }]) => {
+    nodes.forEach((n) => {
+      g.setNode(n.id, { width: 160, height: 40 });
+      g.setParent(n.id, `cluster_${file}`);
+    });
+  });
+
+  /* 3️⃣ 엣지 추가 */
+  Object.values(files).forEach(({ edges }) => {
+    edges.forEach(({ source, target }) => g.setEdge(source, target));
+  });
+
+  dagre.layout(g);
+
+  /* 4️⃣ 좌표 맵 추출 */
+  const pos: Record<string, { x: number; y: number }> = {};
+  g.nodes().forEach((id: string) => {
+    const n = g.node(id);
+    if (n?.x != null && n?.y != null) pos[id] = { x: n.x, y: n.y };
+  });
+  return pos;
+}
+
+
 // Common types
 interface RawNode {
   id: string;
@@ -327,13 +364,13 @@ export default function DiagramViewer() {
         background: isHover
           ? '#fef9c3' // yellow-100
           : isActive
-          ? '#dbeafe' // sky-100
-          : '#ffffff',
+            ? '#dbeafe' // sky-100
+            : '#ffffff',
         border: isHover
           ? '2px solid #eab308' // yellow-600
           : isActive
-          ? '2px solid #0284c7' // sky-600
-          : '1px solid #3b82f6',
+            ? '2px solid #0284c7' // sky-600
+            : '1px solid #3b82f6',
         transition: 'all 0.1s ease-in-out',
       },
     };
@@ -495,11 +532,11 @@ export default function DiagramViewer() {
           >
             {/* 흑백 단색 레이아웃(정렬) 아이콘 */}
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="2" y="2" width="4" height="4" rx="1" fill="#222"/>
-              <rect x="10" y="2" width="4" height="4" rx="1" fill="#222"/>
-              <rect x="2" y="10" width="4" height="4" rx="1" fill="#222"/>
-              <rect x="6" y="6" width="4" height="4" rx="1" fill="#222"/>
-              <rect x="10" y="10" width="4" height="4" rx="1" fill="#222"/>
+              <rect x="2" y="2" width="4" height="4" rx="1" fill="#222" />
+              <rect x="10" y="2" width="4" height="4" rx="1" fill="#222" />
+              <rect x="2" y="10" width="4" height="4" rx="1" fill="#222" />
+              <rect x="6" y="6" width="4" height="4" rx="1" fill="#222" />
+              <rect x="10" y="10" width="4" height="4" rx="1" fill="#222" />
             </svg>
           </button>
         </Controls>
@@ -577,7 +614,11 @@ export default function DiagramViewer() {
       }));
 
     // Step 2: Dagre를 사용해 모든 함수 노드 배치
-    const laidOutFunctionNodes = layout(allFunctionNodes, allEdges);
+    const posMap = layoutWithCluster(json);       // ← 새 클러스터 레이아웃
+    const laidOutFunctionNodes = allFunctionNodes.map((n) => ({
+      ...n,
+      position: posMap[n.id] ?? { x: 0, y: 0 },
+    }));
 
     // Step 3: 파일별 그룹 노드 생성
     const groupNodes: Node[] = [];

@@ -7,7 +7,7 @@
                 "file": "poc/reporter.py",
                 "line_start": 2,
                 "line_end": 21,
-                "description": "Generates a textual report from the analysis dictionary, printing average, median, counts of high/low values, and a comparison message."
+                "description": "Generate a report from the analysis dict: prints average, median, counts of high/low values, and compares their counts."
             }
         ],
         "edges": []
@@ -20,23 +20,10 @@
                 "file": "poc/analyzer.py",
                 "line_start": 4,
                 "line_end": 16,
-                "description": "Function that computes average and median of the input data, partitions values into high and low lists, and returns the results."
+                "description": "Analyzes a list of numerical data: computes average and median, partitions into high and low values, and returns a summary dictionary."
             }
         ],
-        "edges": [
-            {
-                "id": "analyzer.e0",
-                "source": "analyzer.analyze_data",
-                "target": "statistics.mean",
-                "description": "Calls mean() to compute the average of data."
-            },
-            {
-                "id": "analyzer.e1",
-                "source": "analyzer.analyze_data",
-                "target": "statistics.median",
-                "description": "Calls median() to compute the median of data."
-            }
-        ]
+        "edges": []
     },
     "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/processor.py": {
         "nodes": [
@@ -46,23 +33,23 @@
                 "file": "poc/processor.py",
                 "line_start": 3,
                 "line_end": 15,
-                "description": "Entry point: iterates over data and delegates handling based on divisibility."
+                "description": "Main entry point for processing a list of numbers, applying different handlers based on divisibility."
             },
             {
                 "id": "processor.handle_div3",
                 "function_name": "handle_div3",
                 "file": "poc/processor.py",
                 "line_start": 17,
-                "line_end": 19,
-                "description": "Handles numbers divisible by 3; divides by 3."
+                "line_end": 20,
+                "description": "Handler for numbers divisible by 3; divides the number by 3."
             },
             {
                 "id": "processor.handle_even",
                 "function_name": "handle_even",
                 "file": "poc/processor.py",
                 "line_start": 21,
-                "line_end": 23,
-                "description": "Handles even numbers; divides by 2."
+                "line_end": 24,
+                "description": "Handler for even numbers; divides the number by 2."
             },
             {
                 "id": "processor.handle_other",
@@ -70,7 +57,7 @@
                 "file": "poc/processor.py",
                 "line_start": 25,
                 "line_end": 27,
-                "description": "Handles all other numbers; applies num * 3 + 1."
+                "description": "Handler for numbers that are neither divisible by 3 nor even; applies the 3n+1 transformation."
             }
         ],
         "edges": [
@@ -84,13 +71,13 @@
                 "id": "processor.e1",
                 "source": "processor.process_data",
                 "target": "processor.handle_even",
-                "description": "Called when num % 2 == 0 and not divisible by 3"
+                "description": "Called when num % 3 != 0 and num % 2 == 0"
             },
             {
                 "id": "processor.e2",
                 "source": "processor.process_data",
                 "target": "processor.handle_other",
-                "description": "Called for all other numbers"
+                "description": "Called when num is neither divisible by 3 nor even"
             }
         ]
     },
@@ -100,9 +87,9 @@
                 "id": "main.main",
                 "function_name": "main",
                 "file": "poc/main.py",
-                "line_start": 1,
-                "line_end": 17,
-                "description": "Main function that orchestrates the data fetching, processing, analysis, and reporting workflow."
+                "line_start": 7,
+                "line_end": 15,
+                "description": "Main function that orchestrates data fetching, processing, analysis, and reporting."
             }
         ],
         "edges": [
@@ -136,9 +123,20 @@
                 "file": "poc/fetcher.py",
                 "line_start": 4,
                 "line_end": 13,
-                "description": "Function to fetch data with a retry mechanism; retries up to `retries` times before raising a ConnectionError."
+                "description": "Function to attempt fetching data up to a given number of retries, returns data list on success or raises ConnectionError on failure."
             }
         ],
-        "edges": []
+        "edges": [
+            {
+                "id": "fetcher.e0",
+                "source": "fetcher.fetch_data",
+                "target": "random.random"
+            },
+            {
+                "id": "fetcher.e1",
+                "source": "fetcher.fetch_data",
+                "target": "random.randint"
+            }
+        ]
     }
 }
