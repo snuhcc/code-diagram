@@ -1,7 +1,8 @@
 [src/components/ChatUI.tsx]
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useFS, getAllFilePaths } from '@/store/files';
+import { marked } from 'marked'; // 마크다운 파서 추가
 
 interface Message {
   role: 'user' | 'bot';
@@ -22,8 +23,10 @@ export default function ChatUI() {
   const [error, setError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownItems, setDropdownItems] = useState<string[]>([]);
+  const [isBotTyping, setIsBotTyping] = useState(false);
   const { tree } = useFS();
   const allFiles = getAllFilePaths(tree); // Retrieve all file paths from POC folder
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function init() {
@@ -125,6 +128,8 @@ export default function ChatUI() {
         s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'user', t: input }] } : s
       )
     );
+    setInput('');
+    setIsBotTyping(true); // 답변 대기 시작
 
     try {
       const res = await fetch(`${apiUrl}/api/chatbot/session/chat`, {
@@ -146,6 +151,7 @@ export default function ChatUI() {
           s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'bot', t: text }] } : s
         )
       );
+      setIsBotTyping(false); // 답변 도착
     } catch (err) {
       console.error('Failed to send message:', err);
       setSessions((prev) =>
@@ -155,11 +161,17 @@ export default function ChatUI() {
             : s
         )
       );
+      setIsBotTyping(false); // 에러 발생 시도 답변 대기 종료
     }
-    setInput('');
   };
 
   const currentLog = sessions.find((s) => s.id === currentSessionId)?.log || [];
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [currentLog, currentSessionId]);
 
   return (
     <div className="flex flex-col h-full">
@@ -189,7 +201,10 @@ export default function ChatUI() {
         </button>
       </div>
 
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div
+        ref={chatContainerRef}
+        className="flex-1 p-4 overflow-y-auto"
+      >
         {sessions.length === 0 ? (
           <p className="text-center text-gray-500">
             No active sessions. Click '+' to start a new session.
@@ -201,11 +216,18 @@ export default function ChatUI() {
                 className={`inline-block p-2 rounded ${
                   msg.role === 'user' ? 'bg-blue-100' : 'bg-gray-100'
                 }`}
-              >
-                {msg.t}
-              </span>
+                // 마크다운 렌더링
+                dangerouslySetInnerHTML={{ __html: marked.parse(msg.t) }}
+              />
             </div>
           ))
+        )}
+        {isBotTyping && (
+          <div className="mb-2 text-left">
+            <span className="inline-block p-2 rounded bg-gray-100 text-gray-500 animate-pulse">
+              <TypingIndicator />
+            </span>
+          </div>
         )}
         {error && <p className="text-red-500">{error}</p>}
       </div>
@@ -243,6 +265,17 @@ export default function ChatUI() {
         </div>
       )}
     </div>
+  );
+}
+
+// 채팅 타이핑 인디케이터 컴포넌트
+function TypingIndicator() {
+  return (
+    <span>
+      <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-1 animate-bounce" style={{ animationDelay: '0s' }}></span>
+      <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-1 animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+      <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+    </span>
   );
 }
 
@@ -299,7 +332,7 @@ export default function CodeViewer({ filePath }: { filePath: string }) {
 [src/components/DiagramViewer.tsx]
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ReactFlow,
   Background,
@@ -309,6 +342,8 @@ import {
   type Node,
   type Edge,
   type NodeMouseHandler,
+  applyNodeChanges,
+  NodeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
@@ -354,12 +389,12 @@ interface RawEdge {
 }
 
 // API endpoint
-const ENDPOINT = '/api/generate_control_flow_graph';
+const ENDPOINT = '/api/generate_call_graph';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function DiagramViewer() {
   // State
-  const [baseNodes, setBaseNodes] = useState<Node[]>([]);
+  const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState<string>();
@@ -467,6 +502,14 @@ export default function DiagramViewer() {
     setSnippet('');
   };
 
+  // Handle node changes (dragging, etc.)
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      setNodes((nds) => applyNodeChanges(changes, nds));
+    },
+    [setNodes]
+  );
+
   // Load diagram data and cache it
   useEffect(() => {
     (async () => {
@@ -495,7 +538,7 @@ export default function DiagramViewer() {
         hydrate(json);
       } catch (e: any) {
         setErr(String(e));
-        setBaseNodes([]);
+        setNodes([]);
         setEdges([]);
       } finally {
         setLoad(false);
@@ -504,7 +547,7 @@ export default function DiagramViewer() {
   }, []);
 
   // Compute node styles
-  const nodes = baseNodes.map((n) => {
+  const finalNodes = nodes.map((n) => {
     const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
     const isActive = clean === activePath;
     const isHover = hoverId === n.id;
@@ -530,20 +573,43 @@ export default function DiagramViewer() {
 
   // Loading and error states
   if (loading)
-    return <div className="p-4 text-sm text-slate-500">diagram loading…</div>;
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <svg
+          className="animate-spin h-8 w-8 text-blue-500"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+          />
+        </svg>
+        <span className="ml-3 text-sm text-slate-500">diagram loading…</span>
+      </div>
+    );
   if (error)
     return (
-      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">
-        {error}
-      </div>
+      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
     );
 
   // Render
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
-        nodes={nodes}
+        nodes={finalNodes}
         edges={edges}
+        onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
         onNodeMouseEnter={onEnter}
         onNodeMouseLeave={onLeave}
@@ -607,16 +673,14 @@ export default function DiagramViewer() {
       allEdges = allEdges.concat(fileEdges);
     });
 
-    setBaseNodes(layout(allNodes, allEdges));
+    const laidOutNodes = layout(allNodes, allEdges);
+    setNodes(laidOutNodes);
     setEdges(allEdges);
   }
 }
 
 // Utility to find FileNode by path
-function findByPath(
-  nodes: FileNode[] = [],
-  p: string
-): FileNode | undefined {
+function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
   for (const n of nodes) {
     if (n.path?.replace(/^poc[\\/]/, '') === p) return n;
     if (n.children) {
@@ -766,7 +830,7 @@ import { nanoid } from 'nanoid';
 
 function filterTree(nodes: FileNode[] = []): FileNode[] {
   return nodes
-    .filter((n) => n.name !== '__pycache__')
+    .filter((n) => n.name !== '__pycache__' && n.name !== '.DS_Store')
     .map((n) =>
       Array.isArray(n.children)
         ? { ...n, children: filterTree(n.children) }
@@ -1325,9 +1389,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
 from schemas.common import *
-from llm.diagram_generator import generate_control_flow_graph
+from llm.diagram_generator import generate_call_graph, generate_control_flow_graph
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
+from llm.utils import get_source_file_with_line_number
 from fastapi.responses import JSONResponse
+from llm.constants import SAMPLE_CFG_JSON
 
 import json
 
@@ -1358,28 +1424,36 @@ async def root():
     except FileNotFoundError:
         return HTMLResponse(content="<h1>Template not found</h1>", status_code=404)
 
-@app.post("/api/generate_control_flow_graph", response_model=DiagramResponse)
-async def api_generate_control_flow_graph(request: DiagramRequest):
+@app.post("/api/generate_call_graph", response_model=CGDiagramResponse)
+async def api_generate_call_graph(request: CGDiagramRequest):
     """
-    Generate a control flow graph (CFG) for the given code.
+    Generate a call graph for the given code.
     """
     try:
 
-        json_data = await generate_control_flow_graph(request.path, request.file_type)
+        json_data = await generate_call_graph(request.path, request.file_type)
         result = {
             "data": json_data
         }
         print(f'result in main.py: \\{result}')
-        return DiagramResponse(**result)
+        return CGDiagramResponse(**result)
     except Exception as e:
-        return DiagramResponse(status=500, data=str(e))
-    
-@app.get("/api/sample_cfg")
-async def sample_cfg():
-    """artifacts/cfg_json_output.json 파일 그대로 반환"""
-    json_path = Path(__file__).parent / "artifacts" / "stored_poc" / "cfg_json_output_all.json"
-    data = json.loads(json_path.read_text(encoding="utf-8"))
-    return JSONResponse(content=data)
+        return CGDiagramResponse(status=500, data=str(e))
+
+@app.post("/api/generate_control_flow_graph", response_model=CFGDiagramResponse)
+async def api_generate_control_flow_graph(request: CFGDiagramRequest):
+    """
+    Generate a control flow graph for the given code.
+    """
+    try:
+        json_data = await generate_control_flow_graph(request.file_path, request.function_name)
+        result = {
+            "data": json_data
+        }
+        print(f'result in main.py: \\{result}')
+        return CFGDiagramResponse(**result)
+    except Exception as e:
+        return CFGDiagramResponse(status=500, data=str(e))
 
 @app.get("/api/chatbot/session/open")
 async def api_open_session():
@@ -1406,13 +1480,27 @@ async def api_session_chat(req: ChatbotQueryRequest):
             raise HTTPException(status_code=400, detail="Session ID is required")
         if not req.query:
             raise HTTPException(status_code=400, detail="Query is required")
+        
+        # Handle Context Files
+        context = ""
+        if hasattr(req, 'context_files') and req.context_files:
+            context += "Below is the context from the provided files:\n"
+            for file_path in req.context_files:
+                context += get_source_file_with_line_number(file_path)
+            context += "Please answer the question based on the above context.\n"
+
+
         print(f"Session ID: {req.session_id}")
         print(f"Query: {req.query}")
         print(f"Code: {req.code}")
         print(f"Diagram: {req.diagram}")
+        print(f"Context Files: {req.context_files}")
+        print(f"Context: {context}")
         answer, highlight = await generate_chatbot_answer_with_session(
-            req.session_id, req.query, req.code, req.diagram
+            req.session_id, req.query + context, req.code, req.diagram
         )
+        print(f"Answer: {answer}")
+        print(f"Highlight: {highlight}")
         return ChatbotQueryResponse(answer=answer, highlight=highlight)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

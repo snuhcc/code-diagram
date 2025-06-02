@@ -40,7 +40,7 @@ async def root():
         return HTMLResponse(content="<h1>Template not found</h1>", status_code=404)
 
 @app.post("/api/generate_call_graph", response_model=CGDiagramResponse)
-async def api_generate_call_graph(request: CGDiagramResponse):
+async def api_generate_call_graph(request: CGDiagramRequest):
     """
     Generate a call graph for the given code.
     """

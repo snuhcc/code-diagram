@@ -1,0 +1,24 @@
+{
+    "nodes": [
+        {
+            "id": "fetcher.fetch_data",
+            "function_name": "fetch_data",
+            "file": "poc/fetcher.py",
+            "line_start": 4,
+            "line_end": 13,
+            "description": "Function that attempts to fetch data up to a given number of retries, returning a list of random integers on success or raising ConnectionError on failure."
+        }
+    ],
+    "edges": [
+        {
+            "id": "e0",
+            "source": "fetcher.fetch_data",
+            "target": "random.random"
+        },
+        {
+            "id": "e1",
+            "source": "fetcher.fetch_data",
+            "target": "random.randint"
+        }
+    ]
+}
