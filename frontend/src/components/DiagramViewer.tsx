@@ -147,6 +147,7 @@ export default function DiagramViewer() {
   const [error, setErr] = useState<string>();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<string>('');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null); // ⭐️ 추가
 
   // Zustand stores
   const editorState = useEditor.getState();
@@ -213,6 +214,8 @@ export default function DiagramViewer() {
 
   // Node click handler: open file in editor and highlight in explorer
   const onNodeClick: NodeMouseHandler = (_, node) => {
+    setSelectedNodeId(prev => prev === node.id ? null : node.id); // ⭐️ 토글 방식
+
     // 그룹 노드 클릭 시: 해당 파일 첫번째 라인으로 이동
     if (node.type === 'group') {
       const fileLabel = (node.data as any)?.label as string | undefined;
@@ -356,6 +359,7 @@ export default function DiagramViewer() {
     const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
     const isActive = clean === activePath;
     const isHover = hoverId === n.id;
+    const isSelected = selectedNodeId === n.id; // ⭐️ 선택 여부
 
     return {
       ...n,
@@ -363,14 +367,18 @@ export default function DiagramViewer() {
         ...n.style,
         background: isHover
           ? '#fef9c3' // yellow-100
-          : isActive
-            ? '#dbeafe' // sky-100
-            : '#ffffff',
+          : isSelected
+            ? '#fca5a5' // red-300 (선택 시 색상, 원하는 색상으로 변경 가능)
+            : isActive
+              ? '#dbeafe' // sky-100
+              : '#ffffff',
         border: isHover
           ? '2px solid #eab308' // yellow-600
-          : isActive
-            ? '2px solid #0284c7' // sky-600
-            : '1px solid #3b82f6',
+          : isSelected
+            ? '2px solid #b91c1c' // red-700 (선택 시 테두리, 원하는 색상으로 변경 가능)
+            : isActive
+              ? '2px solid #0284c7' // sky-600
+              : '1px solid #3b82f6',
         transition: 'all 0.1s ease-in-out',
       },
     };
