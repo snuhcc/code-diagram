@@ -619,6 +619,26 @@ export default function DiagramViewer() {
             whiteSpace: 'pre-wrap',
           }}
         >
+          {/* 닫기 버튼 */}
+          <button
+            onClick={() => setCfgResult(null)}
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              background: 'transparent',
+              border: 'none',
+              fontSize: 16,
+              color: '#888',
+              cursor: 'pointer',
+              padding: 0,
+              lineHeight: 1,
+            }}
+            aria-label="Close"
+            title="Close"
+          >
+            ×
+          </button>
           <b>Control Flow Graph:</b>
           <pre style={{ margin: 0 }}>{typeof cfgResult === 'string' ? cfgResult : JSON.stringify(cfgResult, null, 2)}</pre>
         </div>
