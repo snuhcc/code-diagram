@@ -47,7 +47,7 @@ DIAGRAM_EXAMPLE = {
 }
 
 PROMPT_CODE_TO_CG = """
-    You are a SOFTWARE ENGINEERING EXPERT. You are given a Python function.
+    You are a SOFTWARE ENGINEERING EXPERT. You are given Python codes.
     Please generate a Call Graph for the provided code.
 
     INPUT:

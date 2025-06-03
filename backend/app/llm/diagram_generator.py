@@ -23,7 +23,7 @@ from llm.constants import (
 )
 
 reasoning = {
-    "effort": "low",  # 'low', 'medium', or 'high'
+    "effort": "high",  # 'low', 'medium', or 'high'
     # Reasoning Summary 사용하려면 조직인증 해야함.
     # "summary": "None",  # 'detailed', 'auto', or None
 }
