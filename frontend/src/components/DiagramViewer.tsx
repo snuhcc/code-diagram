@@ -227,12 +227,9 @@ export default function DiagramViewer() {
 
   // Node click handler: open file in editor and highlight in explorer
   const onNodeClick: NodeMouseHandler = (_, node) => {
-    setSelectedNodeId(prev => prev === node.id ? null : node.id); // ⭐️ 토글 방식
-
-    // 그룹 노드 클릭 시: 해당 파일 첫번째 라인으로 이동
+    // 그룹 노드 클릭 시: 선택 상태 변경하지 않음
     if (node.type === 'group') {
-      const fileLabel = (node.data as any)?.label as string | undefined;
-      if (!fileLabel) return;
+      // 그룹 노드는 선택 상태를 변경하지 않음
       // 파일 경로를 찾기 위해 nodes에서 해당 그룹의 파일 경로를 역추적
       // 그룹 노드 id: group-<file_path_escaped>
       // nodes 중 parentId가 node.id인 첫번째 노드의 file을 사용
@@ -253,6 +250,9 @@ export default function DiagramViewer() {
       if (target) fsState.setCurrent(target.id);
       return;
     }
+
+    // 함수 노드만 선택 상태 토글
+    setSelectedNodeId(prev => prev === node.id ? null : node.id);
 
     // 기존 함수 노드 클릭 동작
     const raw = (node.data as any)?.file as string | undefined;
@@ -510,6 +510,7 @@ export default function DiagramViewer() {
         nodeTypes={{
           group: CustomGroupNode, // Register custom group node
         }}
+        onPaneClick={() => setSelectedNodeId(null)} // 빈 공간 클릭 시 선택 해제
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap
