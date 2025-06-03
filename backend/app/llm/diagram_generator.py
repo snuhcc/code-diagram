@@ -105,6 +105,13 @@ async def generate_call_graph(root_path: str, file_type: Optional[str]):
         # path 내의 .., . 등 정규화
         abs_path = os.path.abspath(os.path.normpath(root_path))
         print(f"Path: {abs_path}, File Type: {file_type}")
+
+        # ⭐️ 이미 결과 파일이 있으면 바로 반환
+        if os.path.exists(CG_JSON_OUTPUT):
+            print(f"Call graph file already exists: {CG_JSON_OUTPUT}")
+            with open(CG_JSON_OUTPUT, "r", encoding="utf-8") as f:
+                return f.read()
+
         results = await generate_call_graphs_for_directory(abs_path, file_type)
         # Save the results to a JSON file
         results_str = ""
@@ -128,6 +135,15 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
         # Use helper function to extract function code
         file_path = os.path.join(POC_ROOT, file_path)
         function_code = extract_function_code_from_file(file_path, function_name)
+        filename = os.path.splitext(os.path.basename(file_path))[0]
+        output_path = os.path.join(BACKEND_ROOT_DIR, "artifacts", f"cfg_{filename}_{function_name}.json")
+
+        # ⭐️ 이미 결과 파일이 있으면 바로 반환
+        if os.path.exists(output_path):
+            print(f"Control flow graph file already exists: {output_path}")
+            with open(output_path, "r", encoding="utf-8") as f:
+                return f.read()
+
         print(f"Extracted function code for {function_name}:\n{function_code}")
 
         llm = ChatOpenAI(
@@ -147,8 +163,7 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
         response = await llm.ainvoke(messages)
         print(f"Output for {function_name} in {file_path}: {response.text()}")
         json_obj = extract_json_from_response(response.text())
-        filename = os.path.splitext(os.path.basename(file_path))[0]
-        output_path = os.path.join(BACKEND_ROOT_DIR, "artifacts", f"cfg_{filename}_{function_name}.json")
+
         results_str = save_json_and_return_str(json_obj, output_path)
         print(f"Control flow graph saved to {output_path}")
         return results_str
