@@ -150,7 +150,17 @@ export default function DiagramViewer() {
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null); // ⭐️ 추가
   const [cfgMessage, setCfgMessage] = useState<string | null>(null); // ⭐️ 메시지 상태 추가
-  const [cfgResult, setCfgResult] = useState<any>(null); // ⭐️ 결과 상태 추가
+  const [cfgPanels, setCfgPanels] = useState<
+    { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
+  >([]);
+  // ⭐️ 이동 상태 추가
+  const [cfgPos, setCfgPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [cfgDragging, setCfgDragging] = useState(false);
+  const [cfgDragOffset, setCfgDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // ⭐️ CFG 버튼 로딩 상태
+  const [cfgLoading, setCfgLoading] = useState(false);
 
   // Zustand stores
   const editorState = useEditor.getState();
@@ -395,21 +405,23 @@ export default function DiagramViewer() {
     }
   }, []);
 
-  // ⭐️ Control Flow Graph 버튼 핸들러 구현
+  // ⭐️ Control Flow Graph 버튼 핸들러 구현 (복수 패널 지원)
   const handleGenerateCFG = async () => {
     setCfgMessage(null);
-    setCfgResult(null);
+    setCfgLoading(true);
 
     // 선택된 노드 찾기 (group 타입이 아닌 함수 노드만)
     const selectedNode = nodes.find(n => n.id === selectedNodeId && n.type !== 'group');
     if (!selectedNode) {
       setCfgMessage('선택된 노드가 없습니다.');
+      setCfgLoading(false);
       return;
     }
     const file = (selectedNode.data as any)?.file;
     const functionName = (selectedNode.data as any)?.label;
     if (!file || !functionName) {
       setCfgMessage('노드 정보가 올바르지 않습니다.');
+      setCfgLoading(false);
       return;
     }
     try {
@@ -424,14 +436,28 @@ export default function DiagramViewer() {
       const data = await res.json();
       if (data.status && data.status !== 200) {
         setCfgMessage('API 호출 실패: ' + (data.data || ''));
-        setCfgResult(null);
       } else {
-        setCfgResult(data.data);
+        // 패널 id는 file+functionName+timestamp로 유니크하게
+        const id = `${file}__${functionName}__${Date.now()}`;
+        setCfgPanels(panels => [
+          ...panels,
+          {
+            id,
+            functionName,
+            file,
+            result: data.data,
+            expanded: true,
+            pos: { x: 24 + panels.length * 32, y: 24 + panels.length * 32 },
+            dragging: false,
+            dragOffset: { x: 0, y: 0 },
+          },
+        ]);
         setCfgMessage(null);
       }
     } catch (e: any) {
       setCfgMessage('API 호출 중 오류가 발생했습니다.');
-      setCfgResult(null);
+    } finally {
+      setCfgLoading(false);
     }
   };
 
@@ -548,23 +574,25 @@ export default function DiagramViewer() {
           <button
             type="button"
             title="Generate Control Flow Graph"
-            onClick={handleGenerateCFG} // ⭐️ 연결
+            onClick={handleGenerateCFG}
+            disabled={cfgLoading}
             style={{
               width: 20,
               height: 20,
               background: '#fff',
               padding: 0,
               margin: 4,
-              cursor: 'pointer',
+              cursor: cfgLoading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 1px 2px #0001',
               transition: 'border 0.15s',
+              position: 'relative',
             }}
           >
             {/* 그래프 생성 느낌의 아이콘 (노드+엣지+플러스) - 검은색 */}
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: cfgLoading ? 0.3 : 1 }}>
               <circle cx="6" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
               <circle cx="14" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
               <circle cx="10" cy="14" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
@@ -577,6 +605,29 @@ export default function DiagramViewer() {
                 <rect x="14.2" y="16" width="4.6" height="1" rx="0.5" fill="#fff"/>
               </g>
             </svg>
+            {/* 로딩 스피너 */}
+            {cfgLoading && (
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 0, top: 0, width: '100%', height: '100%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.7)',
+                  borderRadius: 4,
+                }}
+              >
+                <svg className="animate-spin" width="16" height="16" viewBox="0 0 16 16">
+                  <circle
+                    cx="8" cy="8" r="6"
+                    stroke="#0284c7"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeDasharray="28"
+                    strokeDashoffset="10"
+                  />
+                </svg>
+              </span>
+            )}
           </button>
         </Controls>
       </ReactFlow>
@@ -600,49 +651,173 @@ export default function DiagramViewer() {
           {cfgMessage}
         </div>
       )}
-      {cfgResult && (
+
+      {/* ⭐️ 복수 패널 지원 */}
+      {cfgPanels.map((panel, idx) => (
         <div
+          key={panel.id}
           style={{
-            position: 'absolute',
-            top: 100,
-            right: 24,
+            position: 'fixed',
+            top: panel.pos.y,
+            right: panel.pos.x,
             background: '#f1f5f9',
             color: '#222',
-            padding: '12px 18px',
+            padding: panel.expanded ? '12px 18px 18px 18px' : '8px 18px 8px 18px',
             borderRadius: 8,
-            zIndex: 100,
+            zIndex: 200 + idx,
             fontSize: 13,
-            maxWidth: 400,
-            maxHeight: 400,
-            overflow: 'auto',
+            minWidth: 220,
+            maxWidth: 600,
+            minHeight: panel.expanded ? 0 : 0,
+            maxHeight: panel.expanded ? 600 : 44,
             boxShadow: '0 2px 8px #0002',
             whiteSpace: 'pre-wrap',
+            overflow: panel.expanded ? 'auto' : 'hidden',
+            transition: 'all 0.2s cubic-bezier(.4,2,.6,1)',
+            display: 'flex',
+            flexDirection: 'column',
+            cursor: panel.dragging ? 'move' : 'default',
+            userSelect: panel.dragging ? 'none' : 'auto',
+          }}
+          onMouseMove={e => {
+            if (panel.dragging) {
+              setCfgPanels(panels =>
+                panels.map(p =>
+                  p.id === panel.id
+                    ? {
+                        ...p,
+                        pos: {
+                          x: window.innerWidth - e.clientX - p.dragOffset.x,
+                          y: e.clientY - p.dragOffset.y,
+                        },
+                      }
+                    : p
+                )
+              );
+            }
+          }}
+          onMouseUp={() => {
+            if (panel.dragging) {
+              setCfgPanels(panels =>
+                panels.map(p =>
+                  p.id === panel.id ? { ...p, dragging: false } : p
+                )
+              );
+            }
           }}
         >
-          {/* 닫기 버튼 */}
-          <button
-            onClick={() => setCfgResult(null)}
+          {/* 헤더: 드래그 핸들 + expand/collapse/close */}
+          <div
             style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: 'transparent',
-              border: 'none',
-              fontSize: 16,
-              color: '#888',
-              cursor: 'pointer',
-              padding: 0,
-              lineHeight: 1,
+              width: '100%',
+              minHeight: 28,
+              display: 'flex',
+              alignItems: 'center',
+              fontWeight: 600,
+              fontSize: 13,
+              color: '#555',
+              userSelect: 'none',
+              marginBottom: panel.expanded ? 8 : 0,
+              gap: 4,
+              cursor: 'move',
             }}
-            aria-label="Close"
-            title="Close"
+            onMouseDown={e => {
+              setCfgPanels(panels =>
+                panels.map(p =>
+                  p.id === panel.id
+                    ? {
+                        ...p,
+                        dragging: true,
+                        dragOffset: {
+                          x: window.innerWidth - e.clientX - (p.pos.x || 24),
+                          y: e.clientY - (p.pos.y || 24),
+                        },
+                      }
+                    : p
+                )
+              );
+              e.preventDefault();
+            }}
           >
-            ×
-          </button>
-          <b>Control Flow Graph:</b>
-          <pre style={{ margin: 0 }}>{typeof cfgResult === 'string' ? cfgResult : JSON.stringify(cfgResult, null, 2)}</pre>
+            <span style={{ flex: 1 }}>
+              CFG ({panel.functionName})
+            </span>
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setCfgPanels(panels =>
+                  panels.map(p =>
+                    p.id === panel.id ? { ...p, expanded: !p.expanded } : p
+                  )
+                );
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: 16,
+                color: '#888',
+                cursor: 'pointer',
+                padding: 0,
+                marginRight: 4,
+                lineHeight: 1,
+                width: 24,
+                height: 24,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'transform 0.15s',
+                transform: panel.expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+              }}
+              aria-label={panel.expanded ? 'Collapse' : 'Expand'}
+              title={panel.expanded ? 'Collapse' : 'Expand'}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setCfgPanels(panels => panels.filter(p => p.id !== panel.id));
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: 16,
+                color: '#888',
+                cursor: 'pointer',
+                padding: 0,
+                lineHeight: 1,
+                width: 24,
+                height: 24,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              aria-label="Close"
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+          {panel.expanded && (
+            <div style={{ width: '100%', overflow: 'auto' }}>
+              <pre style={{
+                margin: 0,
+                fontSize: 13,
+                background: 'none',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxWidth: 560,
+                maxHeight: 520,
+                padding: 0,
+              }}>
+                {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
-      )}
+      ))}
       {/* Code snippet panel */}
       {hoverId && snippet && (
         <div
