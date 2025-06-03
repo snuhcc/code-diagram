@@ -100,7 +100,8 @@ interface RawEdge {
 }
 
 // API endpoint
-const ENDPOINT = '/api/generate_call_graph';
+const ENDPOINT_CG = '/api/generate_call_graph';
+const ENDPOINT_CFG = '/api/generate_control_flow_graph';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // Custom group node component
@@ -148,6 +149,8 @@ export default function DiagramViewer() {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null); // ⭐️ 추가
+  const [cfgMessage, setCfgMessage] = useState<string | null>(null); // ⭐️ 메시지 상태 추가
+  const [cfgResult, setCfgResult] = useState<any>(null); // ⭐️ 결과 상태 추가
 
   // Zustand stores
   const editorState = useEditor.getState();
@@ -331,7 +334,7 @@ export default function DiagramViewer() {
       setErr(undefined);
 
       try {
-        const res = await fetch(`${apiUrl}${ENDPOINT}`, {
+        const res = await fetch(`${apiUrl}${ENDPOINT_CG}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: '../../poc', file_type: 'py' }),
@@ -391,6 +394,46 @@ export default function DiagramViewer() {
       hydrate(diagramCache);
     }
   }, []);
+
+  // ⭐️ Control Flow Graph 버튼 핸들러 구현
+  const handleGenerateCFG = async () => {
+    setCfgMessage(null);
+    setCfgResult(null);
+
+    // 선택된 노드 찾기 (group 타입이 아닌 함수 노드만)
+    const selectedNode = nodes.find(n => n.id === selectedNodeId && n.type !== 'group');
+    if (!selectedNode) {
+      setCfgMessage('선택된 노드가 없습니다.');
+      return;
+    }
+    const file = (selectedNode.data as any)?.file;
+    const functionName = (selectedNode.data as any)?.label;
+    if (!file || !functionName) {
+      setCfgMessage('노드 정보가 올바르지 않습니다.');
+      return;
+    }
+    try {
+      const res = await fetch(`${apiUrl}${ENDPOINT_CFG}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_path: file.replace(/^poc[\\/]/, ''),
+          function_name: functionName,
+        }),
+      });
+      const data = await res.json();
+      if (data.status && data.status !== 200) {
+        setCfgMessage('API 호출 실패: ' + (data.data || ''));
+        setCfgResult(null);
+      } else {
+        setCfgResult(data.data);
+        setCfgMessage(null);
+      }
+    } catch (e: any) {
+      setCfgMessage('API 호출 중 오류가 발생했습니다.');
+      setCfgResult(null);
+    }
+  };
 
   // Loading and error states
   if (loading)
@@ -505,7 +548,7 @@ export default function DiagramViewer() {
           <button
             type="button"
             title="Generate Control Flow Graph"
-            // onClick={...} // 원하는 생성 로직 연결
+            onClick={handleGenerateCFG} // ⭐️ 연결
             style={{
               width: 20,
               height: 20,
@@ -538,6 +581,48 @@ export default function DiagramViewer() {
         </Controls>
       </ReactFlow>
 
+      {/* ⭐️ Control Flow Graph 메시지/결과 표시 */}
+      {cfgMessage && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 60,
+            right: 24,
+            background: '#fee2e2',
+            color: '#b91c1c',
+            padding: '8px 16px',
+            borderRadius: 6,
+            zIndex: 100,
+            fontSize: 14,
+            boxShadow: '0 2px 8px #0002',
+          }}
+        >
+          {cfgMessage}
+        </div>
+      )}
+      {cfgResult && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 100,
+            right: 24,
+            background: '#f1f5f9',
+            color: '#222',
+            padding: '12px 18px',
+            borderRadius: 8,
+            zIndex: 100,
+            fontSize: 13,
+            maxWidth: 400,
+            maxHeight: 400,
+            overflow: 'auto',
+            boxShadow: '0 2px 8px #0002',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          <b>Control Flow Graph:</b>
+          <pre style={{ margin: 0 }}>{typeof cfgResult === 'string' ? cfgResult : JSON.stringify(cfgResult, null, 2)}</pre>
+        </div>
+      )}
       {/* Code snippet panel */}
       {hoverId && snippet && (
         <div

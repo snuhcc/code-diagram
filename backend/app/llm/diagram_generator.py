@@ -21,9 +21,16 @@ from llm.constants import (
     BACKEND_ROOT_DIR,
     CG_JSON_OUTPUT,
 )
+from llm.utils import POC_ROOT
 
-reasoning = {
+reasoning_high = {
     "effort": "high",  # 'low', 'medium', or 'high'
+    # Reasoning Summary 사용하려면 조직인증 해야함.
+    # "summary": "None",  # 'detailed', 'auto', or None
+}
+
+reasoning_low = {
+    "effort": "low",  # 'low', 'medium', or 'high'
     # Reasoning Summary 사용하려면 조직인증 해야함.
     # "summary": "None",  # 'detailed', 'auto', or None
 }
@@ -76,7 +83,7 @@ async def generate_call_graph_for_file(root_path: str, file_path: str):
         llm = ChatOpenAI(
             model=OPENAI_O4_MINI,
             use_responses_api=True,
-            model_kwargs={"reasoning": reasoning}
+            model_kwargs={"reasoning": reasoning_high}
         )
         messages = create_messages(file_path)
         response = await llm.ainvoke(messages)
@@ -116,15 +123,17 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
     """
     Generate a control flow graph for the given code.
     """
+    print(f"Generating control flow graph for {file_path} function {function_name}")
     try:
         # Use helper function to extract function code
+        file_path = os.path.join(POC_ROOT, file_path)
         function_code = extract_function_code_from_file(file_path, function_name)
         print(f"Extracted function code for {function_name}:\n{function_code}")
 
         llm = ChatOpenAI(
             model=OPENAI_O4_MINI,
             use_responses_api=True,
-            model_kwargs={"reasoning": reasoning}
+            model_kwargs={"reasoning": reasoning_low}
         )
 
         chat_prompt = ChatPromptTemplate.from_messages(
