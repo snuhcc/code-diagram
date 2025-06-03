@@ -502,6 +502,39 @@ export default function DiagramViewer() {
               <rect x="10" y="10" width="4" height="4" rx="1" fill="#222" />
             </svg>
           </button>
+          <button
+            type="button"
+            title="Generate Control Flow Graph"
+            // onClick={...} // 원하는 생성 로직 연결
+            style={{
+              width: 20,
+              height: 20,
+              background: '#fff',
+              padding: 0,
+              margin: 4,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 1px 2px #0001',
+              transition: 'border 0.15s',
+            }}
+          >
+            {/* 그래프 생성 느낌의 아이콘 (노드+엣지+플러스) - 검은색 */}
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="6" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
+              <circle cx="14" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
+              <circle cx="10" cy="14" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
+              <line x1="7.5" y1="7.5" x2="10" y2="12" stroke="#222" strokeWidth="1.2"/>
+              <line x1="12.5" y1="7.5" x2="10" y2="12" stroke="#222" strokeWidth="1.2"/>
+              <line x1="8.2" y1="6" x2="11.8" y2="6" stroke="#222" strokeWidth="1.2"/>
+              <g>
+                <circle cx="16.5" cy="16.5" r="3.2" fill="#222"/>
+                <rect x="16" y="14.2" width="1" height="4.6" rx="0.5" fill="#fff"/>
+                <rect x="14.2" y="16" width="4.6" height="1" rx="0.5" fill="#fff"/>
+              </g>
+            </svg>
+          </button>
         </Controls>
       </ReactFlow>
 
