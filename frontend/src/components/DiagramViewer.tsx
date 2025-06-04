@@ -437,6 +437,40 @@ export default function DiagramViewer() {
       if (data.status && data.status !== 200) {
         setCfgMessage('API 호출 실패: ' + (data.data || ''));
       } else {
+        // CFG JSON을 React Flow 노드/엣지로 변환
+        const cfgRaw = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+        // 예시: { nodes: [{id, label}], edges: [{id, source, target}] }
+        let cfgNodes = (cfgRaw.nodes || []).map((n: any) => ({
+          id: n.id,
+          data: { label: n.label || n.id },
+          position: { x: n.x ?? 0, y: n.y ?? 0 },
+          style: {
+            padding: 4,
+            borderRadius: 3,
+            border: '1px solid #0284c7',
+            background: '#fff',
+            fontSize: 12,
+            minWidth: 40,
+            minHeight: 24,
+          },
+        }));
+        const cfgEdges = (cfgRaw.edges || []).map((e: any) => ({
+          id: e.id || `${e.source}-${e.target}`,
+          source: e.source,
+          target: e.target,
+          markerEnd: { type: MarkerType.ArrowClosed },
+          animated: true,
+          style: { stroke: '#0284c7', strokeWidth: 2 },
+        }));
+
+        // layout 적용 (x/y 모두 0이거나 누락된 경우만)
+        if (
+          cfgNodes.length > 0 &&
+          cfgNodes.every(n => (!n.position.x && !n.position.y))
+        ) {
+          cfgNodes = layout(cfgNodes, cfgEdges);
+        }
+
         // 패널 id는 file+functionName+timestamp로 유니크하게
         const id = `${file}__${functionName}__${Date.now()}`;
         setCfgPanels(panels => [
@@ -445,7 +479,7 @@ export default function DiagramViewer() {
             id,
             functionName,
             file,
-            result: data.data,
+            result: { nodes: cfgNodes, edges: cfgEdges },
             expanded: true,
             pos: { x: 24 + panels.length * 32, y: 24 + panels.length * 32 },
             dragging: false,
@@ -803,18 +837,39 @@ export default function DiagramViewer() {
           </div>
           {panel.expanded && (
             <div style={{ width: '100%', overflow: 'auto' }}>
-              <pre style={{
-                margin: 0,
-                fontSize: 13,
-                background: 'none',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                maxWidth: 560,
-                maxHeight: 520,
-                padding: 0,
-              }}>
-                {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
-              </pre>
+              {panel.result && panel.result.nodes && panel.result.edges ? (
+                <div style={{ width: 400, height: 320, background: '#f8fafc', borderRadius: 6 }}>
+                  <ReactFlow
+                    nodes={panel.result.nodes}
+                    edges={panel.result.edges}
+                    fitView
+                    minZoom={0.2}
+                    maxZoom={2}
+                    panOnDrag={false}
+                    zoomOnScroll={true}
+                    zoomOnPinch={true}
+                    panOnScroll
+                    className="bg-gray-50"
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                    <Background variant="dots" gap={16} size={1} />
+                    <Controls showInteractive={true} />
+                  </ReactFlow>
+                </div>
+              ) : (
+                <pre style={{
+                  margin: 0,
+                  fontSize: 13,
+                  background: 'none',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxWidth: 560,
+                  maxHeight: 520,
+                  padding: 0,
+                }}>
+                  {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
+                </pre>
+              )}
             </div>
           )}
         </div>
