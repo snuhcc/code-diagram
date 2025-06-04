@@ -15,6 +15,7 @@ type SearchResult = {
 export default function SearchPanel() {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [expandedFiles, setExpandedFiles] = useState<{ [file: string]: boolean }>({});
   const { tree, fileContents } = useFS();
 
   const allFiles = useMemo(() => getAllFilePaths(tree, false), [tree]); // 폴더 제외, 파일만
@@ -41,6 +42,32 @@ export default function SearchPanel() {
     }
     setSearchResults(results);
   }, [query, allFiles, fileContents]);
+
+  // 파일별로 결과를 그룹화
+  const groupedResults = useMemo(() => {
+    const groups: { [file: string]: SearchResult[] } = {};
+    for (const result of searchResults) {
+      if (!groups[result.file]) groups[result.file] = [];
+      groups[result.file].push(result);
+    }
+    return groups;
+  }, [searchResults]);
+
+  // 검색 결과가 바뀌면 모든 파일을 expand
+  useEffect(() => {
+    const initial: { [file: string]: boolean } = {};
+    Object.keys(groupedResults).forEach((file) => {
+      initial[file] = true;
+    });
+    setExpandedFiles(initial);
+  }, [groupedResults]);
+
+  const handleToggleFile = (file: string) => {
+    setExpandedFiles((prev) => ({
+      ...prev,
+      [file]: !prev[file],
+    }));
+  };
 
   const handleResultClick = (result: SearchResult) => {
     const cleanPath = result.file.replace(/^poc[\\/]/, '');
@@ -70,17 +97,28 @@ export default function SearchPanel() {
         {query.trim() === '' ? (
           <p className="text-xs text-gray-500">Enter a keyword</p>
         ) : searchResults.length > 0 ? (
-          searchResults.map((result, i) => (
-            <div
-              key={i}
-              onClick={() => handleResultClick(result)}
-              className="text-xs py-1 px-2 hover:bg-slate-100 cursor-pointer"
-            >
-              <span className="font-mono text-slate-700">{result.file}</span>
-              <span className="ml-2 text-slate-400">:{result.line}</span>
-              <div className="truncate text-slate-600">
-                {result.text}
+          Object.entries(groupedResults).map(([file, results]) => (
+            <div key={file} className="mb-2">
+              <div
+                className="font-mono text-xs font-semibold text-slate-700 mb-1 flex items-center cursor-pointer select-none"
+                onClick={() => handleToggleFile(file)}
+              >
+                <span className="mr-1">
+                  {expandedFiles[file] ? '▼' : '▶'}
+                </span>
+                {file}
+                <span className="ml-2 text-slate-400">({results.length})</span>
               </div>
+              {expandedFiles[file] && results.map((result, i) => (
+                <div
+                  key={i}
+                  onClick={() => handleResultClick(result)}
+                  className="text-xs py-1 px-2 hover:bg-slate-100 cursor-pointer flex"
+                >
+                  <span className="text-slate-400 mr-2">:{result.line}</span>
+                  <span className="truncate text-slate-600">{result.text}</span>
+                </div>
+              ))}
             </div>
           ))
         ) : (
