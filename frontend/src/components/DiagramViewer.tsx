@@ -153,12 +153,6 @@ export default function DiagramViewer() {
   const [cfgPanels, setCfgPanels] = useState<
     { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
   >([]);
-  // ⭐️ 이동 상태 추가
-  const [cfgPos, setCfgPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [cfgDragging, setCfgDragging] = useState(false);
-  const [cfgDragOffset, setCfgDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   // ⭐️ CFG 버튼 로딩 상태
   const [cfgLoading, setCfgLoading] = useState(false);
 
@@ -853,7 +847,7 @@ export default function DiagramViewer() {
                     style={{ width: '100%', height: '100%' }}
                   >
                     <Background variant="dots" gap={16} size={1} />
-                    <Controls showInteractive={true} />
+                    <Controls showInteractive={false} />
                   </ReactFlow>
                 </div>
               ) : (
