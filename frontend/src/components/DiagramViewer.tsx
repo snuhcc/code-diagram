@@ -839,10 +839,6 @@ export default function DiagramViewer() {
                     fitView
                     minZoom={0.2}
                     maxZoom={2}
-                    panOnDrag={false}
-                    zoomOnScroll={true}
-                    zoomOnPinch={true}
-                    panOnScroll
                     className="bg-gray-50"
                     style={{ width: '100%', height: '100%' }}
                   >
