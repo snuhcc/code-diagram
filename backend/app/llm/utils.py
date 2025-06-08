@@ -6,6 +6,8 @@ import json
 # 프로젝트 루트의 poc 디렉토리 경로
 POC_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'poc'))
 
+STUDY_1_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'study_1'))
+
 SEPARATOR = "-------------------------------------------------------------------"
 
 def get_all_source_files(directory: str, file_type: str = "py"):
@@ -26,7 +28,8 @@ def get_source_file_with_line_number(file_path: str):
     Get the source file content with line numbers.
     Returns a string with line numbers prepended to each line.
     """
-    file_path = os.path.join(POC_ROOT, file_path)
+    # file_path = os.path.join(POC_ROOT, file_path)
+    file_path = os.path.join(STUDY_1_ROOT, file_path)
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     

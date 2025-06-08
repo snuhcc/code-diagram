@@ -10,7 +10,7 @@ DIAGRAM_EXAMPLE = {
         {
             "id": "main.main",
             "function_name": "main",
-            "file": "poc/main.py",
+            "file": "study_1/main.py",
             "line_start": 1,
             "line_end": 17,
             "description": "Main function that orchestrates the data fetching and processing."
@@ -18,7 +18,7 @@ DIAGRAM_EXAMPLE = {
         {
             "id": "fetcher.fetch_data",
             "function_name": "fetch_data",
-            "file": "poc/fetcher.py",
+            "file": "study_1/fetcher.py",
             "line_start": 1,
             "line_end": 13,
             "description": "Function to fetch data from a given source."
@@ -26,7 +26,7 @@ DIAGRAM_EXAMPLE = {
         {
             "id": "processor.process_data", #file_name.function_name
             "function_name": "process_data",          # function_name
-            "file": "poc/processor.py",
+            "file": "study_1/processor.py",
             "line_start": 1,
             "line_end": 16,
             "description": "Function to process the fetched data."  # summary of function
@@ -82,7 +82,7 @@ PROMPT_CODE_TO_CFG = """
             {{
                 "id": "main.1",
                 "label": "Start of main()",
-                "file": "poc/main.py",
+                "file": "study_1/main.py",
                 "line_start": 1,
                 "line_end": 1,
                 "description": "Entry point of main function."
@@ -90,7 +90,7 @@ PROMPT_CODE_TO_CFG = """
             {{
                 "id": "main.2",
                 "label": "If condition x > 0",
-                "file": "poc/main.py",
+                "file": "study_1/main.py",
                 "line_start": 2,
                 "line_end": 2,
                 "description": "Conditional branch."
