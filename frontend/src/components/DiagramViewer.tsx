@@ -998,9 +998,8 @@ export default function DiagramViewer() {
           width: maxX - minX + 2 * padding,
           height: maxY - minY + 2 * padding,
           background: 'rgba(0, 0, 0, 0.05)',
-          border: '1px dashed #999',
+          border: '1px dashed #fb923c',
           borderRadius: 8,
-          borderColor: '#fb923c'
         },
         zIndex: 0, // Group nodes below function nodes and edges
       });
