@@ -363,28 +363,48 @@ export default function DiagramViewer() {
 
   // Compute node styles
   const finalNodes = nodes.map((n) => {
-    const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, '');
+    const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, ''); 
     const isActive = clean === activePath;
     const isHover = hoverId === n.id;
-    const isSelected = selectedNodeId === n.id; // ⭐️ 선택 여부
-
+    const isSelected = selectedNodeId === n.id;
+    if (n.type === 'group') {
+      return {
+        ...n,
+        style: {
+          ...n.style,
+          background: isHover
+            ? '#fef9c3'
+            : isSelected
+              ? '#fca5a5'
+              : isActive
+                ? '#dbeafe'
+                : '#ffffff',
+          border: isHover
+            ? '2px solid #eab308'
+              : isActive
+                ? '2px solid #fb923c'
+                : '1px solid #fb923c',
+        },
+      };
+    }
+    // 일반 노드
     return {
       ...n,
       style: {
         ...n.style,
         background: isHover
-          ? '#fef9c3' // yellow-100
+          ? '#fef9c3'
           : isSelected
-            ? '#fca5a5' // red-300 (선택 시 색상, 원하는 색상으로 변경 가능)
+            ? '#fca5a5'
             : isActive
-              ? '#dbeafe' // sky-100
+              ? '#dbeafe'
               : '#ffffff',
         border: isHover
-          ? '2px solid #eab308' // yellow-600
+          ? '2px solid #eab308'
           : isSelected
-            ? '2px solid #b91c1c' // red-700 (선택 시 테두리, 원하는 색상으로 변경 가능)
+            ? '2px solid #b91c1c'
             : isActive
-              ? '2px solid #0284c7' // sky-600
+              ? '2px solid #0284c7'
               : '1px solid #3b82f6',
         transition: 'all 0.1s ease-in-out',
       },
@@ -980,6 +1000,7 @@ export default function DiagramViewer() {
           background: 'rgba(0, 0, 0, 0.05)',
           border: '1px dashed #999',
           borderRadius: 8,
+          borderColor: '#fb923c'
         },
         zIndex: 0, // Group nodes below function nodes and edges
       });
