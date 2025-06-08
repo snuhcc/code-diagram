@@ -949,10 +949,16 @@ export default function DiagramViewer() {
         id: r.id,
         source: r.source,
         target: r.target,
-        markerEnd: { type: MarkerType.ArrowClosed },
+        markerEnd: { 
+          type: MarkerType.ArrowClosed, 
+          width: 15, // 화살표 크기 증가
+          height: 15, // 화살표 크기 증가
+          color: '#905adb', // 더 진한 파란색
+        },
         animated: true,
-        style: { stroke: '#000', strokeWidth: 2 },
+        style: { stroke: '#905adb', strokeWidth: 2 }, // 파란색, 두께 증가
         zIndex: 10000, // Edges above all nodes, including during drag
+        // type: 'smoothstep', // Smooth step edges for better appearance
       }));
 
     // Step 2: Dagre를 사용해 모든 함수 노드 배치
