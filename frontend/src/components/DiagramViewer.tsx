@@ -389,12 +389,12 @@ export default function DiagramViewer() {
               ? '#fca5a5'
               : isActive
                 ? '#dbeafe'
-                : '#ffffff',
+                : '#FAFAFA',
           border: isHover
-            ? '2px solid #eab308'
+            ? '4px solid #eab308'
               : isActive
-                ? '2px solid #fb923c'
-                : '1px solid #fb923c',
+                ? '1px solid #fb923c'
+                : '1px solid #b9bfc9',
         },
       };
     }
@@ -411,12 +411,12 @@ export default function DiagramViewer() {
               ? '#dbeafe'
               : '#ffffff',
         border: isHover
-          ? '2px solid #eab308'
+          ? '4px solid #eab308'
           : isSelected
-            ? '2px solid #b91c1c'
+            ? '4px solid #b91c1c'
             : isActive
-              ? '2px solid #0284c7'
-              : '1px solid #3b82f6',
+              ? '1px solid #0284c7'
+              : '1px solid #4A90E2',
         transition: 'all 0.1s ease-in-out',
       },
     };
