@@ -92,33 +92,40 @@ export default function EditorTabs() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="h-8 flex items-center bg-slate-200 border-b border-slate-300 select-none">
-        {tabs.map((t) => {
-          const on = t.id === active.id;
-          return (
-            <div
-              key={t.id}
-              onClick={() => setActive(t.id)}
-              className={
-                'h-full flex items-center px-3 text-xs cursor-pointer border-r border-slate-300 transition-colors ' +
-                (on
-                  ? 'bg-white text-sky-700 font-semibold border-b-2 border-b-sky-600'
-                  : 'text-slate-600 hover:bg-slate-100 border-b-2 border-b-transparent')
-              }
-            >
-              {t.name}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  close(t.id);
-                }}
-                className="ml-2 text-slate-400 hover:text-slate-600 transition-colors"
+      {/* ⭐️ 탭 바에 스크롤 추가 */}
+      <div
+        className="h-8 flex items-center bg-slate-200 border-b border-slate-300 select-none overflow-x-auto"
+        style={{ whiteSpace: 'nowrap' }}
+      >
+        <div className="flex flex-row flex-nowrap">
+          {tabs.map((t) => {
+            const on = t.id === active.id;
+            return (
+              <div
+                key={t.id}
+                onClick={() => setActive(t.id)}
+                className={
+                  'h-full flex items-center px-3 text-xs cursor-pointer border-r border-slate-300 transition-colors ' +
+                  (on
+                    ? 'bg-white text-sky-700 font-semibold border-b-2 border-b-sky-600'
+                    : 'text-slate-600 hover:bg-slate-100 border-b-2 border-b-transparent')
+                }
+                style={{ flex: '0 0 auto' }} // ⭐️ 탭이 줄바꿈되지 않도록
               >
-                ×
-              </button>
-            </div>
-          );
-        })}
+                {t.name}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    close(t.id);
+                  }}
+                  className="ml-2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
       <div className="flex-1">
         <CodePane path={active.path} highlights={searchHighlights} />
