@@ -11,6 +11,13 @@ const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER ?? 'study1/face_clas
 function filterTree(nodes: FileNode[] = []): FileNode[] {
   return nodes
     .filter((n) => n.name !== '__pycache__' && n.name !== '.DS_Store')
+    .sort((a, b) => {
+      const aIsDir = Array.isArray(a.children);
+      const bIsDir = Array.isArray(b.children);
+      if (aIsDir && !bIsDir) return -1;
+      if (!aIsDir && bIsDir) return 1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    })
     .map((n) =>
       Array.isArray(n.children)
         ? { ...n, children: filterTree(n.children) }
