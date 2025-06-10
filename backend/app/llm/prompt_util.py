@@ -156,7 +156,7 @@ def build_repo_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:
         key=lambda e: (e.is_file(), e.name.lower())
     )
     for idx, entry in enumerate(entries):
-        print(f"Processing entry: {entry.name} (is_dir: {entry.is_dir()})")
+        # print(f"Processing entry: {entry.name} (is_dir: {entry.is_dir()})")
         connector = "└── " if idx == len(entries) - 1 else "├── "
         lines.append(f"{prefix}{connector}{entry.name}")
         if entry.is_dir():
@@ -164,7 +164,7 @@ def build_repo_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:
             # 하위 디렉토리는 is_sub=True로 재귀 호출
             sub_lines = build_repo_tree(entry, prefix + extension, is_sub=True).splitlines()
             # 최상위 이름 제외한 부분만 추가
-            print(f"Subdirectory lines: {sub_lines}")
+            # print(f"Subdirectory lines: {sub_lines}")
             lines.extend(sub_lines[:])
     return "\n".join(lines)
 
