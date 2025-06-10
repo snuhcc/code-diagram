@@ -21,7 +21,7 @@ from llm.constants import (
     BACKEND_ROOT_DIR,
     CG_JSON_OUTPUT,
 )
-from llm.utils import POC_ROOT
+from llm.utils import POC_ROOT, STUDY_1_ROOT
 
 reasoning_high = {
     "effort": "high",  # 'low', 'medium', or 'high'
@@ -140,7 +140,7 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
     print(f"Generating control flow graph for {file_path} function {function_name}")
     try:
         # Use helper function to extract function code
-        file_path = os.path.join(POC_ROOT, file_path)
+        file_path = os.path.join(STUDY_1_ROOT, file_path)
         function_code = extract_function_code_from_file(file_path, function_name)
         filename = os.path.splitext(os.path.basename(file_path))[0]
         output_path = os.path.join(BACKEND_ROOT_DIR, "artifacts", f"cfg_{filename}_{function_name}.json")

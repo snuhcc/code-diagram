@@ -9,7 +9,7 @@ IGNORE_FILES = {"__init__.py", ".DS_Store"}
 DIAGRAM_EXAMPLE = {
     "nodes": [
         {
-            "id": "file_name.function_name_0",
+            "id": "sub_dir.file_name.function_name_0",
             "function_name": "function_name_0",  # function_name
             "file": "root_dir/sub_dir/file_name.py",  # file path
             "line_start": 1,
@@ -17,15 +17,15 @@ DIAGRAM_EXAMPLE = {
             "description": "Function to do something."  # summary of function
         },
         {
-            "id": "file_name.function_name_1",
+            "id": "sub_dir.file_name.function_name_1",
             "function_name": "function_name_1",
-            "file": "root_dir/sub_dir/file_name.py",
+            "file": "root_dir/file_name.py",
             "line_start": 18,
             "line_end": 34,
             "description": "Function to do something else."
         },
         {
-            "id": "file_name.function_name_2",
+            "id": "sub_dir.file_name.function_name_2",
             "function_name": "function_name_2",
             "file": "root_dir/sub_dir/file_name.py",
             "line_start": 35,
@@ -35,14 +35,14 @@ DIAGRAM_EXAMPLE = {
     ],
     "edges": [
         {
-            "id": "file_name.e0",   # file_name.edge_id
-            "source": "source_file_name.function_name_0",
-            "target": "target_file_name.function_name_0",
+            "id": "sub_dir.file_name.e0",   # file_name.edge_id
+            "source": "sub_dir.file_name.function_name_0",
+            "target": "sub_dir.file_name.function_name_0",
         },
         {
-            "id": "file_name.e1",   # file_name.edge_id
-            "source": "source_file_name.function_name_0",
-            "target": "target_file_name.function_name_1",
+            "id": "sub_dir.file_name.e1",   # file_name.edge_id
+            "source": "sub_dir.file_name.function_name_0",
+            "target": "sub_dir.file_name.function_name_1",
         },
     ]
 }
@@ -56,20 +56,18 @@ PROMPT_CODE_TO_CG = """
     {repo_tree}
     - The function code with line numbers:
     {code_from_file}
-
     - Example output format (JSON):
     {diagram_example}
 
     OUTPUT:
     - The output must strictly follow the provided JSON format.
-    - Only create nodes for functions or classes declared in this code.
+    - Node IDs should be unique and follow the format: "sub_dir.file_name.function_name" where sub_dir is the name of the sub-directory from root_dir, file_name is the name of the file without extension, and function_name is the name of the function.
+    - Only create nodes for functions or classes declared in this code, if there are no functions or classes declared, just add "Global" node.
     - If a function or class is called but not declared in this code (e.g., imported), do not create a node for it, but do create an edge to it.
     - For edges to imported functions or classes, if the import statement is like 'from A.B import C', the edge target should be 'A.B.C'.
     - Edges must represent function calls or class method calls.
     - Edge ids should be unique and follow the format: "file_name.e[index]" where file_name is the name of the file without extension and index is a sequential number starting from 0.
     - Ignore built-in functions and standard library calls.
-    - The flowchart should accurately represent the code structure.
-    - Add comments in the generated flowchart for clarity.
 """
 
 PROMPT_CODE_TO_CFG = """
@@ -125,7 +123,7 @@ PROMPT_CODE_TO_CFG = """
     }}
 
     OUTPUT:
-    - The output must strictly follow the provided JSON format.
+    - The output must strictly follow the provided JSON format. No additional text or comments should be included.
     - Each node should represent a basic block, statement, or control structure (e.g., condition, loop, return).
     - Edges must represent possible control flow transitions (e.g., normal, true/false for branches, loop back).
     - Only include nodes and edges for code declared in this function.

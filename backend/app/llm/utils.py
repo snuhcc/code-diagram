@@ -55,17 +55,29 @@ def extract_function_code_from_file(file_path: str, function_name: str) -> str:
         raise FileNotFoundError(f"File not found: {file_path}")
     with open(file_path, "r", encoding="utf-8") as f:
         code = f.read()
-    if function_name not in code:
-        raise ValueError(f"Function '{function_name}' not found in file '{file_path}'")
+    lines = code.splitlines()
     function_code = ""
     in_function = False
-    for line in code.splitlines():
-        if line.strip().startswith(f"def {function_name}("):
+    func_indent = None
+    for idx, line in enumerate(lines):
+        stripped = line.lstrip()
+        if stripped.startswith(f"def {function_name}("):
             in_function = True
-        if in_function:
+            func_indent = len(line) - len(stripped)
             function_code += line + "\n"
+            continue
+        if in_function:
+            # Check for end of function by indentation
             if line.strip() == "":
-                in_function = False
+                function_code += line + "\n"
+                continue
+            curr_indent = len(line) - len(line.lstrip())
+            if curr_indent > func_indent:
+                function_code += line + "\n"
+            else:
+                break
+    if not function_code:
+        raise ValueError(f"Function '{function_name}' not found in file '{file_path}'")
     return function_code
 
 def log_exception(e: Exception, function_name: str, extra_info: str = ""):
