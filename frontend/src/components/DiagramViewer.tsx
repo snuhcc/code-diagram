@@ -155,6 +155,7 @@ export default function DiagramViewer() {
   >([]);
   // ⭐️ CFG 버튼 로딩 상태
   const [cfgLoading, setCfgLoading] = useState(false);
+  const [diagramReady, setDiagramReady] = useState(false); // ⭐️ 다이어그램 생성 버튼 상태
 
   // Zustand stores
   const editorState = useEditor.getState();
@@ -327,6 +328,7 @@ export default function DiagramViewer() {
 
   // Load diagram data and cache it
   useEffect(() => {
+    if (!diagramReady) return; // ⭐️ 버튼 누르기 전에는 아무것도 안함
     (async () => {
       if (diagramCache) {
         hydrate(diagramCache);
@@ -359,7 +361,7 @@ export default function DiagramViewer() {
         setLoad(false);
       }
     })();
-  }, []);
+  }, [diagramReady]); // ⭐️ diagramReady가 true일 때만 동작
 
   // Compute node styles
   const finalNodes = nodes.map((n) => {
@@ -510,6 +512,52 @@ export default function DiagramViewer() {
   };
 
   // Loading and error states
+  if (!diagramReady) {
+    // 미니멀하고 깔끔한 버튼 디자인, 배경은 그대로
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <button
+          onClick={() => setDiagramReady(true)}
+          style={{
+            minWidth: 180,
+            padding: '12px 32px',
+            borderRadius: 8,
+            background: '#fff',
+            color: '#3b3b4f',
+            fontWeight: 600,
+            fontSize: 18,
+            border: '1.5px solid #d1d5db',
+            boxShadow: '0 2px 8px #0001',
+            outline: 'none',
+            cursor: 'pointer',
+            transition: 'background 0.13s, box-shadow 0.13s, border 0.13s, color 0.13s',
+            letterSpacing: 0.5,
+          }}
+          onMouseOver={e => {
+            e.currentTarget.style.background = '#f3f4f6';
+            e.currentTarget.style.border = '1.5px solid #6366f1';
+            e.currentTarget.style.color = '#4338ca';
+          }}
+          onMouseOut={e => {
+            e.currentTarget.style.background = '#fff';
+            e.currentTarget.style.border = '1.5px solid #d1d5db';
+            e.currentTarget.style.color = '#3b3b4f';
+          }}
+        >
+          <span style={{
+            display: 'inline-block',
+            marginRight: 8,
+            verticalAlign: 'middle',
+            fontSize: 18,
+            color: '#6366f1',
+            transition: 'color 0.13s',
+          }}>▶</span>
+          Generate Diagram
+        </button>
+      </div>
+    );
+  }
+
   if (loading)
     return (
       <div className="flex items-center justify-center h-full w-full">
