@@ -35,17 +35,24 @@ reasoning_low = {
     # "summary": "None",  # 'detailed', 'auto', or None
 }
 
-def create_messages(path: str):
+def create_messages(root_path: str, file_path: str):
 
-    repo_prompt = generate_repo_prompt_for_file(path)
-    print(repo_prompt)
+    print(f"Creating messages for root_path: {root_path}, file_path: {file_path}")
+    # Convert str to Path
+    root_dir = Path(root_path)
+    repo_tree = build_repo_tree(root_dir)
+    print(f"Repo tree: {repo_tree}")
+
+    code_from_file = get_codes_from_file(file_path)
+    print(f"code_from_file: {code_from_file}")
 
     chat_prompt = ChatPromptTemplate.from_messages(
         [HumanMessagePromptTemplate.from_template(PROMPT_CODE_TO_CG),]
         )  
     
     messages = chat_prompt.format_messages(
-        repo_prompt=repo_prompt, 
+        repo_tree=repo_tree,
+        code_from_file=code_from_file, 
         diagram_example=json.dumps(DIAGRAM_EXAMPLE)
         )
     return messages
@@ -83,9 +90,9 @@ async def generate_call_graph_for_file(root_path: str, file_path: str):
         llm = ChatOpenAI(
             model=OPENAI_O4_MINI,
             use_responses_api=True,
-            model_kwargs={"reasoning": reasoning_high}
+            model_kwargs={"reasoning": reasoning_low}
         )
-        messages = create_messages(file_path)
+        messages = create_messages(root_path, file_path)
         response = await llm.ainvoke(messages)
         print(f"Output for {file_path}: {response.text()}")
         # Use helper function for JSON extraction/parsing

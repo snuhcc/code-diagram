@@ -3,46 +3,47 @@ from pathlib import Path
 # 텍스트로 처리할 확장자
 TEXT_EXTS = {".py", ".md", ".txt", ".json", ".toml", ".yaml", ".yml", ".ini"}
 # 건너뛸 디렉토리 이름
-IGNORE_DIRS = {"__pycache__", ".pytest_cache"}
+IGNORE_DIRS = {"__pycache__", ".pytest_cache", ".git", ".vscode", ".idea", "node_modules", "venv", "env"}
+IGNORE_FILES = {"__init__.py", ".DS_Store"}
 
 DIAGRAM_EXAMPLE = {
     "nodes": [
         {
-            "id": "main.main",
-            "function_name": "main",
-            "file": "study_1/main.py",
+            "id": "file_name.function_name_0",
+            "function_name": "function_name_0",  # function_name
+            "file": "root_dir/sub_dir/file_name.py",  # file path
             "line_start": 1,
             "line_end": 17,
-            "description": "Main function that orchestrates the data fetching and processing."
+            "description": "Function to do something."  # summary of function
         },
         {
-            "id": "fetcher.fetch_data",
-            "function_name": "fetch_data",
-            "file": "study_1/fetcher.py",
-            "line_start": 1,
-            "line_end": 13,
-            "description": "Function to fetch data from a given source."
+            "id": "file_name.function_name_1",
+            "function_name": "function_name_1",
+            "file": "root_dir/sub_dir/file_name.py",
+            "line_start": 18,
+            "line_end": 34,
+            "description": "Function to do something else."
         },
         {
-            "id": "processor.process_data", #file_name.function_name
-            "function_name": "process_data",          # function_name
-            "file": "study_1/processor.py",
-            "line_start": 1,
-            "line_end": 16,
-            "description": "Function to process the fetched data."  # summary of function
+            "id": "file_name.function_name_2",
+            "function_name": "function_name_2",
+            "file": "root_dir/sub_dir/file_name.py",
+            "line_start": 35,
+            "line_end": 44,
+            "description": "Function to do something else."
         }
     ],
     "edges": [
         {
-            "id": "main.e0",   # file_name.edge_id
-            "source": "main.main",
-            "target": "fetcher.fetch_data",
+            "id": "file_name.e0",   # file_name.edge_id
+            "source": "source_file_name.function_name_0",
+            "target": "target_file_name.function_name_0",
         },
         {
-            "id": "fetcher.e1",
-            "source": "fetcher.fetch_data",
-            "target": "processor.process_data",
-        }
+            "id": "file_name.e1",   # file_name.edge_id
+            "source": "source_file_name.function_name_0",
+            "target": "target_file_name.function_name_1",
+        },
     ]
 }
 
@@ -51,8 +52,10 @@ PROMPT_CODE_TO_CG = """
     Please generate a Call Graph for the provided code.
 
     INPUT:
+    - The directory structure of the repository:
+    {repo_tree}
     - The function code with line numbers:
-    {repo_prompt}
+    {code_from_file}
 
     - Example output format (JSON):
     {diagram_example}
@@ -63,6 +66,7 @@ PROMPT_CODE_TO_CG = """
     - If a function or class is called but not declared in this code (e.g., imported), do not create a node for it, but do create an edge to it.
     - For edges to imported functions or classes, if the import statement is like 'from A.B import C', the edge target should be 'A.B.C'.
     - Edges must represent function calls or class method calls.
+    - Edge ids should be unique and follow the format: "file_name.e[index]" where file_name is the name of the file without extension and index is a sequential number starting from 0.
     - Ignore built-in functions and standard library calls.
     - The flowchart should accurately represent the code structure.
     - Add comments in the generated flowchart for clarity.
@@ -132,29 +136,37 @@ PROMPT_CODE_TO_CFG = """
     - Add comments in the generated flowchart for clarity.
 """
 
-# def build_repo_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:
-#     """
-#     tree 스타일 디렉토리 구조 문자열 생성.
-#     첫 호출 시, root 디렉토리 이름도 포함합니다.
-#     """
-#     lines = []
-#     if not is_sub:
-#         # 최상위 root 이름 추가
-#         lines.append(f"{root.name}")
-#     entries = sorted(
-#         [e for e in root.iterdir() if e.name not in IGNORE_DIRS],
-#         key=lambda e: (e.is_file(), e.name.lower())
-#     )
-#     for idx, entry in enumerate(entries):
-#         connector = "└── " if idx == len(entries) - 1 else "├── "
-#         lines.append(f"{prefix}{connector}{entry.name}")
-#         if entry.is_dir():
-#             extension = "    " if idx == len(entries) - 1 else "│   "
-#             # 하위 디렉토리는 is_sub=True로 재귀 호출
-#             sub_lines = build_repo_tree(entry, prefix + extension, is_sub=True).splitlines()
-#             # 최상위 이름 제외한 부분만 추가
-#             lines.extend(sub_lines[1:])
-#     return "\n".join(lines)
+def build_repo_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:
+    """
+    tree 스타일 디렉토리 구조 문자열 생성.
+    첫 호출 시, root 디렉토리 이름도 포함합니다.
+    """
+    lines = []
+    if not is_sub:
+        # 최상위 root 이름 추가
+        lines.append(f"{root.name}")
+    entries = sorted(
+        [
+            e for e in root.iterdir()
+            if not (
+                (e.is_dir() and e.name in IGNORE_DIRS) or
+                (e.is_file() and e.name in IGNORE_FILES)
+            )
+        ],
+        key=lambda e: (e.is_file(), e.name.lower())
+    )
+    for idx, entry in enumerate(entries):
+        print(f"Processing entry: {entry.name} (is_dir: {entry.is_dir()})")
+        connector = "└── " if idx == len(entries) - 1 else "├── "
+        lines.append(f"{prefix}{connector}{entry.name}")
+        if entry.is_dir():
+            extension = "    " if idx == len(entries) - 1 else "│   "
+            # 하위 디렉토리는 is_sub=True로 재귀 호출
+            sub_lines = build_repo_tree(entry, prefix + extension, is_sub=True).splitlines()
+            # 최상위 이름 제외한 부분만 추가
+            print(f"Subdirectory lines: {sub_lines}")
+            lines.extend(sub_lines[:])
+    return "\n".join(lines)
 
 # def format_file_block(path: Path, root: Path) -> str:
 #     rel = path.relative_to(root)
@@ -198,10 +210,9 @@ PROMPT_CODE_TO_CFG = """
 #         print(prompt)
 #         return prompt
 
-def generate_repo_prompt_for_file(file_path):
+def get_codes_from_file(file_path):
     """
-    단일 파일에 대한 repo prompt를 생성합니다.
-    각 코드 라인에 라인넘버를 포함합니다.
+    주어진 파일에서 코드를 읽고, 각 줄에 라인 넘버를 추가하여 반환합니다.
     """
     from pathlib import Path
     file_path = Path(file_path)
