@@ -156,6 +156,7 @@ export default function DiagramViewer() {
   // ⭐️ CFG 버튼 로딩 상태
   const [cfgLoading, setCfgLoading] = useState(false);
   const [diagramReady, setDiagramReady] = useState(false); // ⭐️ 다이어그램 생성 버튼 상태
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null); // ⭐️ edge hover state 추가
 
   // Zustand stores
   const editorState = useEditor.getState();
@@ -318,6 +319,14 @@ export default function DiagramViewer() {
     setSnippet('');
   };
 
+  // Edge hover handlers
+  const onEdgeMouseEnter = useCallback((event: React.MouseEvent, edge: Edge) => {
+    setHoveredEdgeId(edge.id);
+  }, []);
+  const onEdgeMouseLeave = useCallback(() => {
+    setHoveredEdgeId(null);
+  }, []);
+
   // Handle node changes (dragging, etc.)
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -410,6 +419,26 @@ export default function DiagramViewer() {
               : '1px solid #3b82f6',
         transition: 'all 0.1s ease-in-out',
       },
+    };
+  });
+
+  // ⭐️ Compute edge styles (hover effect)
+  const finalEdges = edges.map((e) => {
+    const isHover = hoveredEdgeId === e.id;
+    return {
+      ...e,
+      style: {
+        ...(e.style || {}),
+        stroke: isHover ? '#f59e42' : (e.style?.stroke ?? '#34A853'), // hover시 주황색
+        strokeWidth: isHover ? 4 : (e.style?.strokeWidth ?? 2),
+        transition: 'all 0.13s',
+        cursor: 'pointer',
+      },
+      markerEnd: {
+        ...(e.markerEnd || {}),
+        color: isHover ? '#f59e42' : (e.markerEnd?.color ?? '#34A853'), // hover시 주황색
+      },
+      zIndex: 10000,
     };
   });
 
@@ -594,11 +623,13 @@ export default function DiagramViewer() {
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
         nodes={finalNodes}
-        edges={edges}
+        edges={finalEdges}
         onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
         onNodeMouseEnter={onEnter}
         onNodeMouseLeave={onLeave}
+        onEdgeMouseEnter={onEdgeMouseEnter} // ⭐️
+        onEdgeMouseLeave={onEdgeMouseLeave} // ⭐️
         fitView
         minZoom={0.2}
         maxZoom={2}
@@ -1001,10 +1032,10 @@ export default function DiagramViewer() {
           type: MarkerType.ArrowClosed, 
           width: 15, // 화살표 크기 증가
           height: 15, // 화살표 크기 증가
-          color: '#905adb', // 더 진한 파란색
+          color: '#34A853', // 더 진한 초록색
         },
         animated: true,
-        style: { stroke: '#905adb', strokeWidth: 2 }, // 파란색, 두께 증가
+        style: { stroke: '#34A853', strokeWidth: 2 }, // 초록색, 두께 증가
         zIndex: 10000, // Edges above all nodes, including during drag
         // type: 'smoothstep', // Smooth step edges for better appearance
       }));
