@@ -64,7 +64,7 @@ function CodePane({ path, highlights }: { path: string; highlights?: { line: num
       height="calc(100% - 2rem)"
       defaultLanguage={lang}
       value={code}
-      theme="vs-dark"
+      theme="vs"
       onMount={(editor) => setEditor(editor)}
       options={{
         readOnly: true,
