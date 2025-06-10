@@ -33,8 +33,8 @@ const snippetCache = new Map<string, string>(); // <cleanPath_functionName, prev
 function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
   const g = new dagre.graphlib.Graph().setGraph({
     rankdir: 'TB',
-    nodesep: 100, // 수평 간격 증가로 그룹 노드 겹침 방지
-    ranksep: 100, // 수직 간격 증가로 그룹 노드 겹침 방지
+    nodesep: 40, // 기존 100 → 40 (수평 간격 감소)
+    ranksep: 40, // 기존 100 → 40 (수직 간격 감소)
   });
   g.setDefaultEdgeLabel(() => ({}));
 
@@ -52,7 +52,7 @@ function layoutWithCluster(
   files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>
 ): Record<string, { x: number; y: number }> {
   const g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
-    .setGraph({ rankdir: 'TB', nodesep: 100, ranksep: 140 })  // 간격 ↑
+    .setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 56 })  // 기존 100, 140 → 40, 56
     .setDefaultEdgeLabel(() => ({}));
 
   /* 1️⃣ 파일을 클러스터로 */
