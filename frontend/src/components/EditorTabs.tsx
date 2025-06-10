@@ -68,7 +68,7 @@ function CodePane({ path, highlights }: { path: string; highlights?: { line: num
       onMount={(editor) => setEditor(editor)}
       options={{
         readOnly: true,
-        fontSize: 14,
+        fontSize: 11.5,
         minimap: { enabled: true },
         automaticLayout: true,
         wordWrap: 'on',

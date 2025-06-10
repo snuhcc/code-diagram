@@ -37,7 +37,7 @@ export default function CodeViewer({ filePath }: { filePath: string }) {
         theme="vs-dark"
         options={{
           minimap: { enabled: true },
-          fontSize: 14,
+          fontSize: 11.5,
           automaticLayout: true,
           readOnly: true,
         }}
