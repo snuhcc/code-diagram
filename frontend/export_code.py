@@ -7,9 +7,12 @@ PAGE  = [SRC / "app" / "page.tsx", SRC / "app" / "globals.css"]
 STORE = SRC / "store"
 TAIL  = SRC / "tailwind.config.js"
 BACKEND = (ROOT.parent / "backend" / "app").resolve()
+API_FILE = SRC / "app" / "api" / 'file' / "route.ts"
+API_FILES = SRC / "app" / "api" / 'files' / "route.ts"
 
 # 대상 파일 수집
-targets = sorted(COMP.glob("*")) + PAGE + sorted(STORE.glob("*.ts")) + [TAIL] + sorted(BACKEND.glob("*.py"))
+print(sorted(API_FILES.glob("*.ts")))
+targets = sorted(COMP.glob("*")) + PAGE + sorted(STORE.glob("*.ts")) + [TAIL] + sorted(BACKEND.glob("*.py")) + [API_FILES] + [API_FILE]
 
 # 상대 경로 출력 (안전하게)
 def get_rel_path(p: Path) -> str:

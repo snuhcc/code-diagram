@@ -24,7 +24,7 @@ export default function ChatUI() {
   const [dropdownItems, setDropdownItems] = useState<string[]>([]);
   const [isBotTyping, setIsBotTyping] = useState(false);
   const { tree } = useFS();
-  const allFiles = getAllFilePaths(tree); // Retrieve all file paths from POC folder
+  const allFiles = getAllFilePaths(tree);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

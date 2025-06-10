@@ -6,6 +6,8 @@ import { useFS, FileNode } from '@/store/files';
 import { useEditor } from '@/store/editor';
 import { nanoid } from 'nanoid';
 
+const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER ?? 'study1/face_classification';
+
 function filterTree(nodes: FileNode[] = []): FileNode[] {
   return nodes
     .filter((n) => n.name !== '__pycache__' && n.name !== '.DS_Store')
@@ -139,7 +141,7 @@ function Row({
 
 export default function FileExplorer() {
   const { tree, current, setCurrent, load } = useFS();
-  const [open, setOpen] = useState<Record<string, boolean>>({ poc: true });
+  const [open, setOpen] = useState<Record<string, boolean>>({ [TARGET_FOLDER]: true });
   const { activePath } = useEditor();
 
   useEffect(() => {
@@ -155,7 +157,8 @@ export default function FileExplorer() {
     if (Array.isArray(n.children)) {
       setOpen((o) => ({ ...o, [n.path ?? '']: !o[n.path ?? ''] }));
     } else if (n.path) {
-      const clean = n.path.replace(/^poc[\\/]/, '');
+      const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+      const clean = n.path.replace(regex, '');
       setCurrent(n.id);
       useEditor.getState().open({
         id: nanoid(),
@@ -169,7 +172,8 @@ export default function FileExplorer() {
     arr(nodes).map((n) => {
       const isDir = Array.isArray(n.children);
       const isOpen = !!open[n.path ?? ''];
-      const isActive = n.path?.replace(/^poc[\\/]/, '') === activePath;
+      const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+      const isActive = n.path?.replace(regex, '') === activePath;
 
       return (
         <div key={n.id}>

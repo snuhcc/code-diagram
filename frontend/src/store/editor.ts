@@ -1,8 +1,10 @@
-'use client';
+"use client";
 
-import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
-import { useFS } from '@/store/files';
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import { useFS } from "@/store/files";
+
+const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
 
 export interface TabMeta {
   id: string;
@@ -62,8 +64,11 @@ export const useEditor = create<State>()(
 );
 
 function findByPath(nodes: FileNode[], path: string): FileNode | undefined {
+  const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+
   for (const n of nodes) {
-    if (n.path?.replace(/^poc[\\/]/, '') === path) return n;
+    if (n.path?.replace(regex, "") === path) return n;
+
     if (n.children) {
       const r = findByPath(n.children, path);
       if (r) return r;

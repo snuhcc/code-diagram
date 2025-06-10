@@ -1,6 +1,13 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-export type FileNode = { id: string; name: string; path: string; children?: FileNode[] };
+const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
+
+export type FileNode = {
+  id: string;
+  name: string;
+  path: string;
+  children?: FileNode[];
+};
 
 interface FSState {
   tree: FileNode[];
@@ -21,14 +28,18 @@ export const useFS = create<FSState>((set, get) => ({
     const paths = getAllFilePaths(get().tree, false); // 파일만 가져오기
     for (const path of paths) {
       try {
-        const response = await fetch(`/api/file?path=${encodeURIComponent(path)}`);
+        const response = await fetch(
+          `/api/file?path=${encodeURIComponent(path)}`
+        );
         if (response.ok) {
           const content = await response.text();
           set((state) => ({
             fileContents: { ...state.fileContents, [path]: content },
           }));
         } else {
-          console.error(`Failed to fetch content for ${path}: ${response.status}`);
+          console.error(
+            `Failed to fetch content for ${path}: ${response.status}`
+          );
         }
       } catch (err) {
         console.error(`Error loading content for ${path}:`, err);
@@ -47,12 +58,18 @@ function find(nodes: FileNode[], id: string): FileNode | undefined {
   }
 }
 
-export function getAllFilePaths(tree: FileNode[], includeFolders = false): string[] {
+export function getAllFilePaths(
+  tree: FileNode[],
+  includeFolders = false
+): string[] {
   const paths: string[] = [];
+  const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+
   const traverse = (nodes: FileNode[]) => {
     for (const node of nodes) {
       if (!node.children || includeFolders) {
-        const cleanPath = node.path.replace(/^poc[\\/]/, '');
+        const cleanPath = node.path.replace(regex, "");
+
         paths.push(cleanPath);
       }
       if (node.children) traverse(node.children);

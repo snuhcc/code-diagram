@@ -8,13 +8,15 @@ import { NextResponse } from 'next/server';
 
 type FileNode = { id: string; name: string; path: string; children?: FileNode[] };
 
-const POC_DIR = path.join(process.cwd(), '..', 'poc');   //   …/poc
+// 환경변수에서 타겟 폴더 읽기
+const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER!;
+const TARGET_DIR = path.join(process.cwd(), '..', TARGET_FOLDER);
 
 /* ── 재귀적으로 파일/폴더 탐색해 FileNode 트리 생성 ───────────── */
 function walk(dir: string): FileNode[] {
   return fs.readdirSync(dir).map((name): FileNode => {
-    const full = path.join(dir, name);                   // …/poc/foo.py
-    const rel  = path.relative(POC_DIR, full);           // foo.py  또는 sub/bar.py
+    const full = path.join(dir, name);                   
+    const rel  = path.relative(path.join(process.cwd(), '..'), full); // 전체 상대경로
     const id   = rel.replace(/[^\w]/g, '_');             // 고유 ID
 
     if (fs.statSync(full).isDirectory()) {
@@ -26,11 +28,16 @@ function walk(dir: string): FileNode[] {
 
 /* ── GET /api/files ─────────────────────────────────────── */
 export async function GET() {
-  const tree: FileNode = {
-    id: 'poc',
-    name: 'poc',
-    path: 'poc',               // root 노드는 “poc”
-    children: walk(POC_DIR),
-  };
-  return NextResponse.json([tree]);  // 배열로 감싸서 FileExplorer에 그대로 전달
+  try {
+    const tree: FileNode = {
+      id: TARGET_FOLDER.replace(/[^\w]/g, '_'),
+      name: TARGET_FOLDER,
+      path: TARGET_FOLDER,               
+      children: walk(TARGET_DIR),
+    };
+    return NextResponse.json([tree]);  // 배열로 감싸서 FileExplorer에 그대로 전달
+  } catch (error) {
+    console.error('Error reading directory:', error);
+    return NextResponse.json({ error: 'Directory not found' }, { status: 404 });
+  }
 }

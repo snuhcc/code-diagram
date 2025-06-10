@@ -104,6 +104,11 @@ const ENDPOINT_CG = '/api/generate_call_graph';
 const ENDPOINT_CFG = '/api/generate_control_flow_graph';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
+// target folder
+const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
+console.log(`TARGET_FOLDER: ${TARGET_FOLDER}`);
+
+
 // Custom group node component
 function CustomGroupNode({ data, style }: NodeProps) {
   return (
@@ -233,7 +238,8 @@ export default function DiagramViewer() {
       const filePath = childNode ? (childNode.data as any)?.file : undefined;
       if (!filePath) return;
 
-      const clean = filePath.replace(/^poc[\\/]/, '');
+      const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+      const clean = filePath.replace(regex, '');
       editorState.open({
         id: nanoid(),
         path: clean,
@@ -254,7 +260,8 @@ export default function DiagramViewer() {
     const raw = (node.data as any)?.file as string | undefined;
     if (!raw) return;
 
-    const clean = raw.replace(/^poc[\\/]/, '');
+    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+    const clean = raw.replace(regex, '');
     editorState.open({
       id: nanoid(),
       path: clean,
@@ -277,7 +284,8 @@ export default function DiagramViewer() {
       return;
     }
 
-    const clean = raw.replace(/^poc[\\/]/, '');
+    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+    const clean = raw.replace(regex, '');
     const cacheKey = `${clean}_${functionName}`;
 
     if (snippetCache.has(cacheKey)) {
@@ -352,7 +360,7 @@ export default function DiagramViewer() {
         const res = await fetch(`${apiUrl}${ENDPOINT_CG}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: '../../poc', file_type: 'py' }),
+          body: JSON.stringify({ path: `../../${TARGET_FOLDER}`, file_type: 'py' }),
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
@@ -374,7 +382,8 @@ export default function DiagramViewer() {
 
   // Compute node styles
   const finalNodes = nodes.map((n) => {
-    const clean = (n.data as any)?.file?.replace(/^poc[\\/]/, ''); 
+    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+    const clean = ((n.data as any)?.file || '').replace(regex, '');
     const isActive = clean === activePath;
     const isHover = hoverId === n.id;
     const isSelected = selectedNodeId === n.id;
@@ -392,9 +401,9 @@ export default function DiagramViewer() {
                 : '#FAFAFA',
           border: isHover
             ? '4px solid #eab308'
-              : isActive
-                ? '1px solid #fb923c'
-                : '1px solid #b9bfc9',
+            : isActive
+              ? '1px solid #fb923c'
+              : '1px solid #b9bfc9',
         },
       };
     }
@@ -469,12 +478,14 @@ export default function DiagramViewer() {
       setCfgLoading(false);
       return;
     }
+    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+
     try {
       const res = await fetch(`${apiUrl}${ENDPOINT_CFG}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          file_path: file.replace(/^poc[\\/]/, ''),
+          file_path: file.replace(regex, ''),
           function_name: functionName,
         }),
       });
@@ -721,16 +732,16 @@ export default function DiagramViewer() {
           >
             {/* 그래프 생성 느낌의 아이콘 (노드+엣지+플러스) - 검은색 */}
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: cfgLoading ? 0.3 : 1 }}>
-              <circle cx="6" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
-              <circle cx="14" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
-              <circle cx="10" cy="14" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2"/>
-              <line x1="7.5" y1="7.5" x2="10" y2="12" stroke="#222" strokeWidth="1.2"/>
-              <line x1="12.5" y1="7.5" x2="10" y2="12" stroke="#222" strokeWidth="1.2"/>
-              <line x1="8.2" y1="6" x2="11.8" y2="6" stroke="#222" strokeWidth="1.2"/>
+              <circle cx="6" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2" />
+              <circle cx="14" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2" />
+              <circle cx="10" cy="14" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2" />
+              <line x1="7.5" y1="7.5" x2="10" y2="12" stroke="#222" strokeWidth="1.2" />
+              <line x1="12.5" y1="7.5" x2="10" y2="12" stroke="#222" strokeWidth="1.2" />
+              <line x1="8.2" y1="6" x2="11.8" y2="6" stroke="#222" strokeWidth="1.2" />
               <g>
-                <circle cx="16.5" cy="16.5" r="3.2" fill="#222"/>
-                <rect x="16" y="14.2" width="1" height="4.6" rx="0.5" fill="#fff"/>
-                <rect x="14.2" y="16" width="4.6" height="1" rx="0.5" fill="#fff"/>
+                <circle cx="16.5" cy="16.5" r="3.2" fill="#222" />
+                <rect x="16" y="14.2" width="1" height="4.6" rx="0.5" fill="#fff" />
+                <rect x="14.2" y="16" width="4.6" height="1" rx="0.5" fill="#fff" />
               </g>
             </svg>
             {/* 로딩 스피너 */}
@@ -813,12 +824,12 @@ export default function DiagramViewer() {
                 panels.map(p =>
                   p.id === panel.id
                     ? {
-                        ...p,
-                        pos: {
-                          x: window.innerWidth - e.clientX - p.dragOffset.x,
-                          y: e.clientY - p.dragOffset.y,
-                        },
-                      }
+                      ...p,
+                      pos: {
+                        x: window.innerWidth - e.clientX - p.dragOffset.x,
+                        y: e.clientY - p.dragOffset.y,
+                      },
+                    }
                     : p
                 )
               );
@@ -854,13 +865,13 @@ export default function DiagramViewer() {
                 panels.map(p =>
                   p.id === panel.id
                     ? {
-                        ...p,
-                        dragging: true,
-                        dragOffset: {
-                          x: window.innerWidth - e.clientX - (p.pos.x || 24),
-                          y: e.clientY - (p.pos.y || 24),
-                        },
-                      }
+                      ...p,
+                      dragging: true,
+                      dragOffset: {
+                        x: window.innerWidth - e.clientX - (p.pos.x || 24),
+                        y: e.clientY - (p.pos.y || 24),
+                      },
+                    }
                     : p
                 )
               );
@@ -900,7 +911,7 @@ export default function DiagramViewer() {
               title={panel.expanded ? 'Collapse' : 'Expand'}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
             <button
@@ -1028,8 +1039,8 @@ export default function DiagramViewer() {
         id: r.id,
         source: r.source,
         target: r.target,
-        markerEnd: { 
-          type: MarkerType.ArrowClosed, 
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
           width: 15, // 화살표 크기 증가
           height: 15, // 화살표 크기 증가
           color: '#34A853', // 더 진한 초록색
@@ -1109,8 +1120,10 @@ export default function DiagramViewer() {
 
 // Utility to find FileNode by path
 function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
+  const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+
   for (const n of nodes) {
-    if (n.path?.replace(/^poc[\\/]/, '') === p) return n;
+    if (n.path?.replace(regex, '') === p) return n;
     if (n.children) {
       const r = findByPath(n.children, p);
       if (r) return r;

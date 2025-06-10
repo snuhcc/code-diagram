@@ -5,6 +5,8 @@ import { useEditor } from '@/store/editor';
 import { nanoid } from 'nanoid';
 import { useFS, getAllFilePaths } from '@/store/files';
 
+const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
+
 // 타입 정의: 검색 결과는 파일, 라인, 라인 텍스트
 type SearchResult = {
   file: string;
@@ -70,7 +72,9 @@ export default function SearchPanel() {
   };
 
   const handleResultClick = (result: SearchResult) => {
-    const cleanPath = result.file.replace(/^poc[\\/]/, '');
+    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+
+    const cleanPath = result.file.replace(regex, '');
     const name = cleanPath.split('/').pop() || cleanPath;
     const editorState = useEditor.getState();
     editorState.open({
