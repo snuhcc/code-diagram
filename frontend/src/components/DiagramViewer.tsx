@@ -1304,7 +1304,7 @@ export default function DiagramViewer() {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
-                            file_path: file,
+                            file_path: panel.file,
                             line_start,
                             line_end,
                           }),
