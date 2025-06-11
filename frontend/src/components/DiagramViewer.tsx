@@ -25,6 +25,21 @@ import 'highlight.js/styles/atom-one-light.css';
 
 hljs.registerLanguage('python', python);
 
+// Helper function to estimate text width
+function getTextWidth(text: string, font: string = '12px Arial'): number {
+  // Ensure this runs client-side
+  if (typeof document === 'undefined') return text.length * 7; // SSR fallback, rough estimate
+  const canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return text.length * 7; // Fallback if context cannot be obtained
+  }
+  context.font = font;
+  const metrics = context.measureText(text);
+  return metrics.width;
+}
+(getTextWidth as any).canvas = null; // Initialize canvas property for caching
+
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
 const snippetCache = new Map<string, string>();
 
@@ -49,10 +64,12 @@ const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
 /**
  * 다이어그램 노드와 엣지를 화면 크기에 맞게 배치하는 함수
  * @param files 파일별 노드와 엣지 데이터
+ * @param nodeWidths 각 노드의 미리 계산된 너비
  * @returns 노드 ID와 위치(x, y) 매핑
  */
 function layoutWithCluster(
-  files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>
+  files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>,
+  nodeWidths: Record<string, number> // New parameter
 ): Record<string, { x: number; y: number }> {
   // 전체 파일과 노드 수 계산
   const totalFiles = Object.keys(files).length;
@@ -60,10 +77,14 @@ function layoutWithCluster(
   
   // 화면 크기에 맞춘 최대 너비 설정 (화면 너비의 80%)
   const maxWidth = window.innerWidth * 0.8;
-  const nodeWidth = totalNodes > 50 ? 100 : 120;
   
+  // Use an average estimated width for maxNodesPerRank calculation
+  const averageNodeWidth = Object.values(nodeWidths).length > 0 
+    ? Object.values(nodeWidths).reduce((sum, w) => sum + w, 0) / Object.values(nodeWidths).length
+    : (totalNodes > 50 ? 100 : 120); // Fallback if nodeWidths is empty or not representative
+
   // 한 줄에 배치할 최대 노드 수 계산
-  const maxNodesPerRank = Math.floor(maxWidth / (nodeWidth + 30));
+  const maxNodesPerRank = Math.floor(maxWidth / (averageNodeWidth + 30)); // +30 for spacing
   
   // 노드 수에 따라 간격 동적 조정
   const nodesep = totalNodes > 50 ? 15 : totalNodes > 30 ? 20 : 25;
@@ -183,8 +204,8 @@ function layoutWithCluster(
     
     // 실제 노드 추가
     nodes.forEach((n) => {
-      const width = totalNodes > 50 ? 100 : 120;
-      const height = totalNodes > 50 ? 35 : 40;
+      const width = nodeWidths[n.id] || (totalNodes > 50 ? 100 : 120); // Use dynamic width from nodeWidths
+      const height = totalNodes > 50 ? 35 : 40; // Height can remain fixed or be made dynamic
       
       g.setNode(n.id, { 
         width: width,
@@ -593,7 +614,8 @@ export default function DiagramViewer() {
                 ? '1px solid #0284c7'
                 : '1px solid #4A90E2',
         transition: 'all 0.1s ease-in-out',
-        minWidth: isGroup ? (isCollapsed ? 200 : undefined) : n.style?.minWidth || 120,
+        // minWidth: isGroup ? (isCollapsed ? 200 : undefined) : n.style?.minWidth || 120, // Old line
+        minWidth: isGroup ? (isCollapsed ? 200 : undefined) : (n.style?.width as number | undefined), // Use actual width as minWidth for function nodes
         width: isGroup && isCollapsed ? 200 : n.style?.width,
         height: isGroup && isCollapsed ? 50 : n.style?.height,
         cursor: isGroup && isCollapsed ? 'pointer' : 'default',
@@ -1161,23 +1183,47 @@ export default function DiagramViewer() {
    * @param json 다이어그램 데이터
    */
   function hydrate(json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) {
+    const nodeSpecificWidths: Record<string, number> = {};
+    const textHorizontalPaddingTotal = 16; // e.g., 8px left + 8px right for text inside node
+    const minNodeWidth = 60; // Minimum width for a node
+    const nodeFontSize = '12px';
+    const nodeFontFamily = 'Arial, sans-serif';
+    const nodeFont = `${nodeFontSize} ${nodeFontFamily}`;
+
+    // Pre-calculate widths for all function nodes
+    Object.values(json).forEach(data => {
+      data.nodes.forEach(rawNode => {
+        const label = rawNode.label || rawNode.function_name || rawNode.id;
+        const estimatedTextWidth = getTextWidth(label, nodeFont);
+        const calculatedWidth = Math.max(minNodeWidth, estimatedTextWidth + textHorizontalPaddingTotal);
+        nodeSpecificWidths[rawNode.id] = calculatedWidth;
+      });
+    });
+
     let allFunctionNodes: Node[] = [];
     let allRawEdges: RawEdge[] = [];
     Object.entries(json).forEach(([file, data]) => {
       const { nodes: rawNodes, edges: rawEdges } = data;
-      const fileFunctionNodes: Node[] = rawNodes.map((r) => ({
-        id: r.id,
-        data: { label: r.label || r.function_name || r.id, file: r.file },
-        position: { x: 0, y: 0 },
-        style: {
-          padding: 6,
-          borderRadius: 4,
-          border: '1px solid #3b82f6',
-          background: '#fff',
-          minWidth: 120,
-        },
-        zIndex: 1,
-      }));
+      const fileFunctionNodes: Node[] = rawNodes.map((r) => {
+        const label = r.label || r.function_name || r.id;
+        const nodeWidth = nodeSpecificWidths[r.id];
+        return {
+          id: r.id,
+          data: { label: label, file: r.file },
+          position: { x: 0, y: 0 }, // Will be updated by layout
+          style: {
+            padding: '6px 8px', // Minimal vertical padding (6px top/bottom), 8px horizontal (left/right)
+            borderRadius: 4,
+            border: '1px solid #3b82f6',
+            background: '#fff',
+            width: nodeWidth, // Apply dynamic width
+            fontSize: nodeFontSize, // Explicitly set font size
+            fontFamily: nodeFontFamily, // Explicitly set font family
+            // Height will be determined by content (text + vertical padding)
+          },
+          zIndex: 1, // Function nodes above groups
+        };
+      });
       allFunctionNodes = allFunctionNodes.concat(fileFunctionNodes);
       allRawEdges = allRawEdges.concat(rawEdges);
     });
@@ -1198,27 +1244,37 @@ export default function DiagramViewer() {
         style: { stroke: '#34A853', strokeWidth: 2 },
         zIndex: 10000,
       }));
-    const posMap = layoutWithCluster(json);
+
+    // Pass the calculated widths to the layout function
+    const posMap = layoutWithCluster(json, nodeSpecificWidths);
+
     const laidOutFunctionNodes = allFunctionNodes.map((n) => ({
       ...n,
       position: posMap[n.id] ?? { x: 0, y: 0 },
     }));
+
     const groupNodes: Node[] = [];
-    const padding = 15;
+    const groupPadding = 20; // Increased padding for group node around its children
+    const defaultNodeHeight = 30; // Approximate height for single-line text nodes (12px text + 2*6px vert padding + small buffer)
+
     const fileToNodes: Record<string, Node[]> = {};
     laidOutFunctionNodes.forEach((node) => {
       const file = (node.data as any).file;
       if (!fileToNodes[file]) fileToNodes[file] = [];
       fileToNodes[file].push(node);
     });
-    Object.entries(fileToNodes).forEach(([file, nodes]) => {
-      if (nodes.length === 0) return;
-      const xs = nodes.map((n) => n.position.x);
-      const ys = nodes.map((n) => n.position.y);
+
+    Object.entries(fileToNodes).forEach(([file, nodesInGroup]) => {
+      if (nodesInGroup.length === 0) return;
+      const xs = nodesInGroup.map((n) => n.position.x);
+      const ys = nodesInGroup.map((n) => n.position.y);
       const minX = Math.min(...xs);
       const minY = Math.min(...ys);
-      const maxX = Math.max(...xs) + 120;
-      const maxY = Math.max(...ys) + 40;
+      
+      const maxX = Math.max(...nodesInGroup.map(n => n.position.x + ((n.style?.width as number) || minNodeWidth)));
+      // Assuming node height is relatively consistent or use defaultNodeHeight
+      const maxY = Math.max(...nodesInGroup.map(n => n.position.y + ((n.style?.height as number) || defaultNodeHeight)));
+      
       const groupId = `group-${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
       groupNodes.push({
         id: groupId,
@@ -1227,20 +1283,20 @@ export default function DiagramViewer() {
           label: file.split('/').pop() || file,
           file: file
         },
-        position: { x: minX - padding, y: minY - padding },
+        position: { x: minX - groupPadding, y: minY - groupPadding },
         style: {
-          width: maxX - minX + 2 * padding,
-          height: maxY - minY + 2 * padding,
+          width: maxX - minX + 2 * groupPadding,
+          height: maxY - minY + 2 * groupPadding,
           background: 'rgba(0, 0, 0, 0.05)',
           border: '1px dashed #fb923c',
           borderRadius: 8,
         },
-        zIndex: 0,
+        zIndex: 0, // Groups behind function nodes
       });
-      nodes.forEach((node) => {
+      nodesInGroup.forEach((node) => {
         node.position = {
-          x: node.position.x - (minX - padding),
-          y: node.position.y - (minY - padding),
+          x: node.position.x - (minX - groupPadding),
+          y: node.position.y - (minY - groupPadding),
         };
         node.parentId = groupId;
         node.extent = 'parent';
