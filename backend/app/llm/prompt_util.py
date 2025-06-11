@@ -75,8 +75,10 @@ PROMPT_CODE_TO_CFG = """
     Please generate a Control Flow Graph (CFG) for the provided code.
 
     INPUT:
-    - The function code:
+    - The function code with line numbers:
     {function_code}
+    - The File Name:
+    {file_name}
 
     - Example output format (JSON):
     {{
@@ -84,7 +86,7 @@ PROMPT_CODE_TO_CFG = """
             {{
                 "id": "main.1",
                 "label": "Start of main()",
-                "file": "study_1/main.py",
+                "file": file_name,
                 "line_start": 1,
                 "line_end": 1,
                 "description": "Entry point of main function."
@@ -92,7 +94,7 @@ PROMPT_CODE_TO_CFG = """
             {{
                 "id": "main.2",
                 "label": "If condition x > 0",
-                "file": "study_1/main.py",
+                "file": file_name,
                 "line_start": 2,
                 "line_end": 2,
                 "description": "Conditional branch."
@@ -125,13 +127,12 @@ PROMPT_CODE_TO_CFG = """
     OUTPUT:
     - The output must strictly follow the provided JSON format. No additional text or comments should be included.
     - Each node should represent a basic block, statement, or control structure (e.g., condition, loop, return).
+    - Each node must have line numbers indicating the start and end of the code block it represents.
     - Edges must represent possible control flow transitions (e.g., normal, true/false for branches, loop back).
     - Only include nodes and edges for code declared in this function.
-    - Ignore built-in functions and standard library calls.
     - Only visualize essential control flow relevant to the main logic of the function.
-    - Omit nodes and edges for logging, debugging, or other non-essential statements that do not affect the core logic or outcome.
+    - Omit nodes and edges for logging, debugging, or non-essential comments.
     - The graph should accurately represent the essential control flow structure.
-    - Add comments in the generated flowchart for clarity.
 """
 
 def build_repo_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:

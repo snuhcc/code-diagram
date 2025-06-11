@@ -46,9 +46,10 @@ def get_source_file_with_line_number(file_path: str):
 
     return file_context
 
-def extract_function_code_from_file(file_path: str, function_name: str) -> str:
+def extract_function_code_from_file_with_line_numbers(file_path: str, function_name: str) -> str:
     """
-    Extract the source code of a function with the given name from the specified file.
+    Extract the source code of a function with the given name from the specified file,
+    including original line numbers.
     Raises FileNotFoundError or ValueError if not found.
     """
     if not os.path.exists(file_path):
@@ -59,21 +60,23 @@ def extract_function_code_from_file(file_path: str, function_name: str) -> str:
     function_code = ""
     in_function = False
     func_indent = None
+    start_line = None
     for idx, line in enumerate(lines):
         stripped = line.lstrip()
         if stripped.startswith(f"def {function_name}("):
             in_function = True
             func_indent = len(line) - len(stripped)
-            function_code += line + "\n"
+            start_line = idx
+            function_code += f"{idx+1:4}: {line}\n"
             continue
         if in_function:
             # Check for end of function by indentation
             if line.strip() == "":
-                function_code += line + "\n"
+                function_code += f"{idx+1:4}: {line}\n"
                 continue
             curr_indent = len(line) - len(line.lstrip())
             if curr_indent > func_indent:
-                function_code += line + "\n"
+                function_code += f"{idx+1:4}: {line}\n"
             else:
                 break
     if not function_code:

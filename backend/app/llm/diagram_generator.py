@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplat
 from llm.prompt_util import *
 from llm.utils import (
     get_all_source_files,
-    extract_function_code_from_file,
+    extract_function_code_from_file_with_line_numbers,
     log_exception,
     extract_json_from_response,
     save_json_and_return_str,
@@ -25,6 +25,12 @@ from llm.constants import (
 
 reasoning_high = {
     "effort": "high",  # 'low', 'medium', or 'high'
+    # Reasoning Summary 사용하려면 조직인증 해야함.
+    # "summary": "None",  # 'detailed', 'auto', or None
+}
+
+reasoning_medium = {
+    "effort": "medium",  # 'low', 'medium', or 'high'
     # Reasoning Summary 사용하려면 조직인증 해야함.
     # "summary": "None",  # 'detailed', 'auto', or None
 }
@@ -141,9 +147,9 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
     try:
         # Use helper function to extract function code
         file_path = os.path.join(WORKSPACE_ROOT_DIR, file_path)
-        function_code = extract_function_code_from_file(file_path, function_name)
-        filename = os.path.splitext(os.path.basename(file_path))[0]
-        output_path = os.path.join(BACKEND_ROOT_DIR, "artifacts", f"cfg_{filename}_{function_name}.json")
+        function_code = extract_function_code_from_file_with_line_numbers(file_path, function_name)
+        file_name = os.path.splitext(os.path.basename(file_path))[0]
+        output_path = os.path.join(BACKEND_ROOT_DIR, "artifacts", f"cfg_{file_name}_{function_name}.json")
 
         # ⭐️ 이미 결과 파일이 있으면 바로 반환
         if os.path.exists(output_path):
@@ -156,7 +162,7 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
         llm = ChatOpenAI(
             model=OPENAI_O4_MINI,
             use_responses_api=True,
-            model_kwargs={"reasoning": reasoning_low}
+            model_kwargs={"reasoning": reasoning_medium}
         )
 
         chat_prompt = ChatPromptTemplate.from_messages(
@@ -164,7 +170,8 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
         )  
     
         messages = chat_prompt.format_messages(
-            function_code=function_code
+            function_code=function_code,
+            file_name=os.path.basename(file_path),
         )
 
         response = await llm.ainvoke(messages)
