@@ -677,7 +677,17 @@ export default function DiagramViewer() {
       setCfgLoading(false);
       return;
     }
-    // const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+
+    // Prevent duplicate panel for the same file/function
+    const alreadyExists = cfgPanels.some(
+      p => p.file === file && p.functionName === functionName
+    );
+    if (alreadyExists) {
+      setCfgMessage('이미 해당 함수의 CFG 패널이 열려 있습니다.');
+      setCfgLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${apiUrl}${ENDPOINT_CFG}`, {
         method: 'POST',
@@ -716,12 +726,10 @@ export default function DiagramViewer() {
           style: { stroke: '#0284c7', strokeWidth: 2 },
         }));
 
-        // 레이아웃이 필요한 경우: 모든 노드의 position이 0,0 이거나 undefined일 때
         if (
           cfgRaw.nodes?.length > 0 &&
           cfgRaw.nodes.every((n: any) => (!n.x && !n.y))
         ) {
-          // layoutWithCluster expects RawNode/RawEdge, not ReactFlow Node/Edge
           const posMap = layoutWithCluster({ [file]: { nodes: cfgRaw.nodes, edges: cfgRaw.edges } }, {});
           cfgNodes = cfgNodes.map(n => ({
             ...n,
@@ -847,7 +855,10 @@ export default function DiagramViewer() {
         maxZoom={2}
         className="bg-gray-50"
         nodeTypes={{ group: CustomGroupNode }}
-        onPaneClick={() => setSelectedNodeId(null)}
+        onPaneClick={() => {
+          setSelectedNodeId(null);
+          setCfgMessage(null); // 빈 공간 클릭 시 메시지 clear
+        }}
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap
@@ -1008,33 +1019,9 @@ export default function DiagramViewer() {
             flexDirection: 'column',
             cursor: panel.dragging ? 'move' : 'default',
             userSelect: panel.dragging ? 'none' : 'auto',
+            pointerEvents: panel.dragging ? 'none' : 'auto', // Prevent pointer events during drag for perf
           }}
-          onMouseMove={e => {
-            if (panel.dragging) {
-              setCfgPanels(panels =>
-                panels.map(p =>
-                  p.id === panel.id
-                    ? {
-                      ...p,
-                      pos: {
-                        x: window.innerWidth - e.clientX - p.dragOffset.x,
-                        y: e.clientY - p.dragOffset.y,
-                      },
-                    }
-                    : p
-                )
-              );
-            }
-          }}
-          onMouseUp={() => {
-            if (panel.dragging) {
-              setCfgPanels(panels =>
-                panels.map(p =>
-                  p.id === panel.id ? { ...p, dragging: false } : p
-                )
-              );
-            }
-          }}
+          // Remove per-panel onMouseMove/onMouseUp
         >
           <div
             style={{
@@ -1051,20 +1038,62 @@ export default function DiagramViewer() {
               cursor: 'move',
             }}
             onMouseDown={e => {
+              // Only start drag if not clicking on a button
+              if (
+                (e.target as HTMLElement).closest('button') ||
+                (e.target as HTMLElement).tagName === 'BUTTON'
+              ) {
+                return;
+              }
+              // Start global drag for this panel
+              const startX = e.clientX;
+              const startY = e.clientY;
+              const origX = panel.pos.x;
+              const origY = panel.pos.y;
+              let dragging = true;
+
               setCfgPanels(panels =>
                 panels.map(p =>
                   p.id === panel.id
-                    ? {
-                      ...p,
-                      dragging: true,
-                      dragOffset: {
-                        x: window.innerWidth - e.clientX - (p.pos.x || 24),
-                        y: e.clientY - (p.pos.y || 24),
-                      },
-                    }
+                    ? { ...p, dragging: true }
                     : p
                 )
               );
+
+              const onMouseMove = (moveEvent: MouseEvent) => {
+                if (!dragging) return;
+                const dx = moveEvent.clientX - startX;
+                const dy = moveEvent.clientY - startY;
+                setCfgPanels(panels =>
+                  panels.map(p =>
+                    p.id === panel.id
+                      ? {
+                          ...p,
+                          pos: {
+                            x: origX - dx,
+                            y: origY + dy,
+                          },
+                        }
+                      : p
+                  )
+                );
+              };
+
+              const onMouseUp = () => {
+                dragging = false;
+                setCfgPanels(panels =>
+                  panels.map(p =>
+                    p.id === panel.id
+                      ? { ...p, dragging: false }
+                      : p
+                  )
+                );
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+              };
+
+              window.addEventListener('mousemove', onMouseMove);
+              window.addEventListener('mouseup', onMouseUp);
               e.preventDefault();
             }}
           >
