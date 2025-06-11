@@ -372,6 +372,8 @@ export default function DiagramViewer() {
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [cfgMessage, setCfgMessage] = useState<string | null>(null);
+  // ▼ 추가: CFG 패널 우측 상단에 표시할 메시지 상태
+  const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
   const [cfgPanels, setCfgPanels] = useState<
     { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number }; width?: number; height?: number; resizing?: boolean }[]
   >([]);
@@ -752,6 +754,8 @@ export default function DiagramViewer() {
             pos: { x: 24 + panels.length * 32, y: 24 + panels.length * 32 },
             dragging: false,
             dragOffset: { x: 0, y: 0 },
+            width: 800, // 초기 width 증가
+            height: 600, // 초기 height 증가
           },
         ]);
         setCfgMessage(null);
@@ -1060,9 +1064,9 @@ export default function DiagramViewer() {
             zIndex: 200 + idx,
             fontSize: 13,
             minWidth: 220,
-            maxWidth: 1600, // Increased from 600
+            maxWidth: 1600,
             minHeight: panel.expanded ? 0 : 0,
-            maxHeight: panel.expanded ? 1200 : 44, // Increased from 600
+            maxHeight: panel.expanded ? 1200 : 44,
             boxShadow: '0 2px 8px #0002',
             whiteSpace: 'pre-wrap',
             overflow: panel.expanded ? 'auto' : 'hidden',
@@ -1077,6 +1081,31 @@ export default function DiagramViewer() {
             resize: 'none',
           }}
         >
+          {/* ▼ CFG 패널 우측 상단 메시지 영역 */}
+          {cfgPanelMessage && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 12,
+                background: '#fef9c3',
+                color: '#b45309',
+                padding: '4px 12px',
+                borderRadius: 5,
+                zIndex: 300,
+                fontSize: 13,
+                fontWeight: 500,
+                boxShadow: '0 1px 4px #0001',
+                pointerEvents: 'none',
+                maxWidth: 320,
+                textOverflow: 'ellipsis',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {cfgPanelMessage}
+            </div>
+          )}
           <div
             style={{
               width: '100%',
@@ -1240,6 +1269,15 @@ export default function DiagramViewer() {
                     maxZoom={2}
                     className="bg-gray-50"
                     style={{ width: '100%', height: '100%' }}
+                    defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
+                    // ▼ 노드 hover 시 label을 setCfgPanelMessage로 출력
+                    onNodeMouseEnter={(_, node) => {
+                      const label = (node.data as any)?.label ?? node.id;
+                      setCfgPanelMessage(label);
+                    }}
+                    onNodeMouseLeave={() => {
+                      setCfgPanelMessage(null);
+                    }}
                   >
                     <Background variant="dots" gap={16} size={1} />
                     <Controls showInteractive={false} />
