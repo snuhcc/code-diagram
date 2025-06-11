@@ -4,26 +4,26 @@
             {
                 "id": "validator.validate_data",
                 "function_name": "validate_data",
-                "file": "validator.py",
+                "file": "poc/validator.py",
                 "line_start": 1,
                 "line_end": 7,
-                "description": "Entry point: filters non-integers, removes negatives, and checks range."
+                "description": "Validates data by filtering non-integers, removing negatives, and checking range."
             },
             {
                 "id": "validator.remove_negatives",
                 "function_name": "remove_negatives",
-                "file": "validator.py",
+                "file": "poc/validator.py",
                 "line_start": 9,
                 "line_end": 11,
-                "description": "Filters out negative integers from the list."
+                "description": "Removes negative integers from the data list."
             },
             {
                 "id": "validator.check_range",
                 "function_name": "check_range",
-                "file": "validator.py",
+                "file": "poc/validator.py",
                 "line_start": 13,
                 "line_end": 15,
-                "description": "Keeps only values within the specified inclusive min and max range."
+                "description": "Filters data to be within a specified min and max range."
             }
         ],
         "edges": [
@@ -44,26 +44,26 @@
             {
                 "id": "aggregator.aggregate_data",
                 "function_name": "aggregate_data",
-                "file": "aggregator.py",
+                "file": "poc/aggregator.py",
                 "line_start": 1,
                 "line_end": 11,
-                "description": "Aggregates data and computes count, sum, max, min, and average, then formats and prints the summary."
+                "description": "Aggregates data to compute count, sum, max, min, and average, then formats and prints a summary."
             },
             {
                 "id": "aggregator.compute_average",
                 "function_name": "compute_average",
-                "file": "aggregator.py",
+                "file": "poc/aggregator.py",
                 "line_start": 13,
-                "line_end": 15,
-                "description": "Computes the average of the data list; returns 0 if the list is empty."
+                "line_end": 16,
+                "description": "Computes the average of the data."
             },
             {
                 "id": "aggregator.format_summary",
                 "function_name": "format_summary",
-                "file": "aggregator.py",
+                "file": "poc/aggregator.py",
                 "line_start": 17,
                 "line_end": 19,
-                "description": "Formats the statistics into a human-readable summary string."
+                "description": "Formats the statistics summary into a string."
             }
         ],
         "edges": [
@@ -87,7 +87,7 @@
                 "file": "poc/reporter.py",
                 "line_start": 2,
                 "line_end": 21,
-                "description": "Generates and prints a report based on the provided analysis dictionary, including summary statistics and comparisons."
+                "description": "Generate report based on analysis dictionary."
             }
         ],
         "edges": []
@@ -100,7 +100,7 @@
                 "file": "poc/analyzer.py",
                 "line_start": 4,
                 "line_end": 16,
-                "description": "Function that computes the average and median of the data and separates high and low values."
+                "description": "Analyze data to compute average, median, high and low values."
             }
         ],
         "edges": [
@@ -124,7 +124,7 @@
                 "file": "poc/processor.py",
                 "line_start": 3,
                 "line_end": 15,
-                "description": "Processes a list of numbers with branching handlers based on divisibility."
+                "description": "Iterates over data and dispatches each number to the appropriate handler based on divisibility."
             },
             {
                 "id": "processor.handle_div3",
@@ -148,7 +148,7 @@
                 "file": "poc/processor.py",
                 "line_start": 25,
                 "line_end": 27,
-                "description": "Handles all other numbers by applying the 3n+1 transformation."
+                "description": "Handles all other numbers with the formula num * 3 + 1."
             }
         ],
         "edges": [
@@ -174,26 +174,26 @@
             {
                 "id": "filterer.filter_even",
                 "function_name": "filter_even",
-                "file": "filterer.py",
+                "file": "poc/filterer.py",
                 "line_start": 1,
                 "line_end": 4,
-                "description": "Filters data by first removing odd numbers then keeping only values greater than 10."
+                "description": "Filters data by keeping even numbers greater than 10."
             },
             {
                 "id": "filterer.remove_odd",
                 "function_name": "remove_odd",
-                "file": "filterer.py",
+                "file": "poc/filterer.py",
                 "line_start": 6,
                 "line_end": 8,
-                "description": "Removes odd numbers from the input list."
+                "description": "Removes odd numbers from the data."
             },
             {
                 "id": "filterer.filter_gt",
                 "function_name": "filter_gt",
-                "file": "filterer.py",
+                "file": "poc/filterer.py",
                 "line_start": 10,
                 "line_end": 12,
-                "description": "Filters the input list to include only values greater than a given threshold."
+                "description": "Filters numbers greater than a given threshold."
             }
         ],
         "edges": [
@@ -214,26 +214,26 @@
             {
                 "id": "transformer.transform_special",
                 "function_name": "transform_special",
-                "file": "transformer.py",
+                "file": "poc/transformer.py",
                 "line_start": 3,
                 "line_end": 8,
-                "description": "Function to transform special data by normalizing, processing, and scaling it."
+                "description": "Transforms special data by normalizing, processing, and scaling."
             },
             {
                 "id": "transformer.normalize",
                 "function_name": "normalize",
-                "file": "transformer.py",
+                "file": "poc/transformer.py",
                 "line_start": 10,
                 "line_end": 13,
-                "description": "Function to normalize data by dividing each element by the maximum value."
+                "description": "Normalizes data to a [0,1] range based on the maximum value."
             },
             {
                 "id": "transformer.scale",
                 "function_name": "scale",
-                "file": "transformer.py",
+                "file": "poc/transformer.py",
                 "line_start": 15,
                 "line_end": 17,
-                "description": "Function to scale data by a given factor."
+                "description": "Scales data by a given factor."
             }
         ],
         "edges": [
@@ -257,93 +257,93 @@
     "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/main.py": {
         "nodes": [
             {
-                "id": "main.main",
+                "id": "poc.main.main",
                 "function_name": "main",
                 "file": "poc/main.py",
                 "line_start": 11,
-                "line_end": 47,
-                "description": "Main function that orchestrates data fetching and various processing pipelines based on user choice."
+                "line_end": 48,
+                "description": "Entry point for CLI to orchestrate data pipeline."
             }
         ],
         "edges": [
             {
-                "id": "main.e1",
-                "source": "main.main",
+                "id": "main.e0",
+                "source": "poc.main.main",
                 "target": "fetcher.fetch_data"
             },
             {
-                "id": "main.e2",
-                "source": "main.main",
+                "id": "main.e1",
+                "source": "poc.main.main",
                 "target": "processor.process_data"
+            },
+            {
+                "id": "main.e2",
+                "source": "poc.main.main",
+                "target": "analyzer.analyze_data"
             },
             {
                 "id": "main.e3",
-                "source": "main.main",
-                "target": "analyzer.analyze_data"
+                "source": "poc.main.main",
+                "target": "reporter.generate_report"
             },
             {
                 "id": "main.e4",
-                "source": "main.main",
-                "target": "reporter.generate_report"
-            },
-            {
-                "id": "main.e5",
-                "source": "main.main",
+                "source": "poc.main.main",
                 "target": "validator.validate_data"
             },
             {
-                "id": "main.e6",
-                "source": "main.main",
+                "id": "main.e5",
+                "source": "poc.main.main",
                 "target": "processor.process_data"
+            },
+            {
+                "id": "main.e6",
+                "source": "poc.main.main",
+                "target": "analyzer.analyze_data"
             },
             {
                 "id": "main.e7",
-                "source": "main.main",
-                "target": "analyzer.analyze_data"
-            },
-            {
-                "id": "main.e8",
-                "source": "main.main",
+                "source": "poc.main.main",
                 "target": "aggregator.aggregate_data"
             },
             {
-                "id": "main.e9",
-                "source": "main.main",
+                "id": "main.e8",
+                "source": "poc.main.main",
                 "target": "reporter.generate_report"
             },
             {
-                "id": "main.e10",
-                "source": "main.main",
+                "id": "main.e9",
+                "source": "poc.main.main",
                 "target": "filterer.filter_even"
             },
             {
-                "id": "main.e11",
-                "source": "main.main",
+                "id": "main.e10",
+                "source": "poc.main.main",
                 "target": "processor.process_data"
             },
             {
-                "id": "main.e12",
-                "source": "main.main",
+                "id": "main.e11",
+                "source": "poc.main.main",
                 "target": "analyzer.analyze_data"
             },
             {
-                "id": "main.e13",
-                "source": "main.main",
+                "id": "main.e12",
+                "source": "poc.main.main",
                 "target": "reporter.generate_report"
             },
             {
-                "id": "main.e14",
-                "source": "main.main",
+                "id": "main.e13",
+                "source": "poc.main.main",
                 "target": "transformer.transform_special"
             },
             {
-                "id": "main.e15",
-                "source": "main.main",
+                "id": "main.e14",
+                "source": "poc.main.main",
                 "target": "analyzer.analyze_data"
             },
             {
-                "id": "main.e16",
-                "source": "main.main",
+                "id": "main.e15",
+                "source": "poc.main.main",
                 "target": "reporter.generate_report"
             }
         ]
@@ -356,9 +356,20 @@
                 "file": "poc/fetcher.py",
                 "line_start": 4,
                 "line_end": 13,
-                "description": "Retries fetching data up to `retries` times; uses `random.random` to determine success and `random.randint` to generate data; prints status messages; returns a list of integers on success or raises `ConnectionError` after exhausting retries."
+                "description": "Fetches data with up to a given number of retries."
             }
         ],
-        "edges": []
+        "edges": [
+            {
+                "id": "fetcher.e0",
+                "source": "fetcher.fetch_data",
+                "target": "random.random"
+            },
+            {
+                "id": "fetcher.e1",
+                "source": "fetcher.fetch_data",
+                "target": "random.randint"
+            }
+        ]
     }
 }

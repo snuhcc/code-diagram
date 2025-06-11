@@ -6,7 +6,7 @@
             "file": "poc/reporter.py",
             "line_start": 2,
             "line_end": 21,
-            "description": "Generates and prints a report based on the provided analysis dictionary, including summary statistics and comparisons."
+            "description": "Generate report based on analysis dictionary."
         }
     ],
     "edges": []

@@ -3,26 +3,26 @@
         {
             "id": "aggregator.aggregate_data",
             "function_name": "aggregate_data",
-            "file": "aggregator.py",
+            "file": "poc/aggregator.py",
             "line_start": 1,
             "line_end": 11,
-            "description": "Aggregates data and computes count, sum, max, min, and average, then formats and prints the summary."
+            "description": "Aggregates data to compute count, sum, max, min, and average, then formats and prints a summary."
         },
         {
             "id": "aggregator.compute_average",
             "function_name": "compute_average",
-            "file": "aggregator.py",
+            "file": "poc/aggregator.py",
             "line_start": 13,
-            "line_end": 15,
-            "description": "Computes the average of the data list; returns 0 if the list is empty."
+            "line_end": 16,
+            "description": "Computes the average of the data."
         },
         {
             "id": "aggregator.format_summary",
             "function_name": "format_summary",
-            "file": "aggregator.py",
+            "file": "poc/aggregator.py",
             "line_start": 17,
             "line_end": 19,
-            "description": "Formats the statistics into a human-readable summary string."
+            "description": "Formats the statistics summary into a string."
         }
     ],
     "edges": [

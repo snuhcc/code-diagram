@@ -3,26 +3,26 @@
         {
             "id": "validator.validate_data",
             "function_name": "validate_data",
-            "file": "validator.py",
+            "file": "poc/validator.py",
             "line_start": 1,
             "line_end": 7,
-            "description": "Entry point: filters non-integers, removes negatives, and checks range."
+            "description": "Validates data by filtering non-integers, removing negatives, and checking range."
         },
         {
             "id": "validator.remove_negatives",
             "function_name": "remove_negatives",
-            "file": "validator.py",
+            "file": "poc/validator.py",
             "line_start": 9,
             "line_end": 11,
-            "description": "Filters out negative integers from the list."
+            "description": "Removes negative integers from the data list."
         },
         {
             "id": "validator.check_range",
             "function_name": "check_range",
-            "file": "validator.py",
+            "file": "poc/validator.py",
             "line_start": 13,
             "line_end": 15,
-            "description": "Keeps only values within the specified inclusive min and max range."
+            "description": "Filters data to be within a specified min and max range."
         }
     ],
     "edges": [

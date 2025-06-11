@@ -114,10 +114,10 @@ async def generate_call_graph(root_path: str, file_type: Optional[str]):
         print(f"Path: {abs_path}, File Type: {file_type}")
 
         # ⭐️ 이미 결과 파일이 있으면 바로 반환
-        # if os.path.exists(CG_JSON_OUTPUT):
-        #     print(f"Call graph file already exists: {CG_JSON_OUTPUT}")
-        #     with open(CG_JSON_OUTPUT, "r", encoding="utf-8") as f:
-        #         return f.read()
+        if os.path.exists(CG_JSON_OUTPUT):
+            print(f"Call graph file already exists: {CG_JSON_OUTPUT}")
+            with open(CG_JSON_OUTPUT, "r", encoding="utf-8") as f:
+                return f.read()
 
         results = await generate_call_graphs_for_directory(abs_path, file_type)
         # Save the results to a JSON file

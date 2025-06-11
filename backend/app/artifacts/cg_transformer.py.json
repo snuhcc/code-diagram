@@ -3,26 +3,26 @@
         {
             "id": "transformer.transform_special",
             "function_name": "transform_special",
-            "file": "transformer.py",
+            "file": "poc/transformer.py",
             "line_start": 3,
             "line_end": 8,
-            "description": "Function to transform special data by normalizing, processing, and scaling it."
+            "description": "Transforms special data by normalizing, processing, and scaling."
         },
         {
             "id": "transformer.normalize",
             "function_name": "normalize",
-            "file": "transformer.py",
+            "file": "poc/transformer.py",
             "line_start": 10,
             "line_end": 13,
-            "description": "Function to normalize data by dividing each element by the maximum value."
+            "description": "Normalizes data to a [0,1] range based on the maximum value."
         },
         {
             "id": "transformer.scale",
             "function_name": "scale",
-            "file": "transformer.py",
+            "file": "poc/transformer.py",
             "line_start": 15,
             "line_end": 17,
-            "description": "Function to scale data by a given factor."
+            "description": "Scales data by a given factor."
         }
     ],
     "edges": [

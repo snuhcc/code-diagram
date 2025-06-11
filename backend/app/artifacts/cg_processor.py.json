@@ -6,7 +6,7 @@
             "file": "poc/processor.py",
             "line_start": 3,
             "line_end": 15,
-            "description": "Processes a list of numbers with branching handlers based on divisibility."
+            "description": "Iterates over data and dispatches each number to the appropriate handler based on divisibility."
         },
         {
             "id": "processor.handle_div3",
@@ -30,7 +30,7 @@
             "file": "poc/processor.py",
             "line_start": 25,
             "line_end": 27,
-            "description": "Handles all other numbers by applying the 3n+1 transformation."
+            "description": "Handles all other numbers with the formula num * 3 + 1."
         }
     ],
     "edges": [
