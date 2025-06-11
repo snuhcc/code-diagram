@@ -226,11 +226,35 @@ function layoutWithCluster(
  */
 function CustomGroupNode({ data }: NodeProps) {
   const { label, isCollapsed, onToggleCollapse } = data;
-  
+
+  // SVG chevron icon (right for collapsed, down for expanded)
+  const ChevronIcon = ({ direction = 'down' }: { direction: 'down' | 'right' }) => (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#6366f1',
+        transition: 'transform 0.15s',
+        transform: direction === 'right' ? 'rotate(-90deg)' : 'none',
+      }}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+
   if (isCollapsed) {
     return (
-      <div 
-        style={{ 
+      <div
+        style={{
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -247,12 +271,12 @@ function CustomGroupNode({ data }: NodeProps) {
           onToggleCollapse();
         }}
       >
-        <span>{label}</span>
-        <span style={{ fontSize: 16 }}>▸</span>
+        <ChevronIcon direction="right" />
+        <span style={{ display: 'flex', alignItems: 'center' }}>{label}</span>
       </div>
     );
   }
-  
+
   return (
     <>
       <div
@@ -261,32 +285,55 @@ function CustomGroupNode({ data }: NodeProps) {
           top: -32,
           left: 0,
           width: '100%',
-          textAlign: 'center',
           fontWeight: 600,
           fontSize: 13,
           color: '#444',
           pointerEvents: 'none',
           userSelect: 'none',
           display: 'flex',
+          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
+          height: 32,
         }}
       >
-        <span>{label}</span>
-        <span
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleCollapse();
-          }}
+        <div
           style={{
-            fontSize: 16,
-            cursor: 'pointer',
+            display: 'inline-flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
             pointerEvents: 'auto',
+            height: '100%',
           }}
         >
-          ▾
-        </span>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapse();
+            }}
+            style={{
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              lineHeight: 1,
+              height: '1em',
+            }}
+          >
+            <ChevronIcon direction="down" />
+          </span>
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              lineHeight: 1,
+              height: '1em',
+            }}
+          >
+            {label}
+          </span>
+        </div>
       </div>
     </>
   );
