@@ -373,7 +373,7 @@ export default function DiagramViewer() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [cfgMessage, setCfgMessage] = useState<string | null>(null);
   const [cfgPanels, setCfgPanels] = useState<
-    { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
+    { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number }; width?: number; height?: number; resizing?: boolean }[]
   >([]);
   const [cfgLoading, setCfgLoading] = useState(false);
   const [diagramReady, setDiagramReady] = useState(false);
@@ -763,6 +763,58 @@ export default function DiagramViewer() {
     }
   };
 
+  const handleResizeStart = (panelId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const panel = cfgPanels.find(p => p.id === panelId);
+    const origWidth = panel?.width ?? 400;
+    const origHeight = panel?.height ?? 320;
+
+    setCfgPanels(panels =>
+      panels.map(p =>
+        p.id === panelId
+          ? { ...p, resizing: true }
+          : p
+      )
+    );
+
+    const maxWidth = Math.min(window.innerWidth - 40, 800); // allow up to 1600px or window size
+    const maxHeight = Math.min(window.innerHeight - 40, 600); // allow up to 1200px or window size
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      setCfgPanels(panels =>
+        panels.map(p =>
+          p.id === panelId
+            ? {
+                ...p,
+                width: Math.max(220, Math.min(origWidth + dx, maxWidth)),
+                height: Math.max(120, Math.min(origHeight + dy, maxHeight)),
+              }
+            : p
+        )
+      );
+    };
+
+    const onMouseUp = () => {
+      setCfgPanels(panels =>
+        panels.map(p =>
+          p.id === panelId
+            ? { ...p, resizing: false }
+            : p
+        )
+      );
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   if (!diagramReady) {
     return (
       <div className="flex items-center justify-center h-full w-full">
@@ -1008,9 +1060,9 @@ export default function DiagramViewer() {
             zIndex: 200 + idx,
             fontSize: 13,
             minWidth: 220,
-            maxWidth: 600,
+            maxWidth: 1600, // Increased from 600
             minHeight: panel.expanded ? 0 : 0,
-            maxHeight: panel.expanded ? 600 : 44,
+            maxHeight: panel.expanded ? 1200 : 44, // Increased from 600
             boxShadow: '0 2px 8px #0002',
             whiteSpace: 'pre-wrap',
             overflow: panel.expanded ? 'auto' : 'hidden',
@@ -1019,9 +1071,11 @@ export default function DiagramViewer() {
             flexDirection: 'column',
             cursor: panel.dragging ? 'move' : 'default',
             userSelect: panel.dragging ? 'none' : 'auto',
-            pointerEvents: panel.dragging ? 'none' : 'auto', // Prevent pointer events during drag for perf
+            pointerEvents: panel.dragging ? 'none' : 'auto',
+            width: panel.width ?? 400,
+            height: panel.expanded ? (panel.height ?? 320) : undefined,
+            resize: 'none',
           }}
-          // Remove per-panel onMouseMove/onMouseUp
         >
           <div
             style={{
@@ -1064,14 +1118,32 @@ export default function DiagramViewer() {
                 if (!dragging) return;
                 const dx = moveEvent.clientX - startX;
                 const dy = moveEvent.clientY - startY;
+                
+                // Calculate new position
+                const newX = origX - dx;
+                const newY = origY + dy;
+                
+                // Get panel dimensions
+                const panelWidth = panel.width ?? 400;
+                const panelHeight = panel.expanded ? (panel.height ?? 320) : 44;
+                
+                // Apply boundaries to keep panel on screen
+                const minX = 20; // Minimum distance from right edge
+                const maxX = window.innerWidth - panelWidth - 20; // Maximum distance from left edge
+                const minY = 20; // Minimum distance from top
+                const maxY = window.innerHeight - panelHeight - 20; // Maximum distance from bottom
+                
+                const boundedX = Math.max(minX, Math.min(newX, maxX));
+                const boundedY = Math.max(minY, Math.min(newY, maxY));
+                
                 setCfgPanels(panels =>
                   panels.map(p =>
                     p.id === panel.id
                       ? {
                           ...p,
                           pos: {
-                            x: origX - dx,
-                            y: origY + dy,
+                            x: boundedX,
+                            y: boundedY,
                           },
                         }
                       : p
@@ -1157,9 +1229,9 @@ export default function DiagramViewer() {
             </button>
           </div>
           {panel.expanded && (
-            <div style={{ width: '100%', overflow: 'auto' }}>
+            <div style={{ width: '100%', height: panel.height ?? 320, overflow: 'auto', position: 'relative' }}>
               {panel.result && panel.result.nodes && panel.result.edges ? (
-                <div style={{ width: 400, height: 320, background: '#f8fafc', borderRadius: 6 }}>
+                <div style={{ width: '100%', height: '100%', background: '#f8fafc', borderRadius: 6 }}>
                   <ReactFlow
                     nodes={panel.result.nodes}
                     edges={panel.result.edges}
@@ -1187,6 +1259,27 @@ export default function DiagramViewer() {
                   {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
                 </pre>
               )}
+              {/* Resize handle */}
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 2,
+                  bottom: 2,
+                  width: 18,
+                  height: 18,
+                  cursor: 'nwse-resize',
+                  zIndex: 10,
+                  background: 'transparent',
+                  display: panel.resizing === false ? 'block' : 'block',
+                  userSelect: 'none',
+                }}
+                onMouseDown={e => handleResizeStart(panel.id, e)}
+              >
+                <svg width="18" height="18" style={{ pointerEvents: 'none' }}>
+                  <polyline points="4,18 18,4" stroke="#888" strokeWidth="2" fill="none" />
+                  <rect x="12" y="12" width="5" height="5" fill="#e5e7eb" stroke="#888" strokeWidth="1" />
+                </svg>
+              </div>
             </div>
           )}
         </div>
