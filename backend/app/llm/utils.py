@@ -46,6 +46,27 @@ def get_source_file_with_line_number(file_path: str):
 
     return file_context
 
+def extract_specific_code_from_file_with_line_numbers(file_path: str, line_start: int, line_end: int) -> str:
+    """
+    Extract specific lines from a file with line numbers.
+    Raises FileNotFoundError if the file does not exist.
+    Raises ValueError if the specified lines are out of range.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    
+    if line_start < 1 or line_end > len(lines) or line_start > line_end:
+        raise ValueError(f"Invalid line range: {line_start}-{line_end} for file '{file_path}'")
+    
+    extracted_code = ""
+    for idx in range(line_start - 1, line_end):
+        extracted_code += f"{idx + 1:4}: {lines[idx]}"
+    
+    return extracted_code
+
 def extract_function_code_from_file_with_line_numbers(file_path: str, function_name: str) -> str:
     """
     Extract the source code of a function with the given name from the specified file,

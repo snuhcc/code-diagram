@@ -135,6 +135,19 @@ PROMPT_CODE_TO_CFG = """
     - The graph should accurately represent the essential control flow structure.
 """
 
+PROMPT_INLINE_CODE_EXPLANATION = """
+    Please generate an inline code explanation for the provided code.
+    INPUT:
+    - The code snippet with line numbers:
+    {code_snippet}
+    - Line numbers that need explanation (from ~ to):
+    {line_start} ~ {line_end}
+
+    OUTPUT:
+    - The output must be korean.
+    - The output must be a clear and concise explanation of the code.
+"""
+
 def build_repo_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:
     """
     tree 스타일 디렉토리 구조 문자열 생성.
