@@ -28,48 +28,54 @@ hljs.registerLanguage('python', python);
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
 const snippetCache = new Map<string, string>();
 
-function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
-  const g = new dagre.graphlib.Graph().setGraph({
-    rankdir: 'TB',
-    nodesep: 20,
-    ranksep: 40,
-  });
-  g.setDefaultEdgeLabel(() => ({}));
-  nodes.forEach((n) => g.setNode(n.id, { width: 120, height: 40 }));
-  edges.forEach((e) => g.setEdge(e.source, e.target));
-  dagre.layout(g);
-  return nodes.map((n) => {
-    const { x, y } = g.node(n.id);
-    return { ...n, position: { x, y } };
-  });
+interface RawNode {
+  id: string;
+  label?: string;
+  function_name?: string;
+  file: string;
+}
+interface RawEdge {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
 }
 
+const ENDPOINT_CG = '/api/generate_call_graph';
+const ENDPOINT_CFG = '/api/generate_control_flow_graph';
+const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
+
+/**
+ * 다이어그램 노드와 엣지를 화면 크기에 맞게 배치하는 함수
+ * @param files 파일별 노드와 엣지 데이터
+ * @returns 노드 ID와 위치(x, y) 매핑
+ */
 function layoutWithCluster(
   files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>
 ): Record<string, { x: number; y: number }> {
-  // 파일별로 노드 수 계산
+  // 전체 파일과 노드 수 계산
   const totalFiles = Object.keys(files).length;
   const totalNodes = Object.values(files).reduce((sum, f) => sum + f.nodes.length, 0);
-  const avgNodesPerFile = totalNodes / totalFiles;
   
-  // 화면 크기를 고려한 최대 너비 설정 (보통 화면 너비의 80% 정도)
-  const maxWidth = window.innerWidth * 0.1;
+  // 화면 크기에 맞춘 최대 너비 설정 (화면 너비의 80%)
+  const maxWidth = window.innerWidth * 0.8;
   const nodeWidth = totalNodes > 50 ? 100 : 120;
   
   // 한 줄에 배치할 최대 노드 수 계산
   const maxNodesPerRank = Math.floor(maxWidth / (nodeWidth + 30));
   
-  // 노드가 많을수록 더 컴팩트한 레이아웃 사용
+  // 노드 수에 따라 간격 동적 조정
   const nodesep = totalNodes > 50 ? 15 : totalNodes > 30 ? 20 : 25;
   const ranksep = totalNodes > 50 ? 40 : totalNodes > 30 ? 50 : 60;
   
   const g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
     .setGraph({
-      rankdir: 'TB', // 항상 위에서 아래로
+      rankdir: 'TB', // 위에서 아래로 배치
       nodesep: nodesep,
       ranksep: ranksep,
-      ranker: 'tight-tree', // 더 컴팩트한 트리 레이아웃
-      align: 'DL',
+      ranker: 'tight-tree', // 컴팩트한 트리 구조
+      align: 'DL', // 왼쪽 정렬
       marginx: 10,
       marginy: 10,
     })
@@ -83,13 +89,13 @@ function layoutWithCluster(
     });
   });
   
-  // 각 파일별로 노드 레이아웃 최적화
+  // 각 파일의 노드와 엣지 처리
   Object.entries(files).forEach(([file, { nodes, edges }]) => {
-    // 노드의 depth를 계산하여 같은 레벨의 노드들을 파악
+    // 노드의 깊이 계산
     const nodeDepths = new Map<string, number>();
     const nodeChildren = new Map<string, string[]>();
     
-    // 자식 노드 맵핑 생성
+    // 자식 노드 매핑
     edges.forEach(({ source, target }) => {
       if (!nodeChildren.has(source)) {
         nodeChildren.set(source, []);
@@ -97,11 +103,9 @@ function layoutWithCluster(
       nodeChildren.get(source)!.push(target);
     });
     
-    // BFS로 각 노드의 depth 계산
+    // BFS로 깊이 할당
     const visited = new Set<string>();
     const queue: { node: string; depth: number }[] = [];
-    
-    // 루트 노드 찾기 (들어오는 엣지가 없는 노드)
     const incomingEdges = new Set(edges.map(e => e.target));
     const rootNodes = nodes.filter(n => !incomingEdges.has(n.id));
     
@@ -122,7 +126,7 @@ function layoutWithCluster(
       });
     }
     
-    // 같은 depth의 노드들을 그룹화
+    // 깊이별 노드 그룹화
     const depthGroups = new Map<number, string[]>();
     nodeDepths.forEach((depth, nodeId) => {
       if (!depthGroups.has(depth)) {
@@ -131,17 +135,15 @@ function layoutWithCluster(
       depthGroups.get(depth)!.push(nodeId);
     });
     
-    // 각 depth에서 노드가 많으면 가상의 중간 노드를 추가하여 분산
+    // 깊이별로 노드 수가 많으면 세로로 분할
     let virtualNodeCount = 0;
     depthGroups.forEach((nodesAtDepth, depth) => {
       if (nodesAtDepth.length > maxNodesPerRank && depth > 0) {
-        // 노드들을 그룹으로 분할
         const chunks = [];
         for (let i = 0; i < nodesAtDepth.length; i += maxNodesPerRank) {
           chunks.push(nodesAtDepth.slice(i, i + maxNodesPerRank));
         }
         
-        // 각 청크에 대해 가상 노드를 추가하여 계층 구조 생성
         if (chunks.length > 1) {
           chunks.forEach((chunk, chunkIndex) => {
             const virtualNodeId = `virtual_${file}_${depth}_${virtualNodeCount++}`;
@@ -152,7 +154,7 @@ function layoutWithCluster(
             });
             g.setParent(virtualNodeId, `cluster_${file}`);
             
-            // 부모 노드들과 가상 노드를 연결
+            // 부모 노드와 가상 노드 연결
             const parents = new Set<string>();
             chunk.forEach(nodeId => {
               edges.forEach(edge => {
@@ -164,14 +166,14 @@ function layoutWithCluster(
             
             parents.forEach(parent => {
               g.setEdge(parent, virtualNodeId, {
-                weight: 0.1, // 낮은 가중치로 설정
+                weight: 0.1,
               });
             });
             
-            // 가상 노드와 실제 노드들을 연결
+            // 가상 노드와 실제 노드 연결
             chunk.forEach(nodeId => {
               g.setEdge(virtualNodeId, nodeId, {
-                weight: 10, // 높은 가중치로 설정
+                weight: 10,
               });
             });
           });
@@ -192,10 +194,9 @@ function layoutWithCluster(
     });
   });
   
-  // 엣지 추가 (가상 노드를 거치지 않는 원본 엣지)
+  // 엣지 추가
   Object.values(files).forEach(({ edges }) => {
     edges.forEach(({ source, target }) => {
-      // 가상 노드를 통한 연결이 없는 경우에만 직접 연결
       if (!g.hasEdge(source, target)) {
         g.setEdge(source, target, {
           weight: 1,
@@ -204,12 +205,13 @@ function layoutWithCluster(
     });
   });
   
+  // 레이아웃 실행
   dagre.layout(g);
   
+  // 위치 추출 (가상 노드 제외)
   const pos: Record<string, { x: number; y: number }> = {};
   g.nodes().forEach((id: string) => {
     const n = g.node(id);
-    // 가상 노드는 제외
     if (n && !n.dummy && n.x != null && n.y != null) {
       pos[id] = { x: n.x, y: n.y };
     }
@@ -218,29 +220,14 @@ function layoutWithCluster(
   return pos;
 }
 
-interface RawNode {
-  id: string;
-  label?: string;
-  function_name?: string;
-  file: string;
-}
-interface RawEdge {
-  id: string;
-  source: string;
-  target: string;
-  type?: string;
-}
-
-const ENDPOINT_CG = '/api/generate_call_graph';
-const ENDPOINT_CFG = '/api/generate_control_flow_graph';
-const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
-
+/**
+ * 커스텀 그룹 노드 컴포넌트
+ * @param data 그룹 노드 데이터
+ */
 function CustomGroupNode({ data }: NodeProps) {
   const { label, isCollapsed, onToggleCollapse } = data;
   
   if (isCollapsed) {
-    // 접힌 상태: 단순한 컨텐츠만 렌더링
     return (
       <div 
         style={{ 
@@ -266,7 +253,6 @@ function CustomGroupNode({ data }: NodeProps) {
     );
   }
   
-  // 펼쳐진 상태: 라벨은 상단에 위치
   return (
     <>
       <div
@@ -306,6 +292,9 @@ function CustomGroupNode({ data }: NodeProps) {
   );
 }
 
+/**
+ * 다이어그램 뷰어 컴포넌트
+ */
 export default function DiagramViewer() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -347,12 +336,10 @@ export default function DiagramViewer() {
     const node = nodes.find(n => n.id === nodeId);
     if (!node || !node.parentId) return false;
     
-    // 부모가 접혀있으면 숨김
     if (collapsedGroups.has(node.parentId)) {
       return true;
     }
     
-    // 재귀적으로 상위 부모 확인
     return isNodeHidden(node.parentId, collapsedGroups, nodes);
   }
 
@@ -390,7 +377,6 @@ export default function DiagramViewer() {
 
   const onNodeClick: NodeMouseHandler = (_, node) => {
     if (node.type === 'group') {
-      // 그룹 노드 클릭 시 파일 열기
       const childNode = nodes.find(n => n.parentId === node.id && !isNodeHidden(n.id, collapsedGroups, nodes));
       const filePath = childNode ? (childNode.data as any)?.file : (node.data as any)?.file;
       if (!filePath) return;
@@ -421,7 +407,7 @@ export default function DiagramViewer() {
   };
 
   const onEnter: NodeMouseHandler = async (_, node) => {
-    if (node.type === 'group') return; // 그룹 노드는 hover 효과 없음
+    if (node.type === 'group') return;
     
     setHoverId(node.id);
     const raw = (node.data as any)?.file as string | undefined;
@@ -579,7 +565,6 @@ export default function DiagramViewer() {
     const sourceHidden = isNodeHidden(e.source, collapsedGroups, nodes);
     const targetHidden = isNodeHidden(e.target, collapsedGroups, nodes);
     
-    // 엣지의 소스나 타겟이 숨겨져 있으면 엣지도 숨김
     const isHidden = sourceHidden || targetHidden;
     
     const isHover = hoveredEdgeId === e.id;
@@ -664,7 +649,7 @@ export default function DiagramViewer() {
           cfgNodes.length > 0 &&
           cfgNodes.every(n => (!n.position.x && !n.position.y))
         ) {
-          cfgNodes = layout(cfgNodes, cfgEdges);
+          cfgNodes = layoutWithCluster({ [file]: { nodes: cfgNodes, edges: cfgEdges } });
         }
         const id = `${file}__${functionName}__${Date.now()}`;
         setCfgPanels(panels => [
@@ -1124,6 +1109,10 @@ export default function DiagramViewer() {
     </div>
   );
 
+  /**
+   * 다이어그램 데이터를 React Flow에 맞게 변환하고 배치
+   * @param json 다이어그램 데이터
+   */
   function hydrate(json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) {
     let allFunctionNodes: Node[] = [];
     let allRawEdges: RawEdge[] = [];
@@ -1189,7 +1178,7 @@ export default function DiagramViewer() {
         type: 'group',
         data: { 
           label: file.split('/').pop() || file,
-          file: file // 그룹 노드에도 파일 경로 저장
+          file: file
         },
         position: { x: minX - padding, y: minY - padding },
         style: {
@@ -1216,6 +1205,12 @@ export default function DiagramViewer() {
   }
 }
 
+/**
+ * 파일 트리에서 경로로 노드 찾기
+ * @param nodes 파일 노드 배열
+ * @param p 찾을 경로
+ * @returns 찾은 파일 노드
+ */
 function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
   const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
   for (const n of nodes) {
