@@ -677,13 +677,13 @@ export default function DiagramViewer() {
       setCfgLoading(false);
       return;
     }
-    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+    // const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
     try {
       const res = await fetch(`${apiUrl}${ENDPOINT_CFG}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          file_path: file.replace(regex, ''),
+          file_path: file,
           function_name: functionName,
         }),
       });
@@ -692,6 +692,7 @@ export default function DiagramViewer() {
         setCfgMessage('API 호출 실패: ' + (data.data || ''));
       } else {
         const cfgRaw = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+        // 레이아웃이 필요한 경우 RawNode/RawEdge로 넘기고, 결과 좌표를 cfgNodes에 반영
         let cfgNodes = (cfgRaw.nodes || []).map((n: any) => ({
           id: n.id,
           data: { label: n.label || n.id },
@@ -714,12 +715,23 @@ export default function DiagramViewer() {
           animated: true,
           style: { stroke: '#0284c7', strokeWidth: 2 },
         }));
+
+        // 레이아웃이 필요한 경우: 모든 노드의 position이 0,0 이거나 undefined일 때
         if (
-          cfgNodes.length > 0 &&
-          cfgNodes.every(n => (!n.position.x && !n.position.y))
+          cfgRaw.nodes?.length > 0 &&
+          cfgRaw.nodes.every((n: any) => (!n.x && !n.y))
         ) {
-          cfgNodes = layoutWithCluster({ [file]: { nodes: cfgNodes, edges: cfgEdges } });
+          // layoutWithCluster expects RawNode/RawEdge, not ReactFlow Node/Edge
+          const posMap = layoutWithCluster({ [file]: { nodes: cfgRaw.nodes, edges: cfgRaw.edges } }, {});
+          cfgNodes = cfgNodes.map(n => ({
+            ...n,
+            position: posMap[n.id] ?? { x: 0, y: 0 }
+          }));
         }
+
+        console.log('CFG Panel nodes:', cfgNodes);
+        console.log('CFG Panel edges:', cfgEdges);
+
         const id = `${file}__${functionName}__${Date.now()}`;
         setCfgPanels(panels => [
           ...panels,
@@ -737,7 +749,7 @@ export default function DiagramViewer() {
         setCfgMessage(null);
       }
     } catch (e: any) {
-      setCfgMessage('API 호출 중 오류가 발생했습니다.');
+      setCfgMessage('API 호출 중 오류가 발생했습니다. error: ' + e.message);
     } finally {
       setCfgLoading(false);
     }
