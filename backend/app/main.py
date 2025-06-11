@@ -7,6 +7,7 @@ from schemas.common import *
 from llm.diagram_generator import generate_call_graph, generate_control_flow_graph
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
 from llm.utils import get_source_file_with_line_number
+from llm.inline_explanation import generate_inline_code_explanation
 from fastapi.responses import JSONResponse
 from llm.constants import SAMPLE_CFG_JSON
 
@@ -127,5 +128,22 @@ async def api_get_session_history(session_id: str):
             raise HTTPException(status_code=400, detail="Session ID is required")
         history = get_session_history(session_id)
         return {"session_id": session_id, "history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/inline_code_explanation")
+async def api_inline_code_explanation(req: InlineCodeExplanationRequest):
+    """
+    Generate an inline explanation for the given code.
+    """
+    try:
+        print(f"Inline Code: {req.file_path}, {req.line_start}, {req.line_end}, {req.context}")
+        if not req.file_path:
+            raise HTTPException(status_code=400, detail="File path is required")
+        if not req.line_start or not req.line_end:
+            raise HTTPException(status_code=400, detail="Line start and end are required")
+        explanation = await generate_inline_code_explanation(req.file_path, req.line_start, req.line_end, req.context)
+        print(f"Explanation: {explanation}")
+        return {"explanation": explanation}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

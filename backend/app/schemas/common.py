@@ -42,3 +42,10 @@ class ChatbotQueryResponse(BaseModel):
     answer: str  # 챗봇의 자연어 답변
     # 아직 아래는 어떻게 처리할지 모르겟음, 
     highlight: Optional[list] = None  # 강조할 코드/다이어그램 부분 (예: 라인 번호, 노드 id 등)
+
+# Inline Code Explanation 요청 모델
+class InlineCodeExplanationRequest(BaseModel):
+    file_path: str  # 파일 경로
+    line_start: int  # 시작 라인 번호
+    line_end: int  # 끝 라인 번호
+    context: Optional[str] = None  # 추가적인 컨텍스트 정보 (예: 함수 설명, 변수 설명 등)

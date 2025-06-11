@@ -58,6 +58,7 @@ interface RawEdge {
 
 const ENDPOINT_CG = '/api/generate_call_graph';
 const ENDPOINT_CFG = '/api/generate_control_flow_graph';
+const ENDPOINT_INLINE_CODE_EXPLANATION = '/api/inline_code_explanation';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
 
@@ -1093,23 +1094,22 @@ export default function DiagramViewer() {
                 position: 'absolute',
                 top: 8,
                 right: 12,
-                background: '#fef9c3',
-                color: '#b45309',
-                padding: '4px 12px',
+                background: 'transparent',
+                padding: 0,
                 borderRadius: 5,
                 zIndex: 300,
                 fontSize: 13,
                 fontWeight: 500,
-                boxShadow: '0 1px 4px #0001',
+                boxShadow: 'none',
                 pointerEvents: 'none',
-                maxWidth: 320,
+                maxWidth: 340,
                 textOverflow: 'ellipsis',
                 overflow: 'hidden',
-                whiteSpace: 'nowrap',
+                whiteSpace: 'normal',
               }}
-            >
-              {cfgPanelMessage}
-            </div>
+              // 설명 메시지는 HTML로 렌더링
+              dangerouslySetInnerHTML={{ __html: cfgPanelMessage }}
+            />
           )}
           <div
             style={{
@@ -1281,24 +1281,66 @@ export default function DiagramViewer() {
                     className="bg-gray-50"
                     style={{ width: '100%', height: '100%' }}
                     defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
-                    // ▼ 노드 hover 시 label을 setCfgPanelMessage로 출력
-                    onNodeMouseEnter={(_, node) => {
+                    // ▼ 노드 hover 시 label을 setCfgPanelMessage로 출력 + 설명 API 호출
+                    onNodeMouseEnter={async (_, node) => {
                       const label = (node.data as any)?.label ?? node.id;
                       const file = (node.data as any)?.file;
-                      setCfgPanelMessage(label + ` (${file})`);
-
                       const line_start = (node.data as any)?.line_start ?? undefined;
                       const line_end = (node.data as any)?.line_end ?? undefined;
 
+                      // 1. 로딩 메시지 표시 (아인슈타인 아이콘 + 말풍선)
+                      setCfgPanelMessage(
+                        `<div style="display:flex;align-items:flex-start;gap:8px;">
+                          <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
+                          <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
+                            설명을 불러오는 중입니다...
+                          </span>
+                        </div>`
+                      );
+
+                      try {
+                        // 2. API 호출
+                        const res = await fetch(`${apiUrl}${ENDPOINT_INLINE_CODE_EXPLANATION}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            file_path: file,
+                            line_start,
+                            line_end,
+                          }),
+                        });
+                        console.log('Explain API response:', res);
+                        const data = await res.json();
+                        console.log('Explain API data:', data);
+                        let explain = typeof data.explanation === 'string' ? data.explanation : (data.data?.explanation ?? '');
+                        if (!explain) explain = '설명을 가져올 수 없습니다.';
+
+                        // 3. 설명 메시지 표시 (아인슈타인 아이콘 + 말풍선)
+                        setCfgPanelMessage(
+                          `<div style="display:flex;align-items:flex-start;gap:8px;">
+                            <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
+                            <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;white-space;">
+                              ${explain}
+                            </span>
+                          </div>`
+                        );
+                      } catch (e: any) {
+                        setCfgPanelMessage(
+                          `<div style="display:flex;align-items:flex-start;gap:8px;">
+                            <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
+                            <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
+                              설명을 가져오는 중 오류가 발생했습니다.
+                            </span>
+                          </div>`
+                        );
+                      }
+
+                      // 기존 코드: 파일 열기/탭 활성화
                       if (file) {
-                        // 파일 경로에서 TARGET_FOLDER prefix 제거
                         const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
                         const clean = file.replace(regex, '');
-                        
-                        // 이미 열려있는 탭이 있으면 그 탭을 active로, 없으면 새로 연다
                         const tab = editorState.tabs.find(t => t.path === clean);
                         if (tab) {
-                          // highlight 정보도 넘김
                           editorState.setActive(tab.id, { from: line_start, to: line_end });
                         } else {
                           editorState.open({
@@ -1309,7 +1351,6 @@ export default function DiagramViewer() {
                             highlight: {from: line_start, to: line_end},
                           });
                         }
-                        // 파일 트리에서 해당 파일을 선택 상태로
                         const target = findByPath(fsState.tree, clean);
                         if (target) fsState.setCurrent(target.id);
                       }
