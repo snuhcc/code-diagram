@@ -6,15 +6,15 @@
             "file": "poc/transformer.py",
             "line_start": 3,
             "line_end": 8,
-            "description": "Transforms special data by normalizing, processing, and scaling."
+            "description": "Transforms data by normalizing, processing, and scaling."
         },
         {
             "id": "transformer.normalize",
             "function_name": "normalize",
             "file": "poc/transformer.py",
             "line_start": 10,
-            "line_end": 13,
-            "description": "Normalizes data to a [0,1] range based on the maximum value."
+            "line_end": 14,
+            "description": "Normalizes data by dividing each element by the maximum value."
         },
         {
             "id": "transformer.scale",
@@ -22,7 +22,7 @@
             "file": "poc/transformer.py",
             "line_start": 15,
             "line_end": 17,
-            "description": "Scales data by a given factor."
+            "description": "Scales data elements by the specified factor."
         }
     ],
     "edges": [

@@ -1,84 +1,84 @@
 {
     "nodes": [
         {
-            "id": "train_emotion_classifier.<module>",
-            "function_name": "<module>",
+            "id": "train_emotion_classifier.Global",
+            "function_name": "Global",
             "file": "train_emotion_classifier.py",
             "line_start": 1,
             "line_end": 72,
-            "description": "Top-level script that orchestrates the training of the emotion classification model."
+            "description": "Global script scope"
         }
     ],
     "edges": [
         {
             "id": "train_emotion_classifier.e0",
-            "source": "train_emotion_classifier.<module>",
-            "target": "keras.preprocessing.image.ImageDataGenerator"
-        },
-        {
-            "id": "train_emotion_classifier.e1",
-            "source": "train_emotion_classifier.<module>",
-            "target": "models.cnn.mini_XCEPTION"
-        },
-        {
-            "id": "train_emotion_classifier.e2",
-            "source": "train_emotion_classifier.<module>",
-            "target": "model.compile"
-        },
-        {
-            "id": "train_emotion_classifier.e3",
-            "source": "train_emotion_classifier.<module>",
-            "target": "model.summary"
-        },
-        {
-            "id": "train_emotion_classifier.e4",
-            "source": "train_emotion_classifier.<module>",
+            "source": "train_emotion_classifier.Global",
             "target": "keras.callbacks.CSVLogger"
         },
         {
-            "id": "train_emotion_classifier.e5",
-            "source": "train_emotion_classifier.<module>",
-            "target": "keras.callbacks.EarlyStopping"
-        },
-        {
-            "id": "train_emotion_classifier.e6",
-            "source": "train_emotion_classifier.<module>",
-            "target": "keras.callbacks.ReduceLROnPlateau"
-        },
-        {
-            "id": "train_emotion_classifier.e7",
-            "source": "train_emotion_classifier.<module>",
+            "id": "train_emotion_classifier.e1",
+            "source": "train_emotion_classifier.Global",
             "target": "keras.callbacks.ModelCheckpoint"
         },
         {
+            "id": "train_emotion_classifier.e2",
+            "source": "train_emotion_classifier.Global",
+            "target": "keras.callbacks.EarlyStopping"
+        },
+        {
+            "id": "train_emotion_classifier.e3",
+            "source": "train_emotion_classifier.Global",
+            "target": "keras.callbacks.ReduceLROnPlateau"
+        },
+        {
+            "id": "train_emotion_classifier.e4",
+            "source": "train_emotion_classifier.Global",
+            "target": "keras.preprocessing.image.ImageDataGenerator"
+        },
+        {
+            "id": "train_emotion_classifier.e5",
+            "source": "train_emotion_classifier.Global",
+            "target": "models.cnn.mini_XCEPTION"
+        },
+        {
+            "id": "train_emotion_classifier.e6",
+            "source": "train_emotion_classifier.Global",
+            "target": "model.compile"
+        },
+        {
+            "id": "train_emotion_classifier.e7",
+            "source": "train_emotion_classifier.Global",
+            "target": "model.summary"
+        },
+        {
             "id": "train_emotion_classifier.e8",
-            "source": "train_emotion_classifier.<module>",
+            "source": "train_emotion_classifier.Global",
             "target": "utils.datasets.DataManager"
         },
         {
             "id": "train_emotion_classifier.e9",
-            "source": "train_emotion_classifier.<module>",
-            "target": "utils.datasets.DataManager.get_data"
-        },
-        {
-            "id": "train_emotion_classifier.e10",
-            "source": "train_emotion_classifier.<module>",
+            "source": "train_emotion_classifier.Global",
             "target": "utils.preprocessor.preprocess_input"
         },
         {
-            "id": "train_emotion_classifier.e11",
-            "source": "train_emotion_classifier.<module>",
+            "id": "train_emotion_classifier.e10",
+            "source": "train_emotion_classifier.Global",
             "target": "utils.datasets.split_data"
         },
         {
-            "id": "train_emotion_classifier.e12",
-            "source": "train_emotion_classifier.<module>",
+            "id": "train_emotion_classifier.e11",
+            "source": "train_emotion_classifier.Global",
             "target": "keras.preprocessing.image.ImageDataGenerator.flow"
         },
         {
-            "id": "train_emotion_classifier.e13",
-            "source": "train_emotion_classifier.<module>",
+            "id": "train_emotion_classifier.e12",
+            "source": "train_emotion_classifier.Global",
             "target": "model.fit_generator"
+        },
+        {
+            "id": "train_emotion_classifier.e13",
+            "source": "train_emotion_classifier.Global",
+            "target": "utils.datasets.DataManager.get_data"
         }
     ]
 }

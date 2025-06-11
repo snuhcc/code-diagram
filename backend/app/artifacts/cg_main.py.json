@@ -6,7 +6,7 @@
             "file": "poc/main.py",
             "line_start": 11,
             "line_end": 48,
-            "description": "Entry point for CLI to orchestrate data pipeline."
+            "description": "Entry point function"
         }
     ],
     "edges": [

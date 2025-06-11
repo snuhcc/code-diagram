@@ -1,3 +1,438 @@
+[diagramUtils.tsx]
+import { Node, Edge, NodeProps, Handle, Position } from '@xyflow/react';
+import dagre from 'dagre';
+import hljs from 'highlight.js/lib/core';
+import python from 'highlight.js/lib/languages/python';
+import 'highlight.js/styles/atom-one-light.css';
+
+hljs.registerLanguage('python', python);
+
+// Types
+export interface RawNode {
+  id: string;
+  label?: string;
+  function_name?: string;
+  file: string;
+}
+
+export interface RawEdge {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+}
+
+export interface CFGPanel {
+  id: string;
+  functionName: string;
+  file: string;
+  result: any;
+  expanded: boolean;
+  pos: { x: number; y: number };
+  dragging: boolean;
+  dragOffset: { x: number; y: number };
+}
+
+// Cache
+export const snippetCache = new Map<string, string>();
+
+// Helper Functions
+export function getTextWidth(text: string, font: string = '12px Arial'): number {
+  if (typeof document === 'undefined') return text.length * 7;
+  const canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return text.length * 7;
+  }
+  context.font = font;
+  const metrics = context.measureText(text);
+  return metrics.width;
+}
+(getTextWidth as any).canvas = null;
+
+export function extractFunctionSnippetWithLine(code: string, functionName: string): { snippet: string, startLine: number } | null {
+  const lines = code.split('\n');
+  let startLine = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim().startsWith(`def ${functionName}(`) && line === line.trim()) {
+      startLine = i;
+      break;
+    }
+  }
+  if (startLine === -1) return null;
+  for (let i = startLine + 1; i < lines.length; i++) {
+    if (lines[i].trim() === '') continue;
+    if (!lines[i].startsWith(' ') && !lines[i].startsWith('\t')) {
+      return { snippet: lines.slice(startLine, i).join('\n'), startLine: startLine + 1 };
+    }
+  }
+  return { snippet: lines.slice(startLine).join('\n'), startLine: startLine + 1 };
+}
+
+export function addLineNumbersAndHighlight(snippet: string, start: number = 1): string {
+  const highlighted = hljs.highlight(snippet, { language: 'python' }).value;
+  const lines = highlighted.split('\n');
+  const pad = String(start + lines.length - 1).length;
+  return lines
+    .map((line, idx) => {
+      const num = String(start + idx).padStart(pad, ' ');
+      return `<span style="color:#64748b">${num}</span>  ${line}`;
+    })
+    .join('\n');
+}
+
+export function isNodeHidden(nodeId: string, collapsedGroups: Set<string>, nodes: Node[]): boolean {
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node || !node.parentId) return false;
+  
+  if (collapsedGroups.has(node.parentId)) {
+    return true;
+  }
+  
+  return isNodeHidden(node.parentId, collapsedGroups, nodes);
+}
+
+export function findRepresentativeGroup(nodeId: string, collapsedGroups: Set<string>, nodes: Node[]): string {
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node) {
+    return nodeId;
+  }
+  
+  if (node.type === 'group') {
+    return nodeId;
+  }
+  
+  if (node.parentId && collapsedGroups.has(node.parentId)) {
+    return node.parentId;
+  }
+  
+  let currentNode = node;
+  while (currentNode.parentId) {
+    const parentNode = nodes.find(n => n.id === currentNode.parentId);
+    if (!parentNode) break;
+    
+    if (parentNode.type === 'group' && collapsedGroups.has(parentNode.id)) {
+      return parentNode.id;
+    }
+    currentNode = parentNode;
+  }
+  
+  return nodeId;
+}
+
+export function getRedirectedEdge(edge: Edge, collapsedGroups: Set<string>, nodes: Node[]): Edge | null {
+  const sourceNode = nodes.find(n => n.id === edge.source);
+  const targetNode = nodes.find(n => n.id === edge.target);
+  
+  if (!sourceNode || !targetNode) {
+    return edge;
+  }
+  
+  const newSource = findRepresentativeGroup(edge.source, collapsedGroups, nodes);
+  const newTarget = findRepresentativeGroup(edge.target, collapsedGroups, nodes);
+  
+  if (newSource === newTarget) {
+    return null;
+  }
+  
+  if (newSource === edge.source && newTarget === edge.target) {
+    return edge;
+  }
+  
+  return {
+    ...edge,
+    id: `${edge.id}_redirected_${newSource}_${newTarget}`,
+    source: newSource,
+    target: newTarget,
+    data: {
+      ...edge.data,
+      originalSource: edge.source,
+      originalTarget: edge.target,
+      isRedirected: true,
+    },
+  };
+}
+
+// Layout Function
+export function layoutWithCluster(
+  files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>,
+  nodeWidths: Record<string, number>
+): Record<string, { x: number; y: number }> {
+  const totalFiles = Object.keys(files).length;
+  const totalNodes = Object.values(files).reduce((sum, f) => sum + f.nodes.length, 0);
+  
+  const maxWidth = window.innerWidth * 0.5;
+  
+  const averageNodeWidth = Object.values(nodeWidths).length > 0 
+    ? Object.values(nodeWidths).reduce((sum, w) => sum + w, 0) / Object.values(nodeWidths).length
+    : (totalNodes > 50 ? 100 : 120);
+
+  const maxNodesPerRank = Math.floor(maxWidth / (averageNodeWidth + 30));
+  
+  const nodesep = totalNodes > 50 ? 15 : totalNodes > 30 ? 20 : 25;
+  const ranksep = totalNodes > 50 ? 40 : totalNodes > 30 ? 50 : 60;
+  
+  const g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
+    .setGraph({
+      rankdir: 'TB',
+      nodesep: nodesep,
+      ranksep: ranksep,
+      ranker: 'tight-tree',
+      align: 'DL',
+      marginx: 10,
+      marginy: 10,
+    })
+    .setDefaultEdgeLabel(() => ({}));
+    
+  Object.keys(files).forEach((file) => {
+    g.setNode(`cluster_${file}`, {
+      marginx: 10,
+      marginy: 10,
+    });
+  });
+  
+  Object.entries(files).forEach(([file, { nodes, edges }]) => {
+    const nodeDepths = new Map<string, number>();
+    const nodeChildren = new Map<string, string[]>();
+    
+    edges.forEach(({ source, target }) => {
+      if (!nodeChildren.has(source)) {
+        nodeChildren.set(source, []);
+      }
+      nodeChildren.get(source)!.push(target);
+    });
+    
+    const visited = new Set<string>();
+    const queue: { node: string; depth: number }[] = [];
+    const incomingEdges = new Set(edges.map(e => e.target));
+    const rootNodes = nodes.filter(n => !incomingEdges.has(n.id));
+    
+    rootNodes.forEach(root => {
+      queue.push({ node: root.id, depth: 0 });
+    });
+    
+    while (queue.length > 0) {
+      const { node, depth } = queue.shift()!;
+      if (visited.has(node)) continue;
+      
+      visited.add(node);
+      nodeDepths.set(node, depth);
+      
+      const children = nodeChildren.get(node) || [];
+      children.forEach(child => {
+        queue.push({ node: child, depth: depth + 1 });
+      });
+    }
+    
+    const depthGroups = new Map<number, string[]>();
+    nodeDepths.forEach((depth, nodeId) => {
+      if (!depthGroups.has(depth)) {
+        depthGroups.set(depth, []);
+      }
+      depthGroups.get(depth)!.push(nodeId);
+    });
+    
+    let virtualNodeCount = 0;
+    depthGroups.forEach((nodesAtDepth, depth) => {
+      if (nodesAtDepth.length > maxNodesPerRank && depth > 0) {
+        const chunks = [];
+        for (let i = 0; i < nodesAtDepth.length; i += maxNodesPerRank) {
+          chunks.push(nodesAtDepth.slice(i, i + maxNodesPerRank));
+        }
+        
+        if (chunks.length > 1) {
+          chunks.forEach((chunk, chunkIndex) => {
+            const virtualNodeId = `virtual_${file}_${depth}_${virtualNodeCount++}`;
+            g.setNode(virtualNodeId, {
+              width: 1,
+              height: 1,
+              dummy: true,
+            });
+            g.setParent(virtualNodeId, `cluster_${file}`);
+            
+            const parents = new Set<string>();
+            chunk.forEach(nodeId => {
+              edges.forEach(edge => {
+                if (edge.target === nodeId) {
+                  parents.add(edge.source);
+                }
+              });
+            });
+            
+            parents.forEach(parent => {
+              g.setEdge(parent, virtualNodeId, {
+                weight: 0.1,
+              });
+            });
+            
+            chunk.forEach(nodeId => {
+              g.setEdge(virtualNodeId, nodeId, {
+                weight: 10,
+              });
+            });
+          });
+        }
+      }
+    });
+    
+    nodes.forEach((n) => {
+      const width = nodeWidths[n.id] || (totalNodes > 50 ? 100 : 120);
+      const height = totalNodes > 50 ? 35 : 40;
+      
+      g.setNode(n.id, { 
+        width: width,
+        height: height,
+      });
+      g.setParent(n.id, `cluster_${file}`);
+    });
+  });
+  
+  Object.values(files).forEach(({ edges }) => {
+    edges.forEach(({ source, target }) => {
+      if (!g.hasEdge(source, target)) {
+        g.setEdge(source, target, {
+          weight: 1,
+        });
+      }
+    });
+  });
+  
+  dagre.layout(g);
+  
+  const pos: Record<string, { x: number; y: number }> = {};
+  g.nodes().forEach((id: string) => {
+    const n = g.node(id);
+    if (n && !n.dummy && n.x != null && n.y != null) {
+      pos[id] = { x: n.x, y: n.y };
+    }
+  });
+  
+  return pos;
+}
+
+// Custom Group Node Component
+export function CustomGroupNode({ data, id }: NodeProps) {
+  const { label, isCollapsed, onToggleCollapse } = data;
+
+  const ChevronIcon = ({ direction = 'down' }: { direction: 'down' | 'right' }) => (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#6366f1',
+        transition: 'transform 0.15s',
+        transform: direction === 'right' ? 'rotate(-90deg)' : 'none',
+      }}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+
+  if (isCollapsed) {
+    return (
+      <>
+        <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+        <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 600,
+            fontSize: 13,
+            color: '#444',
+            cursor: 'pointer',
+            gap: 8,
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse();
+          }}
+        >
+          <ChevronIcon direction="right" />
+          <span style={{ display: 'flex', alignItems: 'center' }}>{label}</span>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <div
+        style={{
+          position: 'absolute',
+          top: -32,
+          left: 0,
+          width: '100%',
+          fontWeight: 600,
+          fontSize: 13,
+          color: '#444',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          height: 32,
+        }}
+      >
+        <div
+          style={{
+            display: 'inline-flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            pointerEvents: 'auto',
+            height: '100%',
+          }}
+        >
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapse();
+            }}
+            style={{
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              lineHeight: 1,
+              height: '1em',
+            }}
+          >
+            <ChevronIcon direction="down" />
+          </span>
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              lineHeight: 1,
+              height: '1em',
+            }}
+          >
+            {label}
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+[DiagramViewer.tsx]
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -36,7 +471,6 @@ import {
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
 const ENDPOINT_CG = '/api/generate_call_graph';
 const ENDPOINT_CFG = '/api/generate_control_flow_graph';
-const ENDPOINT_INLINE_CODE_EXPLANATION = '/api/inline_code_explanation';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
 
@@ -49,9 +483,7 @@ export default function DiagramViewer() {
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [cfgMessage, setCfgMessage] = useState<string | null>(null);
-  const [cfgPanels, setCfgPanels] = useState<
-    { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
-  >([]);
+  const [cfgPanels, setCfgPanels] = useState<CFGPanel[]>([]);
   const [cfgLoading, setCfgLoading] = useState(false);
   const [diagramReady, setDiagramReady] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
@@ -348,23 +780,13 @@ export default function DiagramViewer() {
       setCfgLoading(false);
       return;
     }
-
-    // Prevent duplicate panel for the same file/function
-    const alreadyExists = cfgPanels.some(
-      p => p.file === file && p.functionName === functionName
-    );
-    if (alreadyExists) {
-      setCfgMessage('이미 해당 함수의 CFG 패널이 열려 있습니다.');
-      setCfgLoading(false);
-      return;
-    }
-
+    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
     try {
       const res = await fetch(`${apiUrl}${ENDPOINT_CFG}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          file_path: file,
+          file_path: file.replace(regex, ''),
           function_name: functionName,
         }),
       });
@@ -373,15 +795,9 @@ export default function DiagramViewer() {
         setCfgMessage('API 호출 실패: ' + (data.data || ''));
       } else {
         const cfgRaw = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-        // 레이아웃이 필요한 경우 RawNode/RawEdge로 넘기고, 결과 좌표를 cfgNodes에 반영
         let cfgNodes = (cfgRaw.nodes || []).map((n: any) => ({
           id: n.id,
-          data: { 
-            label: n.label || n.id,
-            file: n.file || file,
-            line_start: n.line_start || 1,
-            line_end: n.line_end || 1,
-          },
+          data: { label: n.label || n.id },
           position: { x: n.x ?? 0, y: n.y ?? 0 },
           style: {
             padding: 4,
@@ -401,21 +817,12 @@ export default function DiagramViewer() {
           animated: true,
           style: { stroke: '#0284c7', strokeWidth: 2 },
         }));
-
         if (
-          cfgRaw.nodes?.length > 0 &&
-          cfgRaw.nodes.every((n: any) => (!n.x && !n.y))
+          cfgNodes.length > 0 &&
+          cfgNodes.every(n => (!n.position.x && !n.position.y))
         ) {
-          const posMap = layoutWithCluster({ [file]: { nodes: cfgRaw.nodes, edges: cfgRaw.edges } }, {});
-          cfgNodes = cfgNodes.map(n => ({
-            ...n,
-            position: posMap[n.id] ?? { x: 0, y: 0 }
-          }));
+          cfgNodes = layoutWithCluster({ [file]: { nodes: cfgNodes, edges: cfgEdges } }, {});
         }
-
-        console.log('CFG Panel nodes:', cfgNodes);
-        console.log('CFG Panel edges:', cfgEdges);
-
         const id = `${file}__${functionName}__${Date.now()}`;
         setCfgPanels(panels => [
           ...panels,
@@ -428,14 +835,12 @@ export default function DiagramViewer() {
             pos: { x: 24 + panels.length * 32, y: 24 + panels.length * 32 },
             dragging: false,
             dragOffset: { x: 0, y: 0 },
-            width: 800, // 초기 width 증가
-            height: 600, // 초기 height 증가
           },
         ]);
         setCfgMessage(null);
       }
     } catch (e: any) {
-      setCfgMessage('API 호출 중 오류가 발생했습니다. error: ' + e.message);
+      setCfgMessage('API 호출 중 오류가 발생했습니다.');
     } finally {
       setCfgLoading(false);
     }
@@ -656,10 +1061,7 @@ export default function DiagramViewer() {
         maxZoom={2}
         className="bg-gray-50"
         nodeTypes={{ group: CustomGroupNode }}
-        onPaneClick={() => {
-          setSelectedNodeId(null);
-          setCfgMessage(null); // 빈 공간 클릭 시 메시지 clear
-        }}
+        onPaneClick={() => setSelectedNodeId(null)}
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap
@@ -809,9 +1211,9 @@ export default function DiagramViewer() {
             zIndex: 200 + idx,
             fontSize: 13,
             minWidth: 220,
-            maxWidth: 1600,
+            maxWidth: 600,
             minHeight: panel.expanded ? 0 : 0,
-            maxHeight: panel.expanded ? 1200 : 44,
+            maxHeight: panel.expanded ? 600 : 44,
             boxShadow: '0 2px 8px #0002',
             whiteSpace: 'pre-wrap',
             overflow: panel.expanded ? 'auto' : 'hidden',
@@ -820,36 +1222,34 @@ export default function DiagramViewer() {
             flexDirection: 'column',
             cursor: panel.dragging ? 'move' : 'default',
             userSelect: panel.dragging ? 'none' : 'auto',
-            pointerEvents: panel.dragging ? 'none' : 'auto',
-            width: panel.width ?? 400,
-            height: panel.expanded ? (panel.height ?? 320) : undefined,
-            resize: 'none',
+          }}
+          onMouseMove={e => {
+            if (panel.dragging) {
+              setCfgPanels(panels =>
+                panels.map(p =>
+                  p.id === panel.id
+                    ? {
+                      ...p,
+                      pos: {
+                        x: window.innerWidth - e.clientX - p.dragOffset.x,
+                        y: e.clientY - p.dragOffset.y,
+                      },
+                    }
+                    : p
+                )
+              );
+            }
+          }}
+          onMouseUp={() => {
+            if (panel.dragging) {
+              setCfgPanels(panels =>
+                panels.map(p =>
+                  p.id === panel.id ? { ...p, dragging: false } : p
+                )
+              );
+            }
           }}
         >
-          {/* ▼ CFG 패널 우측 상단 메시지 영역 */}
-          {cfgPanelMessage && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 12,
-                background: 'transparent',
-                padding: 0,
-                borderRadius: 5,
-                zIndex: 300,
-                fontSize: 13,
-                fontWeight: 500,
-                boxShadow: 'none',
-                pointerEvents: 'none',
-                maxWidth: 340,
-                textOverflow: 'ellipsis',
-                overflow: 'hidden',
-                whiteSpace: 'normal',
-              }}
-              // 설명 메시지는 HTML로 렌더링
-              dangerouslySetInnerHTML={{ __html: cfgPanelMessage }}
-            />
-          )}
           <div
             style={{
               width: '100%',
@@ -865,90 +1265,24 @@ export default function DiagramViewer() {
               cursor: 'move',
             }}
             onMouseDown={e => {
-              // Only start drag if not clicking on a button
-              if (
-                (e.target as HTMLElement).closest('button') ||
-                (e.target as HTMLElement).tagName === 'BUTTON'
-              ) {
-                return;
-              }
-              // Start global drag for this panel
-              const startX = e.clientX;
-              const startY = e.clientY;
-              const origX = panel.pos.x;
-              const origY = panel.pos.y;
-              let dragging = true;
-
               setCfgPanels(panels =>
                 panels.map(p =>
                   p.id === panel.id
-                    ? { ...p, dragging: true }
+                    ? {
+                      ...p,
+                      dragging: true,
+                      dragOffset: {
+                        x: window.innerWidth - e.clientX - (p.pos.x || 24),
+                        y: e.clientY - (p.pos.y || 24),
+                      },
+                    }
                     : p
                 )
               );
-
-              const onMouseMove = (moveEvent: MouseEvent) => {
-                if (!dragging) return;
-                const dx = moveEvent.clientX - startX;
-                const dy = moveEvent.clientY - startY;
-                
-                // Calculate new position
-                const newX = origX - dx;
-                const newY = origY + dy;
-                
-                // Get panel dimensions
-                const panelWidth = panel.width ?? 400;
-                const panelHeight = panel.expanded ? (panel.height ?? 320) : 44;
-                
-                // Apply boundaries to keep panel on screen
-                const minX = 20; // Minimum distance from right edge
-                const maxX = window.innerWidth - panelWidth - 20; // Maximum distance from left edge
-                const minY = 20; // Minimum distance from top
-                const maxY = window.innerHeight - panelHeight - 20; // Maximum distance from bottom
-                
-                const boundedX = Math.max(minX, Math.min(newX, maxX));
-                const boundedY = Math.max(minY, Math.min(newY, maxY));
-                
-                setCfgPanels(panels =>
-                  panels.map(p =>
-                    p.id === panel.id
-                      ? {
-                          ...p,
-                          pos: {
-                            x: boundedX,
-                            y: boundedY,
-                          },
-                        }
-                      : p
-                  )
-                );
-              };
-
-              const onMouseUp = () => {
-                dragging = false;
-                setCfgPanels(panels =>
-                  panels.map(p =>
-                    p.id === panel.id
-                      ? { ...p, dragging: false }
-                      : p
-                  )
-                );
-                window.removeEventListener('mousemove', onMouseMove);
-                window.removeEventListener('mouseup', onMouseUp);
-              };
-
-              window.addEventListener('mousemove', onMouseMove);
-              window.addEventListener('mouseup', onMouseUp);
               e.preventDefault();
             }}
           >
-            <span style={{ flex: 1 }}>
-                CFG ({panel.functionName}
-                {panel.file && (
-                  <> @ {panel.file.split(/[\\/]/).pop()}</>
-                )}
-              )
-            </span>
+            <span style={{ flex: 1 }}>CFG ({panel.functionName})</span>
             <button
               onClick={e => {
                 e.stopPropagation();
@@ -1008,9 +1342,9 @@ export default function DiagramViewer() {
             </button>
           </div>
           {panel.expanded && (
-            <div style={{ width: '100%', height: panel.height ?? 320, overflow: 'auto', position: 'relative' }}>
+            <div style={{ width: '100%', overflow: 'auto' }}>
               {panel.result && panel.result.nodes && panel.result.edges ? (
-                <div style={{ width: '100%', height: '100%', background: '#f8fafc', borderRadius: 6 }}>
+                <div style={{ width: 400, height: 320, background: '#f8fafc', borderRadius: 6 }}>
                   <ReactFlow
                     nodes={panel.result.nodes}
                     edges={panel.result.edges}
@@ -1019,84 +1353,6 @@ export default function DiagramViewer() {
                     maxZoom={2}
                     className="bg-gray-50"
                     style={{ width: '100%', height: '100%' }}
-                    defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
-                    // ▼ 노드 hover 시 label을 setCfgPanelMessage로 출력 + 설명 API 호출
-                    onNodeMouseEnter={async (_, node) => {
-                      const label = (node.data as any)?.label ?? node.id;
-                      const file = (node.data as any)?.file;
-                      const line_start = (node.data as any)?.line_start ?? undefined;
-                      const line_end = (node.data as any)?.line_end ?? undefined;
-
-                      // 1. 로딩 메시지 표시 (아인슈타인 아이콘 + 말풍선)
-                      setCfgPanelMessage(
-                        `<div style="display:flex;align-items:flex-start;gap:8px;">
-                          <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
-                          <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
-                            설명을 불러오는 중입니다...
-                          </span>
-                        </div>`
-                      );
-
-                      try {
-                        // 2. API 호출
-                        const res = await fetch(`${apiUrl}${ENDPOINT_INLINE_CODE_EXPLANATION}`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            file_path: panel.file,
-                            line_start,
-                            line_end,
-                          }),
-                        });
-                        console.log('Explain API response:', res);
-                        const data = await res.json();
-                        console.log('Explain API data:', data);
-                        let explain = typeof data.explanation === 'string' ? data.explanation : (data.data?.explanation ?? '');
-                        if (!explain) explain = '설명을 가져올 수 없습니다.';
-
-                        // 3. 설명 메시지 표시 (아인슈타인 아이콘 + 말풍선)
-                        setCfgPanelMessage(
-                          `<div style="display:flex;align-items:flex-start;gap:8px;">
-                            <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
-                            <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;white-space;">
-                              ${explain}
-                            </span>
-                          </div>`
-                        );
-                      } catch (e: any) {
-                        setCfgPanelMessage(
-                          `<div style="display:flex;align-items:flex-start;gap:8px;">
-                            <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
-                            <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
-                              설명을 가져오는 중 오류가 발생했습니다.
-                            </span>
-                          </div>`
-                        );
-                      }
-
-                      // 기존 코드: 파일 열기/탭 활성화
-                      if (file) {
-                        const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-                        const clean = file.replace(regex, '');
-                        const tab = editorState.tabs.find(t => t.path === clean);
-                        if (tab) {
-                          editorState.setActive(tab.id, { from: line_start, to: line_end });
-                        } else {
-                          editorState.open({
-                            id: nanoid(),
-                            path: clean,
-                            name: clean.split(/[\\/]/).pop() ?? clean,
-                            line: line_start,
-                            highlight: {from: line_start, to: line_end},
-                          });
-                        }
-                        const target = findByPath(fsState.tree, clean);
-                        if (target) fsState.setCurrent(target.id);
-                      }
-                    }}
-                    onNodeMouseLeave={() => {
-                      setCfgPanelMessage(null);
-                    }}
                   >
                     <Background variant="dots" gap={16} size={1} />
                     <Controls showInteractive={false} />
@@ -1116,27 +1372,6 @@ export default function DiagramViewer() {
                   {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
                 </pre>
               )}
-              {/* Resize handle */}
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 2,
-                  bottom: 2,
-                  width: 18,
-                  height: 18,
-                  cursor: 'nwse-resize',
-                  zIndex: 10,
-                  background: 'transparent',
-                  display: panel.resizing === false ? 'block' : 'block',
-                  userSelect: 'none',
-                }}
-                onMouseDown={e => handleResizeStart(panel.id, e)}
-              >
-                <svg width="18" height="18" style={{ pointerEvents: 'none' }}>
-                  <polyline points="4,18 18,4" stroke="#888" strokeWidth="2" fill="none" />
-                  <rect x="12" y="12" width="5" height="5" fill="#e5e7eb" stroke="#888" strokeWidth="1" />
-                </svg>
-              </div>
             </div>
           )}
         </div>
@@ -1186,3 +1421,4 @@ function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
     }
   }
 }
+

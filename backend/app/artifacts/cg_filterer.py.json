@@ -6,7 +6,7 @@
             "file": "poc/filterer.py",
             "line_start": 1,
             "line_end": 4,
-            "description": "Filters data by keeping even numbers greater than 10."
+            "description": "Filters even numbers and then filters numbers greater than 10."
         },
         {
             "id": "filterer.remove_odd",

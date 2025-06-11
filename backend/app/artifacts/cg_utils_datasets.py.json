@@ -1,190 +1,162 @@
 {
     "nodes": [
         {
-            "id": "datasets.DataManager",
-            "function_name": "DataManager",
-            "file": "datasets.py",
-            "line_start": 9,
-            "line_end": 102,
-            "description": "Class for loading FER2013 emotion classification dataset or IMDb gender classification dataset."
-        },
-        {
-            "id": "datasets.DataManager.__init__",
-            "function_name": "__init__",
-            "file": "datasets.py",
+            "id": "utils.datasets.DataManager.__init__",
+            "function_name": "DataManager.__init__",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 12,
             "line_end": 28,
-            "description": "Initializer for DataManager; sets dataset parameters and determines dataset path."
+            "description": "Constructor initializing dataset name, path, and image size."
         },
         {
-            "id": "datasets.DataManager.get_data",
-            "function_name": "get_data",
-            "file": "datasets.py",
+            "id": "utils.datasets.DataManager.get_data",
+            "function_name": "DataManager.get_data",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 30,
             "line_end": 37,
-            "description": "Select and call the appropriate loader based on dataset_name."
+            "description": "Dispatch loader based on dataset_name."
         },
         {
-            "id": "datasets.DataManager._load_imdb",
-            "function_name": "_load_imdb",
-            "file": "datasets.py",
+            "id": "utils.datasets.DataManager._load_imdb",
+            "function_name": "DataManager._load_imdb",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 39,
             "line_end": 57,
-            "description": "Load and filter the IMDb dataset from a .mat file."
+            "description": "Load and filter IMDb dataset, returning image paths and gender labels."
         },
         {
-            "id": "datasets.DataManager._load_fer2013",
-            "function_name": "_load_fer2013",
-            "file": "datasets.py",
+            "id": "utils.datasets.DataManager._load_fer2013",
+            "function_name": "DataManager._load_fer2013",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 59,
             "line_end": 72,
-            "description": "Load FER2013 dataset from CSV, convert pixel strings to images and one-hot encode emotions."
+            "description": "Load FER2013 CSV, process pixel data into images and one-hot emotion labels."
         },
         {
-            "id": "datasets.DataManager._load_KDEF",
-            "function_name": "_load_KDEF",
-            "file": "datasets.py",
+            "id": "utils.datasets.DataManager._load_KDEF",
+            "function_name": "DataManager._load_KDEF",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 74,
             "line_end": 102,
-            "description": "Walk through KDEF folders, load and preprocess images, and one-hot encode emotions."
+            "description": "Load KDEF images from directory, resize and generate one-hot emotion labels."
         },
         {
-            "id": "datasets.get_labels",
+            "id": "utils.datasets.get_labels",
             "function_name": "get_labels",
-            "file": "datasets.py",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 105,
             "line_end": 114,
-            "description": "Return a dictionary mapping class indices to labels for the specified dataset."
+            "description": "Return mapping from class index to label name for different datasets."
         },
         {
-            "id": "datasets.get_class_to_arg",
+            "id": "utils.datasets.get_class_to_arg",
             "function_name": "get_class_to_arg",
-            "file": "datasets.py",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 117,
             "line_end": 126,
-            "description": "Return a dictionary mapping class labels to indices for the specified dataset."
+            "description": "Return mapping from class label to index for different datasets."
         },
         {
-            "id": "datasets.split_imdb_data",
+            "id": "utils.datasets.split_imdb_data",
             "function_name": "split_imdb_data",
-            "file": "datasets.py",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 129,
             "line_end": 137,
-            "description": "Split IMDb ground truth dictionary keys into training and validation sets."
+            "description": "Split IMDb ground truth dict into train and validation key lists."
         },
         {
-            "id": "datasets.split_data",
+            "id": "utils.datasets.split_data",
             "function_name": "split_data",
-            "file": "datasets.py",
+            "file": "root_dir/utils/datasets.py",
             "line_start": 139,
-            "line_end": 149,
-            "description": "Split feature and label arrays into training and validation datasets."
+            "line_end": 147,
+            "description": "Split feature and label arrays into training and validation sets."
         }
     ],
     "edges": [
         {
             "id": "datasets.e0",
-            "source": "datasets.DataManager.get_data",
-            "target": "datasets.DataManager._load_imdb"
+            "source": "utils.datasets.DataManager.get_data",
+            "target": "utils.datasets.DataManager._load_imdb"
         },
         {
             "id": "datasets.e1",
-            "source": "datasets.DataManager.get_data",
-            "target": "datasets.DataManager._load_fer2013"
+            "source": "utils.datasets.DataManager.get_data",
+            "target": "utils.datasets.DataManager._load_fer2013"
         },
         {
             "id": "datasets.e2",
-            "source": "datasets.DataManager.get_data",
-            "target": "datasets.DataManager._load_KDEF"
+            "source": "utils.datasets.DataManager.get_data",
+            "target": "utils.datasets.DataManager._load_KDEF"
         },
         {
             "id": "datasets.e3",
-            "source": "datasets.DataManager._load_imdb",
+            "source": "utils.datasets.DataManager._load_imdb",
             "target": "scipy.io.loadmat"
         },
         {
             "id": "datasets.e4",
-            "source": "datasets.DataManager._load_imdb",
+            "source": "utils.datasets.DataManager._load_imdb",
             "target": "numpy.isnan"
         },
         {
             "id": "datasets.e5",
-            "source": "datasets.DataManager._load_imdb",
-            "target": "numpy.logical_not"
-        },
-        {
-            "id": "datasets.e6",
-            "source": "datasets.DataManager._load_imdb",
-            "target": "numpy.logical_and"
-        },
-        {
-            "id": "datasets.e7",
-            "source": "datasets.DataManager._load_fer2013",
+            "source": "utils.datasets.DataManager._load_fer2013",
             "target": "pandas.read_csv"
         },
         {
+            "id": "datasets.e6",
+            "source": "utils.datasets.DataManager._load_fer2013",
+            "target": "pandas.get_dummies"
+        },
+        {
+            "id": "datasets.e7",
+            "source": "utils.datasets.DataManager._load_fer2013",
+            "target": "cv2.resize"
+        },
+        {
             "id": "datasets.e8",
-            "source": "datasets.DataManager._load_fer2013",
+            "source": "utils.datasets.DataManager._load_fer2013",
             "target": "numpy.asarray"
         },
         {
             "id": "datasets.e9",
-            "source": "datasets.DataManager._load_fer2013",
-            "target": "cv2.resize"
-        },
-        {
-            "id": "datasets.e10",
-            "source": "datasets.DataManager._load_fer2013",
+            "source": "utils.datasets.DataManager._load_fer2013",
             "target": "numpy.expand_dims"
         },
         {
+            "id": "datasets.e10",
+            "source": "utils.datasets.DataManager._load_KDEF",
+            "target": "utils.datasets.get_class_to_arg"
+        },
+        {
             "id": "datasets.e11",
-            "source": "datasets.DataManager._load_fer2013",
-            "target": "pandas.get_dummies"
-        },
-        {
-            "id": "datasets.e12",
-            "source": "datasets.DataManager._load_fer2013",
-            "target": "pandas.DataFrame.as_matrix"
-        },
-        {
-            "id": "datasets.e13",
-            "source": "datasets.DataManager._load_KDEF",
-            "target": "datasets.get_class_to_arg"
-        },
-        {
-            "id": "datasets.e14",
-            "source": "datasets.DataManager._load_KDEF",
+            "source": "utils.datasets.DataManager._load_KDEF",
             "target": "os.walk"
         },
         {
-            "id": "datasets.e15",
-            "source": "datasets.DataManager._load_KDEF",
+            "id": "datasets.e12",
+            "source": "utils.datasets.DataManager._load_KDEF",
             "target": "os.path.join"
         },
         {
-            "id": "datasets.e16",
-            "source": "datasets.DataManager._load_KDEF",
-            "target": "numpy.zeros"
-        },
-        {
-            "id": "datasets.e17",
-            "source": "datasets.DataManager._load_KDEF",
+            "id": "datasets.e13",
+            "source": "utils.datasets.DataManager._load_KDEF",
             "target": "cv2.imread"
         },
         {
-            "id": "datasets.e18",
-            "source": "datasets.DataManager._load_KDEF",
+            "id": "datasets.e14",
+            "source": "utils.datasets.DataManager._load_KDEF",
             "target": "cv2.resize"
         },
         {
-            "id": "datasets.e19",
-            "source": "datasets.DataManager._load_KDEF",
+            "id": "datasets.e15",
+            "source": "utils.datasets.DataManager._load_KDEF",
             "target": "os.path.basename"
         },
         {
-            "id": "datasets.e20",
-            "source": "datasets.split_imdb_data",
+            "id": "datasets.e16",
+            "source": "utils.datasets.split_imdb_data",
             "target": "random.shuffle"
         }
     ]

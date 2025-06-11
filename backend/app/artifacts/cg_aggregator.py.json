@@ -6,7 +6,7 @@
             "file": "poc/aggregator.py",
             "line_start": 1,
             "line_end": 11,
-            "description": "Aggregates data to compute count, sum, max, min, and average, then formats and prints a summary."
+            "description": "Aggregates statistics (count, sum, max, min, average) from data."
         },
         {
             "id": "aggregator.compute_average",
@@ -14,7 +14,7 @@
             "file": "poc/aggregator.py",
             "line_start": 13,
             "line_end": 16,
-            "description": "Computes the average of the data."
+            "description": "Computes the average of the data list."
         },
         {
             "id": "aggregator.format_summary",
@@ -22,7 +22,7 @@
             "file": "poc/aggregator.py",
             "line_start": 17,
             "line_end": 19,
-            "description": "Formats the statistics summary into a string."
+            "description": "Formats a summary string from statistics."
         }
     ],
     "edges": [

@@ -7,7 +7,7 @@
                 "file": "poc/validator.py",
                 "line_start": 1,
                 "line_end": 7,
-                "description": "Validates data by filtering non-integers, removing negatives, and checking range."
+                "description": "Validates data by filtering integers, removing negatives, and enforcing a range."
             },
             {
                 "id": "validator.remove_negatives",
@@ -15,7 +15,7 @@
                 "file": "poc/validator.py",
                 "line_start": 9,
                 "line_end": 11,
-                "description": "Removes negative integers from the data list."
+                "description": "Removes negative numbers from the data list."
             },
             {
                 "id": "validator.check_range",
@@ -23,7 +23,7 @@
                 "file": "poc/validator.py",
                 "line_start": 13,
                 "line_end": 15,
-                "description": "Filters data to be within a specified min and max range."
+                "description": "Filters data to include only values within a specified minimum and maximum range."
             }
         ],
         "edges": [
@@ -47,7 +47,7 @@
                 "file": "poc/aggregator.py",
                 "line_start": 1,
                 "line_end": 11,
-                "description": "Aggregates data to compute count, sum, max, min, and average, then formats and prints a summary."
+                "description": "Aggregates statistics (count, sum, max, min, average) from data."
             },
             {
                 "id": "aggregator.compute_average",
@@ -55,7 +55,7 @@
                 "file": "poc/aggregator.py",
                 "line_start": 13,
                 "line_end": 16,
-                "description": "Computes the average of the data."
+                "description": "Computes the average of the data list."
             },
             {
                 "id": "aggregator.format_summary",
@@ -63,7 +63,7 @@
                 "file": "poc/aggregator.py",
                 "line_start": 17,
                 "line_end": 19,
-                "description": "Formats the statistics summary into a string."
+                "description": "Formats a summary string from statistics."
             }
         ],
         "edges": [
@@ -82,12 +82,12 @@
     "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/reporter.py": {
         "nodes": [
             {
-                "id": "reporter.generate_report",
+                "id": "poc.reporter.generate_report",
                 "function_name": "generate_report",
                 "file": "poc/reporter.py",
                 "line_start": 2,
                 "line_end": 21,
-                "description": "Generate report based on analysis dictionary."
+                "description": "Generate a report from the analysis dict, printing summary statistics and comparisons of high vs low values."
             }
         ],
         "edges": []
@@ -100,7 +100,7 @@
                 "file": "poc/analyzer.py",
                 "line_start": 4,
                 "line_end": 16,
-                "description": "Analyze data to compute average, median, high and low values."
+                "description": "Function to analyze data: compute average, median, high and low values."
             }
         ],
         "edges": [
@@ -119,15 +119,15 @@
     "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/processor.py": {
         "nodes": [
             {
-                "id": "processor.process_data",
+                "id": "poc.processor.process_data",
                 "function_name": "process_data",
                 "file": "poc/processor.py",
                 "line_start": 3,
                 "line_end": 15,
-                "description": "Iterates over data and dispatches each number to the appropriate handler based on divisibility."
+                "description": "Processes a list of numbers, dispatching each to the appropriate handler based on divisibility."
             },
             {
-                "id": "processor.handle_div3",
+                "id": "poc.processor.handle_div3",
                 "function_name": "handle_div3",
                 "file": "poc/processor.py",
                 "line_start": 17,
@@ -135,37 +135,37 @@
                 "description": "Handles numbers divisible by 3 by dividing them by 3."
             },
             {
-                "id": "processor.handle_even",
+                "id": "poc.processor.handle_even",
                 "function_name": "handle_even",
                 "file": "poc/processor.py",
                 "line_start": 21,
-                "line_end": 23,
+                "line_end": 24,
                 "description": "Handles even numbers by dividing them by 2."
             },
             {
-                "id": "processor.handle_other",
+                "id": "poc.processor.handle_other",
                 "function_name": "handle_other",
                 "file": "poc/processor.py",
                 "line_start": 25,
                 "line_end": 27,
-                "description": "Handles all other numbers with the formula num * 3 + 1."
+                "description": "Handles all other numbers by applying the 3n+1 transformation."
             }
         ],
         "edges": [
             {
                 "id": "processor.e0",
-                "source": "processor.process_data",
-                "target": "processor.handle_div3"
+                "source": "poc.processor.process_data",
+                "target": "poc.processor.handle_div3"
             },
             {
                 "id": "processor.e1",
-                "source": "processor.process_data",
-                "target": "processor.handle_even"
+                "source": "poc.processor.process_data",
+                "target": "poc.processor.handle_even"
             },
             {
                 "id": "processor.e2",
-                "source": "processor.process_data",
-                "target": "processor.handle_other"
+                "source": "poc.processor.process_data",
+                "target": "poc.processor.handle_other"
             }
         ]
     },
@@ -177,7 +177,7 @@
                 "file": "poc/filterer.py",
                 "line_start": 1,
                 "line_end": 4,
-                "description": "Filters data by keeping even numbers greater than 10."
+                "description": "Filters even numbers and then filters numbers greater than 10."
             },
             {
                 "id": "filterer.remove_odd",
@@ -217,15 +217,15 @@
                 "file": "poc/transformer.py",
                 "line_start": 3,
                 "line_end": 8,
-                "description": "Transforms special data by normalizing, processing, and scaling."
+                "description": "Transforms data by normalizing, processing, and scaling."
             },
             {
                 "id": "transformer.normalize",
                 "function_name": "normalize",
                 "file": "poc/transformer.py",
                 "line_start": 10,
-                "line_end": 13,
-                "description": "Normalizes data to a [0,1] range based on the maximum value."
+                "line_end": 14,
+                "description": "Normalizes data by dividing each element by the maximum value."
             },
             {
                 "id": "transformer.scale",
@@ -233,7 +233,7 @@
                 "file": "poc/transformer.py",
                 "line_start": 15,
                 "line_end": 17,
-                "description": "Scales data by a given factor."
+                "description": "Scales data elements by the specified factor."
             }
         ],
         "edges": [
@@ -262,7 +262,7 @@
                 "file": "poc/main.py",
                 "line_start": 11,
                 "line_end": 48,
-                "description": "Entry point for CLI to orchestrate data pipeline."
+                "description": "Entry point function"
             }
         ],
         "edges": [
@@ -356,20 +356,9 @@
                 "file": "poc/fetcher.py",
                 "line_start": 4,
                 "line_end": 13,
-                "description": "Fetches data with up to a given number of retries."
+                "description": "Attempts to fetch data up to a given number of retries; returns a list of random integers on success or raises ConnectionError after exhausting retries."
             }
         ],
-        "edges": [
-            {
-                "id": "fetcher.e0",
-                "source": "fetcher.fetch_data",
-                "target": "random.random"
-            },
-            {
-                "id": "fetcher.e1",
-                "source": "fetcher.fetch_data",
-                "target": "random.randint"
-            }
-        ]
+        "edges": []
     }
 }

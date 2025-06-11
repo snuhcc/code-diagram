@@ -1,277 +1,87 @@
 {
     "nodes": [
         {
-            "id": "visualizer.make_mosaic",
+            "id": "utils.visualizer.make_mosaic",
             "function_name": "make_mosaic",
-            "file": "visualizer.py",
+            "file": "face_classification/utils/visualizer.py",
             "line_start": 8,
             "line_end": 24,
-            "description": "Assemble a mosaic of images with masked background"
+            "description": "Arrange a set of images into a mosaic grid with optional border."
         },
         {
-            "id": "visualizer.make_mosaic_v2",
+            "id": "utils.visualizer.make_mosaic_v2",
             "function_name": "make_mosaic_v2",
-            "file": "visualizer.py",
+            "file": "face_classification/utils/visualizer.py",
             "line_start": 27,
             "line_end": 50,
-            "description": "Create a mosaic of images using direct array placement"
+            "description": "Create a mosaic grid of images, automatically determining grid size if not provided."
         },
         {
-            "id": "visualizer.pretty_imshow",
+            "id": "utils.visualizer.pretty_imshow",
             "function_name": "pretty_imshow",
-            "file": "visualizer.py",
+            "file": "face_classification/utils/visualizer.py",
             "line_start": 53,
             "line_end": 66,
-            "description": "Display image with colorbar using axes divider"
+            "description": "Display image data on an axis with a colorbar, using a divider for layout."
         },
         {
-            "id": "visualizer.normal_imshow",
+            "id": "utils.visualizer.normal_imshow",
             "function_name": "normal_imshow",
-            "file": "visualizer.py",
+            "file": "face_classification/utils/visualizer.py",
             "line_start": 68,
             "line_end": 80,
-            "description": "Display image normally with optional axis off"
+            "description": "Display image data on an axis without axis ticks, optionally turning the axis off."
         },
         {
-            "id": "visualizer.display_image",
+            "id": "utils.visualizer.display_image",
             "function_name": "display_image",
-            "file": "visualizer.py",
+            "file": "face_classification/utils/visualizer.py",
             "line_start": 83,
             "line_end": 100,
-            "description": "Display a single image with optional class title"
+            "description": "Show a single face image with optional class title using either pretty or normal display."
         },
         {
-            "id": "visualizer.draw_mosaic",
+            "id": "utils.visualizer.draw_mosaic",
             "function_name": "draw_mosaic",
-            "file": "visualizer.py",
+            "file": "face_classification/utils/visualizer.py",
             "line_start": 102,
             "line_end": 127,
-            "description": "Display a grid of images with optional class titles"
+            "description": "Draw a grid of images on subplots with optional class titles."
         },
         {
-            "id": "visualizer.__main__",
-            "function_name": "__main__",
-            "file": "visualizer.py",
+            "id": "utils.visualizer.Global",
+            "function_name": "Global",
+            "file": "face_classification/utils/visualizer.py",
             "line_start": 129,
             "line_end": 177,
-            "description": "Script entry point that loads data, visualizes mosaics, and displays model kernels"
+            "description": "Script entry point executing demos when run as __main__."
         }
     ],
     "edges": [
         {
-            "id": "visualizer.make_mosaic.e0",
-            "source": "visualizer.make_mosaic",
-            "target": "numpy.ma.masked_all"
-        },
-        {
-            "id": "visualizer.make_mosaic.e1",
-            "source": "visualizer.make_mosaic",
-            "target": "numpy.floor"
-        },
-        {
-            "id": "visualizer.make_mosaic.e2",
-            "source": "visualizer.make_mosaic",
-            "target": "numpy.squeeze"
-        },
-        {
-            "id": "visualizer.make_mosaic_v2.e0",
-            "source": "visualizer.make_mosaic_v2",
-            "target": "numpy.squeeze"
-        },
-        {
-            "id": "visualizer.make_mosaic_v2.e1",
-            "source": "visualizer.make_mosaic_v2",
-            "target": "numpy.ceil"
-        },
-        {
-            "id": "visualizer.make_mosaic_v2.e2",
-            "source": "visualizer.make_mosaic_v2",
-            "target": "numpy.sqrt"
-        },
-        {
-            "id": "visualizer.make_mosaic_v2.e3",
-            "source": "visualizer.make_mosaic_v2",
-            "target": "numpy.empty"
-        },
-        {
-            "id": "visualizer.pretty_imshow.e0",
-            "source": "visualizer.pretty_imshow",
-            "target": "mpl_toolkits.axes_grid1.make_axes_locatable"
-        },
-        {
-            "id": "visualizer.pretty_imshow.e1",
-            "source": "visualizer.pretty_imshow",
-            "target": "matplotlib.axes.Axes.imshow"
-        },
-        {
-            "id": "visualizer.pretty_imshow.e2",
-            "source": "visualizer.pretty_imshow",
-            "target": "matplotlib.pyplot.colorbar"
-        },
-        {
-            "id": "visualizer.normal_imshow.e0",
-            "source": "visualizer.normal_imshow",
-            "target": "matplotlib.axes.Axes.imshow"
-        },
-        {
-            "id": "visualizer.normal_imshow.e1",
-            "source": "visualizer.normal_imshow",
-            "target": "matplotlib.pyplot.axis"
-        },
-        {
-            "id": "visualizer.display_image.e0",
-            "source": "visualizer.display_image",
-            "target": "numpy.squeeze"
-        },
-        {
-            "id": "visualizer.display_image.e1",
-            "source": "visualizer.display_image",
-            "target": "numpy.argmax"
-        },
-        {
-            "id": "visualizer.display_image.e2",
-            "source": "visualizer.display_image",
-            "target": "matplotlib.pyplot.figure"
-        },
-        {
-            "id": "visualizer.display_image.e3",
-            "source": "visualizer.display_image",
-            "target": "matplotlib.pyplot.title"
-        },
-        {
-            "id": "visualizer.display_image.e4",
-            "source": "visualizer.display_image",
-            "target": "visualizer.pretty_imshow"
-        },
-        {
-            "id": "visualizer.display_image.e5",
-            "source": "visualizer.display_image",
-            "target": "matplotlib.pyplot.imshow"
-        },
-        {
-            "id": "visualizer.draw_mosaic.e0",
-            "source": "visualizer.draw_mosaic",
-            "target": "matplotlib.pyplot.subplots"
-        },
-        {
-            "id": "visualizer.draw_mosaic.e1",
-            "source": "visualizer.draw_mosaic",
-            "target": "matplotlib.pyplot.tight_layout"
-        },
-        {
-            "id": "visualizer.draw_mosaic.e2",
-            "source": "visualizer.draw_mosaic",
-            "target": "numpy.argmax"
-        },
-        {
-            "id": "visualizer.draw_mosaic.e3",
-            "source": "visualizer.draw_mosaic",
-            "target": "numpy.squeeze"
-        },
-        {
-            "id": "visualizer.draw_mosaic.e4",
-            "source": "visualizer.draw_mosaic",
-            "target": "matplotlib.axes.Axes.axis"
-        },
-        {
-            "id": "visualizer.draw_mosaic.e5",
-            "source": "visualizer.draw_mosaic",
-            "target": "matplotlib.axes.Axes.imshow"
-        },
-        {
-            "id": "visualizer.draw_mosaic.e6",
-            "source": "visualizer.draw_mosaic",
-            "target": "matplotlib.axes.Axes.set_title"
-        },
-        {
-            "id": "visualizer.__main__.e0",
-            "source": "visualizer.__main__",
+            "id": "visualizer.e0",
+            "source": "utils.visualizer.Global",
             "target": "utils.utils.get_labels"
         },
         {
-            "id": "visualizer.__main__.e1",
-            "source": "visualizer.__main__",
-            "target": "pickle.load"
+            "id": "visualizer.e1",
+            "source": "utils.visualizer.Global",
+            "target": "utils.visualizer.pretty_imshow"
         },
         {
-            "id": "visualizer.__main__.e2",
-            "source": "visualizer.__main__",
-            "target": "pickle.load"
+            "id": "visualizer.e2",
+            "source": "utils.visualizer.Global",
+            "target": "utils.visualizer.make_mosaic"
         },
         {
-            "id": "visualizer.__main__.e3",
-            "source": "visualizer.__main__",
-            "target": "visualizer.make_mosaic"
-        },
-        {
-            "id": "visualizer.__main__.e4",
-            "source": "visualizer.__main__",
-            "target": "visualizer.pretty_imshow"
-        },
-        {
-            "id": "visualizer.__main__.e5",
-            "source": "visualizer.__main__",
-            "target": "matplotlib.pyplot.show"
-        },
-        {
-            "id": "visualizer.__main__.e6",
-            "source": "visualizer.__main__",
+            "id": "visualizer.e3",
+            "source": "utils.visualizer.Global",
             "target": "keras.models.load_model"
         },
         {
-            "id": "visualizer.__main__.e7",
-            "source": "visualizer.__main__",
-            "target": "keras.models.Model.get_weights"
-        },
-        {
-            "id": "visualizer.__main__.e8",
-            "source": "visualizer.__main__",
-            "target": "numpy.squeeze"
-        },
-        {
-            "id": "visualizer.__main__.e9",
-            "source": "visualizer.__main__",
-            "target": "numpy.rollaxis"
-        },
-        {
-            "id": "visualizer.__main__.e10",
-            "source": "visualizer.__main__",
-            "target": "numpy.expand_dims"
-        },
-        {
-            "id": "visualizer.__main__.e11",
-            "source": "visualizer.__main__",
-            "target": "numpy.sqrt"
-        },
-        {
-            "id": "visualizer.__main__.e12",
-            "source": "visualizer.__main__",
-            "target": "numpy.ceil"
-        },
-        {
-            "id": "visualizer.__main__.e13",
-            "source": "visualizer.__main__",
-            "target": "matplotlib.pyplot.figure"
-        },
-        {
-            "id": "visualizer.__main__.e14",
-            "source": "visualizer.__main__",
-            "target": "matplotlib.pyplot.title"
-        },
-        {
-            "id": "visualizer.__main__.e15",
-            "source": "visualizer.__main__",
-            "target": "visualizer.pretty_imshow"
-        },
-        {
-            "id": "visualizer.__main__.e16",
-            "source": "visualizer.__main__",
-            "target": "visualizer.make_mosaic"
-        },
-        {
-            "id": "visualizer.__main__.e17",
-            "source": "visualizer.__main__",
-            "target": "matplotlib.pyplot.show"
+            "id": "visualizer.e4",
+            "source": "utils.visualizer.display_image",
+            "target": "utils.visualizer.pretty_imshow"
         }
     ]
 }

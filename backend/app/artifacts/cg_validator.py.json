@@ -6,7 +6,7 @@
             "file": "poc/validator.py",
             "line_start": 1,
             "line_end": 7,
-            "description": "Validates data by filtering non-integers, removing negatives, and checking range."
+            "description": "Validates data by filtering integers, removing negatives, and enforcing a range."
         },
         {
             "id": "validator.remove_negatives",
@@ -14,7 +14,7 @@
             "file": "poc/validator.py",
             "line_start": 9,
             "line_end": 11,
-            "description": "Removes negative integers from the data list."
+            "description": "Removes negative numbers from the data list."
         },
         {
             "id": "validator.check_range",
@@ -22,7 +22,7 @@
             "file": "poc/validator.py",
             "line_start": 13,
             "line_end": 15,
-            "description": "Filters data to be within a specified min and max range."
+            "description": "Filters data to include only values within a specified minimum and maximum range."
         }
     ],
     "edges": [

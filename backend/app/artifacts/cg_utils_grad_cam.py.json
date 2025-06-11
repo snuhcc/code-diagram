@@ -1,451 +1,233 @@
 {
     "nodes": [
         {
-            "id": "grad_cam.reset_optimizer_weights",
+            "id": "utils.grad_cam.reset_optimizer_weights",
             "function_name": "reset_optimizer_weights",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 15,
-            "line_end": 19,
-            "description": "Opens HDF5 model file and removes optimizer weights."
+            "line_end": 18,
+            "description": "Remove optimizer weights from an HDF5 model file."
         },
         {
-            "id": "grad_cam.target_category_loss",
+            "id": "utils.grad_cam.target_category_loss",
             "function_name": "target_category_loss",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 21,
             "line_end": 22,
-            "description": "Applies a mask to focus loss on a target category."
+            "description": "Apply a one-hot mask to the model output for a target category."
         },
         {
-            "id": "grad_cam.target_category_loss_output_shape",
+            "id": "utils.grad_cam.target_category_loss_output_shape",
             "function_name": "target_category_loss_output_shape",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 25,
             "line_end": 26,
-            "description": "Returns the input shape unchanged for Lambda layer."
+            "description": "Return the output shape unchanged for the target category loss layer."
         },
         {
-            "id": "grad_cam.normalize",
+            "id": "utils.grad_cam.normalize",
             "function_name": "normalize",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 29,
             "line_end": 31,
-            "description": "Normalizes a tensor by its L2 norm."
+            "description": "Normalize a tensor by its L2 norm."
         },
         {
-            "id": "grad_cam.load_image",
+            "id": "utils.grad_cam.load_image",
             "function_name": "load_image",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 34,
             "line_end": 37,
-            "description": "Prepares image array for model input (expands dims and preprocesses)."
+            "description": "Preprocess and expand dims of an image array for model input."
         },
         {
-            "id": "grad_cam.register_gradient",
+            "id": "utils.grad_cam.register_gradient",
             "function_name": "register_gradient",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 40,
             "line_end": 47,
-            "description": "Registers custom GuidedBackProp gradient with TensorFlow."
+            "description": "Register a custom guided backpropagation gradient for ReLU."
         },
         {
-            "id": "grad_cam._GuidedBackProp",
-            "function_name": "_GuidedBackProp",
-            "file": "grad_cam.py",
-            "line_start": 42,
-            "line_end": 47,
-            "description": "Custom gradient function for GuidedBackProp that zeroes out negative gradients."
-        },
-        {
-            "id": "grad_cam.compile_saliency_function",
+            "id": "utils.grad_cam.compile_saliency_function",
             "function_name": "compile_saliency_function",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 50,
-            "line_end": 56,
-            "description": "Compiles a function to compute saliency maps for a given activation layer."
+            "line_end": 55,
+            "description": "Compile a Keras function to compute saliency maps from a given activation layer."
         },
         {
-            "id": "grad_cam.modify_backprop",
+            "id": "utils.grad_cam.modify_backprop",
             "function_name": "modify_backprop",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 58,
             "line_end": 79,
-            "description": "Overrides backpropagation using custom ReLU gradient and reloads model for a task."
+            "description": "Override ReLU gradient and reload model for guided backpropagation tasks."
         },
         {
-            "id": "grad_cam.deprocess_image",
+            "id": "utils.grad_cam.deprocess_image",
             "function_name": "deprocess_image",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 82,
             "line_end": 102,
-            "description": "Converts processed tensor back to displayable image format."
+            "description": "Convert a processed tensor back into a valid image array."
         },
         {
-            "id": "grad_cam.compile_gradient_function",
+            "id": "utils.grad_cam.compile_gradient_function",
             "function_name": "compile_gradient_function",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 105,
             "line_end": 119,
-            "description": "Compiles function to compute gradients and feature maps for CAM."
+            "description": "Compile a Keras function to compute convolution outputs and gradients for Grad-CAM."
         },
         {
-            "id": "grad_cam.calculate_gradient_weighted_CAM",
+            "id": "utils.grad_cam.calculate_gradient_weighted_CAM",
             "function_name": "calculate_gradient_weighted_CAM",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 122,
             "line_end": 141,
-            "description": "Computes Grad-CAM heatmap and overlays it on input image."
+            "description": "Compute the Grad-CAM heatmap and overlay it on the image."
         },
         {
-            "id": "grad_cam.calculate_guided_gradient_CAM",
+            "id": "utils.grad_cam.calculate_guided_gradient_CAM",
             "function_name": "calculate_guided_gradient_CAM",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 144,
             "line_end": 151,
-            "description": "Computes guided Grad-CAM by combining saliency and CAM heatmap."
+            "description": "Combine guided backpropagation with Grad-CAM to produce guided Grad-CAM."
         },
         {
-            "id": "grad_cam.calculate_guided_gradient_CAM_v2",
+            "id": "utils.grad_cam.calculate_guided_gradient_CAM_v2",
             "function_name": "calculate_guided_gradient_CAM_v2",
-            "file": "grad_cam.py",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 155,
-            "line_end": 168,
-            "description": "Alternative guided Grad-CAM with resizing and combination of heatmap and saliency."
+            "line_end": 167,
+            "description": "Alternative version of guided Grad-CAM with resizing."
         },
         {
-            "id": "grad_cam.main",
-            "function_name": "main",
-            "file": "grad_cam.py",
+            "id": "utils.grad_cam.Global",
+            "function_name": "Global",
+            "file": "face_classification/utils/grad_cam.py",
             "line_start": 170,
-            "line_end": 191,
-            "description": "Script entry point: loads model, computes guided Grad-CAM on sample image."
+            "line_end": 190,
+            "description": "Script entry point calling functions to generate and save guided Grad-CAM."
         }
     ],
     "edges": [
         {
-            "id": "e0",
-            "source": "grad_cam.reset_optimizer_weights",
-            "target": "h5py.File"
+            "id": "grad_cam.e0",
+            "source": "utils.grad_cam.load_image",
+            "target": "face_classification/utils/preprocessor.preprocess_input"
         },
         {
-            "id": "e1",
-            "source": "grad_cam.reset_optimizer_weights",
-            "target": "h5py.File.close"
-        },
-        {
-            "id": "e2",
-            "source": "grad_cam.target_category_loss",
-            "target": "tensorflow.multiply"
-        },
-        {
-            "id": "e3",
-            "source": "grad_cam.target_category_loss",
-            "target": "keras.backend.one_hot"
-        },
-        {
-            "id": "e4",
-            "source": "grad_cam.normalize",
-            "target": "keras.backend.sqrt"
-        },
-        {
-            "id": "e5",
-            "source": "grad_cam.normalize",
-            "target": "keras.backend.mean"
-        },
-        {
-            "id": "e6",
-            "source": "grad_cam.normalize",
-            "target": "keras.backend.square"
-        },
-        {
-            "id": "e7",
-            "source": "grad_cam.load_image",
-            "target": "numpy.expand_dims"
-        },
-        {
-            "id": "e8",
-            "source": "grad_cam.load_image",
-            "target": "preprocessor.preprocess_input"
-        },
-        {
-            "id": "e9",
-            "source": "grad_cam.register_gradient",
+            "id": "grad_cam.e1",
+            "source": "utils.grad_cam.register_gradient",
             "target": "tensorflow.python.framework.ops.RegisterGradient"
         },
         {
-            "id": "e10",
-            "source": "grad_cam.register_gradient",
-            "target": "tensorflow.cast"
-        },
-        {
-            "id": "e11",
-            "source": "grad_cam.compile_saliency_function",
-            "target": "keras.models.Model.get_layer"
-        },
-        {
-            "id": "e12",
-            "source": "grad_cam.compile_saliency_function",
-            "target": "keras.backend.max"
-        },
-        {
-            "id": "e13",
-            "source": "grad_cam.compile_saliency_function",
-            "target": "keras.backend.sum"
-        },
-        {
-            "id": "e14",
-            "source": "grad_cam.compile_saliency_function",
-            "target": "keras.backend.gradients"
-        },
-        {
-            "id": "e15",
-            "source": "grad_cam.compile_saliency_function",
-            "target": "keras.backend.function"
-        },
-        {
-            "id": "e16",
-            "source": "grad_cam.compile_saliency_function",
-            "target": "keras.backend.learning_phase"
-        },
-        {
-            "id": "e17",
-            "source": "grad_cam.modify_backprop",
-            "target": "tensorflow.get_default_graph"
-        },
-        {
-            "id": "e18",
-            "source": "grad_cam.modify_backprop",
-            "target": "tensorflow.Graph.gradient_override_map"
-        },
-        {
-            "id": "e19",
-            "source": "grad_cam.modify_backprop",
+            "id": "grad_cam.e2",
+            "source": "utils.grad_cam.modify_backprop",
             "target": "keras.models.load_model"
         },
         {
-            "id": "e20",
-            "source": "grad_cam.deprocess_image",
-            "target": "numpy.ndim"
-        },
-        {
-            "id": "e21",
-            "source": "grad_cam.deprocess_image",
-            "target": "numpy.squeeze"
-        },
-        {
-            "id": "e22",
-            "source": "grad_cam.deprocess_image",
-            "target": "numpy.clip"
-        },
-        {
-            "id": "e23",
-            "source": "grad_cam.deprocess_image",
-            "target": "keras.backend.image_dim_ordering"
-        },
-        {
-            "id": "e24",
-            "source": "grad_cam.compile_gradient_function",
-            "target": "keras.models.Sequential"
-        },
-        {
-            "id": "e25",
-            "source": "grad_cam.compile_gradient_function",
-            "target": "keras.layers.core.Lambda"
-        },
-        {
-            "id": "e26",
-            "source": "grad_cam.compile_gradient_function",
-            "target": "grad_cam.target_category_loss"
-        },
-        {
-            "id": "e27",
-            "source": "grad_cam.compile_gradient_function",
-            "target": "keras.backend.sum"
-        },
-        {
-            "id": "e28",
-            "source": "grad_cam.compile_gradient_function",
-            "target": "keras.models.Model.get_layer"
-        },
-        {
-            "id": "e29",
-            "source": "grad_cam.compile_gradient_function",
+            "id": "grad_cam.e3",
+            "source": "utils.grad_cam.compile_saliency_function",
             "target": "keras.backend.gradients"
         },
         {
-            "id": "e30",
-            "source": "grad_cam.compile_gradient_function",
-            "target": "grad_cam.normalize"
-        },
-        {
-            "id": "e31",
-            "source": "grad_cam.compile_gradient_function",
+            "id": "grad_cam.e4",
+            "source": "utils.grad_cam.compile_saliency_function",
             "target": "keras.backend.function"
         },
         {
-            "id": "e32",
-            "source": "grad_cam.compile_gradient_function",
-            "target": "keras.backend.learning_phase"
+            "id": "grad_cam.e5",
+            "source": "utils.grad_cam.compile_gradient_function",
+            "target": "utils.grad_cam.target_category_loss"
         },
         {
-            "id": "e33",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "gradient_function"
+            "id": "grad_cam.e6",
+            "source": "utils.grad_cam.compile_gradient_function",
+            "target": "utils.grad_cam.normalize"
         },
         {
-            "id": "e34",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "numpy.mean"
+            "id": "grad_cam.e7",
+            "source": "utils.grad_cam.compile_gradient_function",
+            "target": "keras.backend.gradients"
         },
         {
-            "id": "e35",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "numpy.ones"
+            "id": "grad_cam.e8",
+            "source": "utils.grad_cam.compile_gradient_function",
+            "target": "keras.backend.function"
         },
         {
-            "id": "e36",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "cv2.resize"
+            "id": "grad_cam.e9",
+            "source": "utils.grad_cam.calculate_guided_gradient_CAM",
+            "target": "utils.grad_cam.calculate_gradient_weighted_CAM"
         },
         {
-            "id": "e37",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "numpy.maximum"
+            "id": "grad_cam.e10",
+            "source": "utils.grad_cam.calculate_guided_gradient_CAM",
+            "target": "utils.grad_cam.deprocess_image"
         },
         {
-            "id": "e38",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "numpy.max"
+            "id": "grad_cam.e11",
+            "source": "utils.grad_cam.calculate_guided_gradient_CAM_v2",
+            "target": "utils.grad_cam.calculate_gradient_weighted_CAM"
         },
         {
-            "id": "e39",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "numpy.min"
+            "id": "grad_cam.e12",
+            "source": "utils.grad_cam.calculate_guided_gradient_CAM_v2",
+            "target": "utils.grad_cam.deprocess_image"
         },
         {
-            "id": "e40",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "numpy.minimum"
+            "id": "grad_cam.e13",
+            "source": "utils.grad_cam.Global",
+            "target": "utils.grad_cam.load_image"
         },
         {
-            "id": "e41",
-            "source": "grad_cam.calculate_gradient_weighted_CAM",
-            "target": "cv2.applyColorMap"
+            "id": "grad_cam.e14",
+            "source": "utils.grad_cam.Global",
+            "target": "keras.models.load_model"
         },
         {
-            "id": "e42",
-            "source": "grad_cam.calculate_guided_gradient_CAM",
-            "target": "grad_cam.calculate_gradient_weighted_CAM"
+            "id": "grad_cam.e15",
+            "source": "utils.grad_cam.Global",
+            "target": "utils.grad_cam.compile_gradient_function"
         },
         {
-            "id": "e43",
-            "source": "grad_cam.calculate_guided_gradient_CAM",
-            "target": "saliency_function"
+            "id": "grad_cam.e16",
+            "source": "utils.grad_cam.Global",
+            "target": "utils.grad_cam.register_gradient"
         },
         {
-            "id": "e44",
-            "source": "grad_cam.calculate_guided_gradient_CAM",
-            "target": "grad_cam.deprocess_image"
+            "id": "grad_cam.e17",
+            "source": "utils.grad_cam.Global",
+            "target": "utils.grad_cam.modify_backprop"
         },
         {
-            "id": "e45",
-            "source": "grad_cam.calculate_guided_gradient_CAM_v2",
-            "target": "grad_cam.calculate_gradient_weighted_CAM"
+            "id": "grad_cam.e18",
+            "source": "utils.grad_cam.Global",
+            "target": "utils.grad_cam.compile_saliency_function"
         },
         {
-            "id": "e46",
-            "source": "grad_cam.calculate_guided_gradient_CAM_v2",
-            "target": "numpy.squeeze"
+            "id": "grad_cam.e19",
+            "source": "utils.grad_cam.Global",
+            "target": "utils.grad_cam.calculate_guided_gradient_CAM"
         },
         {
-            "id": "e47",
-            "source": "grad_cam.calculate_guided_gradient_CAM_v2",
-            "target": "cv2.resize"
+            "id": "grad_cam.e20",
+            "source": "utils.grad_cam.Global",
+            "target": "cv2.imwrite"
         },
         {
-            "id": "e48",
-            "source": "grad_cam.calculate_guided_gradient_CAM_v2",
-            "target": "saliency_function"
-        },
-        {
-            "id": "e49",
-            "source": "grad_cam.calculate_guided_gradient_CAM_v2",
-            "target": "numpy.squeeze"
-        },
-        {
-            "id": "e50",
-            "source": "grad_cam.calculate_guided_gradient_CAM_v2",
-            "target": "cv2.resize"
-        },
-        {
-            "id": "e51",
-            "source": "grad_cam.calculate_guided_gradient_CAM_v2",
-            "target": "grad_cam.deprocess_image"
-        },
-        {
-            "id": "e52",
-            "source": "grad_cam.calculate_guided_gradient_CAM_v2",
-            "target": "numpy.expand_dims"
-        },
-        {
-            "id": "e53",
-            "source": "grad_cam._GuidedBackProp",
-            "target": "tensorflow.cast"
-        },
-        {
-            "id": "e54",
-            "source": "grad_cam.main",
+            "id": "grad_cam.e21",
+            "source": "utils.grad_cam.Global",
             "target": "pickle.load"
         },
         {
-            "id": "e55",
-            "source": "grad_cam.main",
-            "target": "keras.models.load_model"
-        },
-        {
-            "id": "e56",
-            "source": "grad_cam.main",
-            "target": "grad_cam.load_image"
-        },
-        {
-            "id": "e57",
-            "source": "grad_cam.main",
-            "target": "keras.models.Model.predict"
-        },
-        {
-            "id": "e58",
-            "source": "grad_cam.main",
+            "id": "grad_cam.e22",
+            "source": "utils.grad_cam.Global",
             "target": "numpy.argmax"
-        },
-        {
-            "id": "e59",
-            "source": "grad_cam.main",
-            "target": "grad_cam.compile_gradient_function"
-        },
-        {
-            "id": "e60",
-            "source": "grad_cam.main",
-            "target": "grad_cam.register_gradient"
-        },
-        {
-            "id": "e61",
-            "source": "grad_cam.main",
-            "target": "grad_cam.modify_backprop"
-        },
-        {
-            "id": "e62",
-            "source": "grad_cam.main",
-            "target": "grad_cam.compile_saliency_function"
-        },
-        {
-            "id": "e63",
-            "source": "grad_cam.main",
-            "target": "grad_cam.calculate_guided_gradient_CAM"
-        },
-        {
-            "id": "e64",
-            "source": "grad_cam.main",
-            "target": "cv2.imwrite"
         }
     ]
 }

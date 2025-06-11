@@ -1,153 +1,158 @@
 {
     "nodes": [
         {
-            "id": "emotion_gender_processor.process_image",
+            "id": "web.emotion_gender_processor.process_image",
             "function_name": "process_image",
-            "file": "emotion_gender_processor.py",
+            "file": "root_dir/web/emotion_gender_processor.py",
             "line_start": 18,
             "line_end": 94,
-            "description": "Function to process an image for emotion and gender detection: loads models, detects faces, classifies, annotates, and saves the result."
+            "description": "Process an image to detect faces and predict emotion and gender, then annotate and save the result."
         }
     ],
     "edges": [
         {
             "id": "emotion_gender_processor.e0",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.datasets.get_labels"
         },
         {
             "id": "emotion_gender_processor.e1",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.datasets.get_labels"
         },
         {
             "id": "emotion_gender_processor.e2",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.inference.load_detection_model"
         },
         {
             "id": "emotion_gender_processor.e3",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "keras.models.load_model"
         },
         {
             "id": "emotion_gender_processor.e4",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "keras.models.load_model"
         },
         {
             "id": "emotion_gender_processor.e5",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "numpy.fromstring"
         },
         {
             "id": "emotion_gender_processor.e6",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "cv2.imdecode"
         },
         {
             "id": "emotion_gender_processor.e7",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "cv2.cvtColor"
         },
         {
             "id": "emotion_gender_processor.e8",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "cv2.cvtColor"
         },
         {
             "id": "emotion_gender_processor.e9",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.inference.detect_faces"
         },
         {
             "id": "emotion_gender_processor.e10",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.inference.apply_offsets"
         },
         {
             "id": "emotion_gender_processor.e11",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.inference.apply_offsets"
         },
         {
             "id": "emotion_gender_processor.e12",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "cv2.resize"
         },
         {
             "id": "emotion_gender_processor.e13",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "cv2.resize"
         },
         {
             "id": "emotion_gender_processor.e14",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.preprocessor.preprocess_input"
         },
         {
             "id": "emotion_gender_processor.e15",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "numpy.expand_dims"
         },
         {
             "id": "emotion_gender_processor.e16",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "keras.models.Model.predict"
         },
         {
             "id": "emotion_gender_processor.e17",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "numpy.argmax"
         },
         {
             "id": "emotion_gender_processor.e18",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.preprocessor.preprocess_input"
         },
         {
             "id": "emotion_gender_processor.e19",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "numpy.expand_dims"
         },
         {
             "id": "emotion_gender_processor.e20",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "numpy.expand_dims"
         },
         {
             "id": "emotion_gender_processor.e21",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "keras.models.Model.predict"
         },
         {
             "id": "emotion_gender_processor.e22",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "numpy.argmax"
         },
         {
             "id": "emotion_gender_processor.e23",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.inference.draw_bounding_box"
         },
         {
             "id": "emotion_gender_processor.e24",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.inference.draw_text"
         },
         {
             "id": "emotion_gender_processor.e25",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "utils.inference.draw_text"
         },
         {
             "id": "emotion_gender_processor.e26",
-            "source": "emotion_gender_processor.process_image",
-            "target": "cv2.cvtColor"
+            "source": "web.emotion_gender_processor.process_image",
+            "target": "logging.error"
         },
         {
             "id": "emotion_gender_processor.e27",
-            "source": "emotion_gender_processor.process_image",
+            "source": "web.emotion_gender_processor.process_image",
+            "target": "cv2.cvtColor"
+        },
+        {
+            "id": "emotion_gender_processor.e28",
+            "source": "web.emotion_gender_processor.process_image",
             "target": "cv2.imwrite"
         }
     ]

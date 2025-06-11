@@ -1,59 +1,124 @@
 {
     "nodes": [
         {
-            "id": "video_emotion_color_demo.main",
-            "function_name": "main",
-            "file": "video_emotion_color_demo.py",
+            "id": "video_emotion_color_demo.Global",
+            "function_name": "Global",
+            "file": "face_classification/video_emotion_color_demo.py",
             "line_start": 1,
             "line_end": 91,
-            "description": "Main script that initializes models, captures video frames, detects faces, predicts emotions, and annotates frames with bounding boxes and emotion labels."
+            "description": "Global scope"
         }
     ],
     "edges": [
         {
-            "id": "main.e0",
-            "source": "video_emotion_color_demo.main",
-            "target": "utils.datasets.get_labels"
-        },
-        {
-            "id": "main.e1",
-            "source": "video_emotion_color_demo.main",
-            "target": "utils.inference.load_detection_model"
-        },
-        {
-            "id": "main.e2",
-            "source": "video_emotion_color_demo.main",
-            "target": "keras.models.load_model"
-        },
-        {
-            "id": "main.e3",
-            "source": "video_emotion_color_demo.main",
-            "target": "utils.inference.detect_faces"
-        },
-        {
-            "id": "main.e4",
-            "source": "video_emotion_color_demo.main",
-            "target": "utils.inference.apply_offsets"
-        },
-        {
-            "id": "main.e5",
-            "source": "video_emotion_color_demo.main",
-            "target": "utils.preprocessor.preprocess_input"
-        },
-        {
-            "id": "main.e6",
-            "source": "video_emotion_color_demo.main",
+            "id": "video_emotion_color_demo.e0",
+            "source": "video_emotion_color_demo.Global",
             "target": "statistics.mode"
         },
         {
-            "id": "main.e7",
-            "source": "video_emotion_color_demo.main",
+            "id": "video_emotion_color_demo.e1",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.namedWindow"
+        },
+        {
+            "id": "video_emotion_color_demo.e2",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.VideoCapture"
+        },
+        {
+            "id": "video_emotion_color_demo.e3",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.VideoCapture.read"
+        },
+        {
+            "id": "video_emotion_color_demo.e4",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.cvtColor"
+        },
+        {
+            "id": "video_emotion_color_demo.e5",
+            "source": "video_emotion_color_demo.Global",
+            "target": "utils.datasets.get_labels"
+        },
+        {
+            "id": "video_emotion_color_demo.e6",
+            "source": "video_emotion_color_demo.Global",
+            "target": "utils.inference.load_detection_model"
+        },
+        {
+            "id": "video_emotion_color_demo.e7",
+            "source": "video_emotion_color_demo.Global",
+            "target": "keras.models.load_model"
+        },
+        {
+            "id": "video_emotion_color_demo.e8",
+            "source": "video_emotion_color_demo.Global",
+            "target": "utils.inference.detect_faces"
+        },
+        {
+            "id": "video_emotion_color_demo.e9",
+            "source": "video_emotion_color_demo.Global",
+            "target": "utils.inference.apply_offsets"
+        },
+        {
+            "id": "video_emotion_color_demo.e10",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.resize"
+        },
+        {
+            "id": "video_emotion_color_demo.e11",
+            "source": "video_emotion_color_demo.Global",
+            "target": "utils.preprocessor.preprocess_input"
+        },
+        {
+            "id": "video_emotion_color_demo.e12",
+            "source": "video_emotion_color_demo.Global",
+            "target": "numpy.expand_dims"
+        },
+        {
+            "id": "video_emotion_color_demo.e13",
+            "source": "video_emotion_color_demo.Global",
+            "target": "numpy.max"
+        },
+        {
+            "id": "video_emotion_color_demo.e14",
+            "source": "video_emotion_color_demo.Global",
+            "target": "numpy.argmax"
+        },
+        {
+            "id": "video_emotion_color_demo.e15",
+            "source": "video_emotion_color_demo.Global",
+            "target": "numpy.asarray"
+        },
+        {
+            "id": "video_emotion_color_demo.e16",
+            "source": "video_emotion_color_demo.Global",
             "target": "utils.inference.draw_bounding_box"
         },
         {
-            "id": "main.e8",
-            "source": "video_emotion_color_demo.main",
+            "id": "video_emotion_color_demo.e17",
+            "source": "video_emotion_color_demo.Global",
             "target": "utils.inference.draw_text"
+        },
+        {
+            "id": "video_emotion_color_demo.e18",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.imshow"
+        },
+        {
+            "id": "video_emotion_color_demo.e19",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.waitKey"
+        },
+        {
+            "id": "video_emotion_color_demo.e20",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.VideoCapture.release"
+        },
+        {
+            "id": "video_emotion_color_demo.e21",
+            "source": "video_emotion_color_demo.Global",
+            "target": "cv2.destroyAllWindows"
         }
     ]
 }
