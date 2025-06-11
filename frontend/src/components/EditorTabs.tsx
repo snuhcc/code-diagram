@@ -4,7 +4,15 @@ import { useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { useEditor } from '@/store/editor';
 
-function CodePane({ path, highlights }: { path: string; highlights?: { line: number; query: string } }) {
+function CodePane({
+  path,
+  highlights,
+  highlight,
+}: {
+  path: string;
+  highlights?: { line: number; query: string };
+  highlight?: { from: number; to: number };
+}) {
   const [code, setCode] = useState('// loading…');
   const [err, setErr] = useState<string>();
   const [editor, setEditor] = useState<any>(null);
@@ -28,23 +36,55 @@ function CodePane({ path, highlights }: { path: string; highlights?: { line: num
   }, [path]);
 
   useEffect(() => {
-    if (editor && highlights) {
+    if (!editor) return;
+
+    // Remove all decorations first
+    editor.deltaDecorations(
+      editor.__currentDecorations || [],
+      []
+    );
+    let decorations: any[] = [];
+
+    // Highlight search results
+    if (highlights) {
       const { line, query } = highlights;
       editor.revealLineInCenter(line);
-      editor.deltaDecorations([], [
-        {
-          range: new monaco.Range(line, 1, line, 1),
-          options: { isWholeLine: true, className: 'highlight-line' },
-        },
-      ]);
+      decorations.push({
+        range: new monaco.Range(line, 1, line, 1),
+        options: { isWholeLine: true, className: 'highlight-line' },
+      });
       const matches = editor.getModel().findMatches(query, true, false, true, null, true);
-      const decorations = matches.map((match) => ({
-        range: match.range,
-        options: { inlineClassName: 'highlight-text' },
-      }));
-      editor.deltaDecorations([], decorations);
+      decorations = decorations.concat(
+        matches.map((match) => ({
+          range: match.range,
+          options: { inlineClassName: 'highlight-text' },
+        }))
+      );
     }
-  }, [editor, highlights]);
+    console.log('highlight', highlight);
+    // Highlight range
+    if (highlight && highlight.from !== undefined && highlight.to !== undefined) {
+      const model = editor.getModel();
+      if (model) {
+        const line_start = highlight.from;
+        const line_end = highlight.to;
+        decorations.push({
+          range: new monaco.Range(
+            line_start,
+            1,
+            line_end,
+            1
+          ),
+          options: { isWholeLine: true, className: 'highlight-line' },
+        });
+      }
+    }
+
+    editor.__currentDecorations = editor.deltaDecorations(
+      editor.__currentDecorations || [],
+      decorations
+    );
+  }, [editor, highlights, highlight]);
 
   const lang = (() => {
     if (path.endsWith('.py')) return 'python';
@@ -78,7 +118,7 @@ function CodePane({ path, highlights }: { path: string; highlights?: { line: num
 }
 
 export default function EditorTabs() {
-  const { tabs, activeId, setActive, close, searchHighlights } = useEditor();
+  const { tabs, activeId, setActive, close, searchHighlights, highlight } = useEditor();
 
   if (!tabs.length) {
     return (
@@ -128,7 +168,7 @@ export default function EditorTabs() {
         </div>
       </div>
       <div className="flex-1">
-        <CodePane path={active.path} highlights={searchHighlights} />
+        <CodePane path={active.path} highlights={searchHighlights} highlight={highlight} />
       </div>
     </div>
   );

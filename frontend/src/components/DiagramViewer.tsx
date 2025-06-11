@@ -707,7 +707,12 @@ export default function DiagramViewer() {
         // 레이아웃이 필요한 경우 RawNode/RawEdge로 넘기고, 결과 좌표를 cfgNodes에 반영
         let cfgNodes = (cfgRaw.nodes || []).map((n: any) => ({
           id: n.id,
-          data: { label: n.label || n.id },
+          data: { 
+            label: n.label || n.id,
+            file: n.file || file,
+            line_start: n.line_start || 1,
+            line_end: n.line_end || 1,
+          },
           position: { x: n.x ?? 0, y: n.y ?? 0 },
           style: {
             padding: 4,
@@ -1198,7 +1203,13 @@ export default function DiagramViewer() {
               e.preventDefault();
             }}
           >
-            <span style={{ flex: 1 }}>CFG ({panel.functionName})</span>
+            <span style={{ flex: 1 }}>
+                CFG ({panel.functionName}
+                {panel.file && (
+                  <> @ {panel.file.split(/[\\/]/).pop()}</>
+                )}
+              )
+            </span>
             <button
               onClick={e => {
                 e.stopPropagation();
@@ -1273,7 +1284,35 @@ export default function DiagramViewer() {
                     // ▼ 노드 hover 시 label을 setCfgPanelMessage로 출력
                     onNodeMouseEnter={(_, node) => {
                       const label = (node.data as any)?.label ?? node.id;
-                      setCfgPanelMessage(label);
+                      const file = (node.data as any)?.file;
+                      setCfgPanelMessage(label + ` (${file})`);
+
+                      const line_start = (node.data as any)?.line_start ?? undefined;
+                      const line_end = (node.data as any)?.line_end ?? undefined;
+
+                      if (file) {
+                        // 파일 경로에서 TARGET_FOLDER prefix 제거
+                        const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+                        const clean = file.replace(regex, '');
+                        
+                        // 이미 열려있는 탭이 있으면 그 탭을 active로, 없으면 새로 연다
+                        const tab = editorState.tabs.find(t => t.path === clean);
+                        if (tab) {
+                          // highlight 정보도 넘김
+                          editorState.setActive(tab.id, { from: line_start, to: line_end });
+                        } else {
+                          editorState.open({
+                            id: nanoid(),
+                            path: clean,
+                            name: clean.split(/[\\/]/).pop() ?? clean,
+                            line: line_start,
+                            highlight: {from: line_start, to: line_end},
+                          });
+                        }
+                        // 파일 트리에서 해당 파일을 선택 상태로
+                        const target = findByPath(fsState.tree, clean);
+                        if (target) fsState.setCurrent(target.id);
+                      }
                     }}
                     onNodeMouseLeave={() => {
                       setCfgPanelMessage(null);

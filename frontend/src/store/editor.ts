@@ -17,9 +17,10 @@ interface State {
   activeId?: string;
   activePath?: string;
   searchHighlights?: { line: number; query: string };
-  open: (file: TabMeta) => void;
+  highlight?: { from: number; to: number }; // 추가: highlight 범위
+  open: (file: TabMeta & { line?: number; highlight?: { from: number; to: number } }) => void;
   close: (id: string) => void;
-  setActive: (id: string) => void;
+  setActive: (id: string, highlight?: { from: number; to: number }) => void; // highlight 인자 추가
   setSearchHighlights: (line: number, query: string) => void;
 }
 
@@ -29,12 +30,18 @@ export const useEditor = create<State>()(
     activeId: undefined,
     activePath: undefined,
     searchHighlights: undefined,
+    highlight: undefined,
     open: (file) =>
       set((s) => {
         if (!s.tabs.find((t) => t.path === file.path)) s.tabs.push(file);
         s.activeId = s.tabs.find((t) => t.path === file.path)?.id ?? file.id;
         s.activePath = file.path;
         s.searchHighlights = undefined;
+        if (file.highlight) {
+          s.highlight = file.highlight;
+        } else {
+          s.highlight = undefined;
+        }
       }),
     close: (id) =>
       set((s) => {
@@ -45,8 +52,9 @@ export const useEditor = create<State>()(
           s.activePath = lastTab?.path;
         }
         s.searchHighlights = undefined;
+        s.highlight = undefined;
       }),
-    setActive: (id) =>
+    setActive: (id, highlight) =>
       set((s) => {
         s.activeId = id;
         s.activePath = s.tabs.find((t) => t.id === id)?.path;
@@ -55,6 +63,11 @@ export const useEditor = create<State>()(
           if (node) useFS.getState().setCurrent(node.id);
         }
         s.searchHighlights = undefined;
+        if (highlight) {
+          s.highlight = highlight;
+        } else {
+          s.highlight = undefined;
+        }
       }),
     setSearchHighlights: (line, query) =>
       set((s) => {
