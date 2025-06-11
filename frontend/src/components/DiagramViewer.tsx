@@ -1243,6 +1243,7 @@ export default function DiagramViewer() {
         animated: true,
         style: { stroke: '#34A853', strokeWidth: 2 },
         zIndex: 10000,
+        type: 'step',
       }));
 
     // Pass the calculated widths to the layout function
