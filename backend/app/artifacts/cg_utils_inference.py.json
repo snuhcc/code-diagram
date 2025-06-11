@@ -1,0 +1,107 @@
+{
+    "nodes": [
+        {
+            "id": "inference.load_image",
+            "function_name": "load_image",
+            "file": "inference.py",
+            "line_start": 6,
+            "line_end": 8,
+            "description": "Loads an image from disk and converts it to a NumPy array, optionally in grayscale and resized if a target size is provided."
+        },
+        {
+            "id": "inference.load_detection_model",
+            "function_name": "load_detection_model",
+            "file": "inference.py",
+            "line_start": 10,
+            "line_end": 12,
+            "description": "Loads a face detection model using OpenCV's CascadeClassifier."
+        },
+        {
+            "id": "inference.detect_faces",
+            "function_name": "detect_faces",
+            "file": "inference.py",
+            "line_start": 14,
+            "line_end": 15,
+            "description": "Detects faces in a grayscale image array using the provided detection model."
+        },
+        {
+            "id": "inference.draw_bounding_box",
+            "function_name": "draw_bounding_box",
+            "file": "inference.py",
+            "line_start": 17,
+            "line_end": 19,
+            "description": "Draws a rectangle (bounding box) around detected face coordinates on an image."
+        },
+        {
+            "id": "inference.apply_offsets",
+            "function_name": "apply_offsets",
+            "file": "inference.py",
+            "line_start": 21,
+            "line_end": 24,
+            "description": "Applies specified x and y offsets to face bounding box coordinates."
+        },
+        {
+            "id": "inference.draw_text",
+            "function_name": "draw_text",
+            "file": "inference.py",
+            "line_start": 26,
+            "line_end": 31,
+            "description": "Renders text onto the image at given coordinates, e.g., emotion labels."
+        },
+        {
+            "id": "inference.get_colors",
+            "function_name": "get_colors",
+            "file": "inference.py",
+            "line_start": 33,
+            "line_end": 36,
+            "description": "Generates distinct colors for each class using an HSV colormap scaled to 0–255."
+        }
+    ],
+    "edges": [
+        {
+            "id": "inference.e0",
+            "source": "inference.load_image",
+            "target": "keras.preprocessing.image.load_img"
+        },
+        {
+            "id": "inference.e1",
+            "source": "inference.load_image",
+            "target": "keras.preprocessing.image.img_to_array"
+        },
+        {
+            "id": "inference.e2",
+            "source": "inference.load_detection_model",
+            "target": "cv2.CascadeClassifier"
+        },
+        {
+            "id": "inference.e3",
+            "source": "inference.detect_faces",
+            "target": "cv2.CascadeClassifier.detectMultiScale"
+        },
+        {
+            "id": "inference.e4",
+            "source": "inference.draw_bounding_box",
+            "target": "cv2.rectangle"
+        },
+        {
+            "id": "inference.e5",
+            "source": "inference.draw_text",
+            "target": "cv2.putText"
+        },
+        {
+            "id": "inference.e6",
+            "source": "inference.get_colors",
+            "target": "matplotlib.pyplot.cm.hsv"
+        },
+        {
+            "id": "inference.e7",
+            "source": "inference.get_colors",
+            "target": "numpy.linspace"
+        },
+        {
+            "id": "inference.e8",
+            "source": "inference.get_colors",
+            "target": "numpy.asarray"
+        }
+    ]
+}

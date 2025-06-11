@@ -1,0 +1,24 @@
+{
+    "nodes": [
+        {
+            "id": "analyzer.analyze_data",
+            "function_name": "analyze_data",
+            "file": "poc/analyzer.py",
+            "line_start": 4,
+            "line_end": 16,
+            "description": "Function that computes the average and median of the data and separates high and low values."
+        }
+    ],
+    "edges": [
+        {
+            "id": "analyzer.e0",
+            "source": "analyzer.analyze_data",
+            "target": "statistics.mean"
+        },
+        {
+            "id": "analyzer.e1",
+            "source": "analyzer.analyze_data",
+            "target": "statistics.median"
+        }
+    ]
+}

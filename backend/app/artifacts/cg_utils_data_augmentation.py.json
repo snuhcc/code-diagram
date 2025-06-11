@@ -1,0 +1,341 @@
+{
+    "nodes": [
+        {
+            "id": "data_augmentation.ImageGenerator",
+            "function_name": "ImageGenerator",
+            "file": "data_augmentation.py",
+            "line_start": 11,
+            "line_end": 235,
+            "description": "Class for generating images with saturation, brightness, lighting, contrast, flips, and random augmentations."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.__init__",
+            "function_name": "__init__",
+            "file": "data_augmentation.py",
+            "line_start": 21,
+            "line_end": 60,
+            "description": "Initialize generator parameters and augmentation options."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator._do_random_crop",
+            "function_name": "_do_random_crop",
+            "file": "data_augmentation.py",
+            "line_start": 61,
+            "line_end": 81,
+            "description": "Apply random crop and zoom transformation."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.do_random_rotation",
+            "function_name": "do_random_rotation",
+            "file": "data_augmentation.py",
+            "line_start": 83,
+            "line_end": 103,
+            "description": "Apply random rotation with translation and zoom."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator._gray_scale",
+            "function_name": "_gray_scale",
+            "file": "data_augmentation.py",
+            "line_start": 105,
+            "line_end": 107,
+            "description": "Convert image to grayscale luminance."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.saturation",
+            "function_name": "saturation",
+            "file": "data_augmentation.py",
+            "line_start": 108,
+            "line_end": 114,
+            "description": "Adjust image saturation based on grayscale blend."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.brightness",
+            "function_name": "brightness",
+            "file": "data_augmentation.py",
+            "line_start": 116,
+            "line_end": 121,
+            "description": "Adjust image brightness by scaling pixel values."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.contrast",
+            "function_name": "contrast",
+            "file": "data_augmentation.py",
+            "line_start": 122,
+            "line_end": 128,
+            "description": "Adjust contrast using grayscale mean blending."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.lighting",
+            "function_name": "lighting",
+            "file": "data_augmentation.py",
+            "line_start": 130,
+            "line_end": 137,
+            "description": "Perform PCA-based lighting noise augmentation."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.horizontal_flip",
+            "function_name": "horizontal_flip",
+            "file": "data_augmentation.py",
+            "line_start": 139,
+            "line_end": 145,
+            "description": "Randomly flip image horizontally and adjust bounding boxes."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.vertical_flip",
+            "function_name": "vertical_flip",
+            "file": "data_augmentation.py",
+            "line_start": 146,
+            "line_end": 151,
+            "description": "Randomly flip image vertically and adjust bounding boxes."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.transform",
+            "function_name": "transform",
+            "file": "data_augmentation.py",
+            "line_start": 153,
+            "line_end": 168,
+            "description": "Apply sequential color jitter, lighting, and flips."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.preprocess_images",
+            "function_name": "preprocess_images",
+            "file": "data_augmentation.py",
+            "line_start": 170,
+            "line_end": 172,
+            "description": "Preprocess batch of images via external preprocess_input."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator.flow",
+            "function_name": "flow",
+            "file": "data_augmentation.py",
+            "line_start": 173,
+            "line_end": 232,
+            "description": "Yield batches of augmented images and labels."
+        },
+        {
+            "id": "data_augmentation.ImageGenerator._wrap_in_dictionary",
+            "function_name": "_wrap_in_dictionary",
+            "file": "data_augmentation.py",
+            "line_start": 233,
+            "line_end": 235,
+            "description": "Wrap inputs and targets into expected dictionary format."
+        }
+    ],
+    "edges": [
+        {
+            "id": "data_augmentation.e0",
+            "source": "data_augmentation.ImageGenerator._do_random_crop",
+            "target": "numpy.random.uniform"
+        },
+        {
+            "id": "data_augmentation.e1",
+            "source": "data_augmentation.ImageGenerator._do_random_crop",
+            "target": "scipy.ndimage.interpolation.affine_transform"
+        },
+        {
+            "id": "data_augmentation.e2",
+            "source": "data_augmentation.ImageGenerator._do_random_crop",
+            "target": "numpy.rollaxis"
+        },
+        {
+            "id": "data_augmentation.e3",
+            "source": "data_augmentation.ImageGenerator._do_random_crop",
+            "target": "numpy.stack"
+        },
+        {
+            "id": "data_augmentation.e4",
+            "source": "data_augmentation.ImageGenerator.do_random_rotation",
+            "target": "numpy.random.uniform"
+        },
+        {
+            "id": "data_augmentation.e5",
+            "source": "data_augmentation.ImageGenerator.do_random_rotation",
+            "target": "scipy.ndimage.interpolation.affine_transform"
+        },
+        {
+            "id": "data_augmentation.e6",
+            "source": "data_augmentation.ImageGenerator.do_random_rotation",
+            "target": "numpy.rollaxis"
+        },
+        {
+            "id": "data_augmentation.e7",
+            "source": "data_augmentation.ImageGenerator.do_random_rotation",
+            "target": "numpy.stack"
+        },
+        {
+            "id": "data_augmentation.e8",
+            "source": "data_augmentation.ImageGenerator.saturation",
+            "target": "data_augmentation.ImageGenerator._gray_scale"
+        },
+        {
+            "id": "data_augmentation.e9",
+            "source": "data_augmentation.ImageGenerator.saturation",
+            "target": "numpy.random.random"
+        },
+        {
+            "id": "data_augmentation.e10",
+            "source": "data_augmentation.ImageGenerator.saturation",
+            "target": "numpy.clip"
+        },
+        {
+            "id": "data_augmentation.e11",
+            "source": "data_augmentation.ImageGenerator.brightness",
+            "target": "numpy.random.random"
+        },
+        {
+            "id": "data_augmentation.e12",
+            "source": "data_augmentation.ImageGenerator.brightness",
+            "target": "numpy.clip"
+        },
+        {
+            "id": "data_augmentation.e13",
+            "source": "data_augmentation.ImageGenerator.contrast",
+            "target": "data_augmentation.ImageGenerator._gray_scale"
+        },
+        {
+            "id": "data_augmentation.e14",
+            "source": "data_augmentation.ImageGenerator.contrast",
+            "target": "numpy.ones_like"
+        },
+        {
+            "id": "data_augmentation.e15",
+            "source": "data_augmentation.ImageGenerator.contrast",
+            "target": "numpy.random.random"
+        },
+        {
+            "id": "data_augmentation.e16",
+            "source": "data_augmentation.ImageGenerator.contrast",
+            "target": "numpy.clip"
+        },
+        {
+            "id": "data_augmentation.e17",
+            "source": "data_augmentation.ImageGenerator.lighting",
+            "target": "numpy.cov"
+        },
+        {
+            "id": "data_augmentation.e18",
+            "source": "data_augmentation.ImageGenerator.lighting",
+            "target": "numpy.linalg.eigh"
+        },
+        {
+            "id": "data_augmentation.e19",
+            "source": "data_augmentation.ImageGenerator.lighting",
+            "target": "numpy.random.randn"
+        },
+        {
+            "id": "data_augmentation.e20",
+            "source": "data_augmentation.ImageGenerator.lighting",
+            "target": "numpy.clip"
+        },
+        {
+            "id": "data_augmentation.e21",
+            "source": "data_augmentation.ImageGenerator.horizontal_flip",
+            "target": "numpy.random.random"
+        },
+        {
+            "id": "data_augmentation.e22",
+            "source": "data_augmentation.ImageGenerator.vertical_flip",
+            "target": "numpy.random.random"
+        },
+        {
+            "id": "data_augmentation.e23",
+            "source": "data_augmentation.ImageGenerator.transform",
+            "target": "random.shuffle"
+        },
+        {
+            "id": "data_augmentation.e24",
+            "source": "data_augmentation.ImageGenerator.transform",
+            "target": "data_augmentation.ImageGenerator.saturation"
+        },
+        {
+            "id": "data_augmentation.e25",
+            "source": "data_augmentation.ImageGenerator.transform",
+            "target": "data_augmentation.ImageGenerator.brightness"
+        },
+        {
+            "id": "data_augmentation.e26",
+            "source": "data_augmentation.ImageGenerator.transform",
+            "target": "data_augmentation.ImageGenerator.contrast"
+        },
+        {
+            "id": "data_augmentation.e27",
+            "source": "data_augmentation.ImageGenerator.transform",
+            "target": "data_augmentation.ImageGenerator.lighting"
+        },
+        {
+            "id": "data_augmentation.e28",
+            "source": "data_augmentation.ImageGenerator.transform",
+            "target": "data_augmentation.ImageGenerator.horizontal_flip"
+        },
+        {
+            "id": "data_augmentation.e29",
+            "source": "data_augmentation.ImageGenerator.transform",
+            "target": "data_augmentation.ImageGenerator.vertical_flip"
+        },
+        {
+            "id": "data_augmentation.e30",
+            "source": "data_augmentation.ImageGenerator.preprocess_images",
+            "target": "preprocessor.preprocess_input"
+        },
+        {
+            "id": "data_augmentation.e31",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "random.shuffle"
+        },
+        {
+            "id": "data_augmentation.e32",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "preprocessor._imread"
+        },
+        {
+            "id": "data_augmentation.e33",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "preprocessor._imresize"
+        },
+        {
+            "id": "data_augmentation.e34",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "data_augmentation.ImageGenerator._do_random_crop"
+        },
+        {
+            "id": "data_augmentation.e35",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "data_augmentation.ImageGenerator.transform"
+        },
+        {
+            "id": "data_augmentation.e36",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "ground_truth_transformer.assign_boxes"
+        },
+        {
+            "id": "data_augmentation.e37",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "cv2.cvtColor"
+        },
+        {
+            "id": "data_augmentation.e38",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "numpy.expand_dims"
+        },
+        {
+            "id": "data_augmentation.e39",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "numpy.asarray"
+        },
+        {
+            "id": "data_augmentation.e40",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "preprocessor.to_categorical"
+        },
+        {
+            "id": "data_augmentation.e41",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "data_augmentation.ImageGenerator.preprocess_images"
+        },
+        {
+            "id": "data_augmentation.e42",
+            "source": "data_augmentation.ImageGenerator.flow",
+            "target": "data_augmentation.ImageGenerator._wrap_in_dictionary"
+        }
+    ]
+}

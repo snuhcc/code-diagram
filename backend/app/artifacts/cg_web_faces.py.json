@@ -1,0 +1,78 @@
+{
+    "nodes": [
+        {
+            "id": "faces.index",
+            "function_name": "index",
+            "file": "faces.py",
+            "line_start": 9,
+            "line_end": 10,
+            "description": "Redirects the root URL to ekholabs.ai with a 302 status code."
+        },
+        {
+            "id": "faces.upload",
+            "function_name": "upload",
+            "file": "faces.py",
+            "line_start": 13,
+            "line_end": 20,
+            "description": "Handles POST to /classifyImage: reads image, invokes processing, returns result or aborts on error."
+        },
+        {
+            "id": "faces.bad_request",
+            "function_name": "bad_request",
+            "file": "faces.py",
+            "line_start": 23,
+            "line_end": 24,
+            "description": "Error handler for 400 Bad Request; returns a JSON error response."
+        },
+        {
+            "id": "faces.not_found",
+            "function_name": "not_found",
+            "file": "faces.py",
+            "line_start": 27,
+            "line_end": 28,
+            "description": "Error handler for 404 Not Found; returns a JSON error response."
+        }
+    ],
+    "edges": [
+        {
+            "id": "faces.e0",
+            "source": "faces.index",
+            "target": "flask.redirect"
+        },
+        {
+            "id": "faces.e1",
+            "source": "faces.upload",
+            "target": "emotion_gender_processor.process_image"
+        },
+        {
+            "id": "faces.e2",
+            "source": "faces.upload",
+            "target": "flask.send_file"
+        },
+        {
+            "id": "faces.e3",
+            "source": "faces.upload",
+            "target": "flask.abort"
+        },
+        {
+            "id": "faces.e4",
+            "source": "faces.bad_request",
+            "target": "flask.jsonify"
+        },
+        {
+            "id": "faces.e5",
+            "source": "faces.bad_request",
+            "target": "flask.make_response"
+        },
+        {
+            "id": "faces.e6",
+            "source": "faces.not_found",
+            "target": "flask.jsonify"
+        },
+        {
+            "id": "faces.e7",
+            "source": "faces.not_found",
+            "target": "flask.make_response"
+        }
+    ]
+}

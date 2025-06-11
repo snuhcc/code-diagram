@@ -1,0 +1,119 @@
+{
+    "nodes": [
+        {
+            "id": "image_gradcam_demo.<module>",
+            "function_name": "<module>",
+            "file": "image_gradcam_demo.py",
+            "line_start": 1,
+            "line_end": 85,
+            "description": "Top-level script executing the Grad-CAM demo pipeline."
+        }
+    ],
+    "edges": [
+        {
+            "id": "image_gradcam_demo.<module>.e0",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.datasets.get_labels"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e1",
+            "source": "image_gradcam_demo.<module>",
+            "target": "keras.models.load_model"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e2",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.inference.load_detection_model"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e3",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.inference.load_image"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e4",
+            "source": "image_gradcam_demo.<module>",
+            "target": "numpy.squeeze"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e5",
+            "source": "image_gradcam_demo.<module>",
+            "target": "numpy.ndarray.astype"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e6",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.inference.detect_faces"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e7",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.inference.apply_offsets"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e8",
+            "source": "image_gradcam_demo.<module>",
+            "target": "cv2.resize"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e9",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.preprocessor.preprocess_input"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e10",
+            "source": "image_gradcam_demo.<module>",
+            "target": "numpy.expand_dims"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e11",
+            "source": "image_gradcam_demo.<module>",
+            "target": "keras.models.Model.predict"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e12",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.grad_cam.compile_gradient_function"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e13",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.grad_cam.register_gradient"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e14",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.grad_cam.modify_backprop"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e15",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.grad_cam.compile_saliency_function"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e16",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.grad_cam.calculate_guided_gradient_CAM"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e17",
+            "source": "image_gradcam_demo.<module>",
+            "target": "numpy.repeat"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e18",
+            "source": "image_gradcam_demo.<module>",
+            "target": "utils.inference.draw_bounding_box"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e19",
+            "source": "image_gradcam_demo.<module>",
+            "target": "cv2.cvtColor"
+        },
+        {
+            "id": "image_gradcam_demo.<module>.e20",
+            "source": "image_gradcam_demo.<module>",
+            "target": "cv2.imwrite"
+        }
+    ]
+}

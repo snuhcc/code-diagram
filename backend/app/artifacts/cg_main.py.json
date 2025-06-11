@@ -1,0 +1,94 @@
+{
+    "nodes": [
+        {
+            "id": "main.main",
+            "function_name": "main",
+            "file": "poc/main.py",
+            "line_start": 11,
+            "line_end": 47,
+            "description": "Main function that orchestrates data fetching and various processing pipelines based on user choice."
+        }
+    ],
+    "edges": [
+        {
+            "id": "main.e1",
+            "source": "main.main",
+            "target": "fetcher.fetch_data"
+        },
+        {
+            "id": "main.e2",
+            "source": "main.main",
+            "target": "processor.process_data"
+        },
+        {
+            "id": "main.e3",
+            "source": "main.main",
+            "target": "analyzer.analyze_data"
+        },
+        {
+            "id": "main.e4",
+            "source": "main.main",
+            "target": "reporter.generate_report"
+        },
+        {
+            "id": "main.e5",
+            "source": "main.main",
+            "target": "validator.validate_data"
+        },
+        {
+            "id": "main.e6",
+            "source": "main.main",
+            "target": "processor.process_data"
+        },
+        {
+            "id": "main.e7",
+            "source": "main.main",
+            "target": "analyzer.analyze_data"
+        },
+        {
+            "id": "main.e8",
+            "source": "main.main",
+            "target": "aggregator.aggregate_data"
+        },
+        {
+            "id": "main.e9",
+            "source": "main.main",
+            "target": "reporter.generate_report"
+        },
+        {
+            "id": "main.e10",
+            "source": "main.main",
+            "target": "filterer.filter_even"
+        },
+        {
+            "id": "main.e11",
+            "source": "main.main",
+            "target": "processor.process_data"
+        },
+        {
+            "id": "main.e12",
+            "source": "main.main",
+            "target": "analyzer.analyze_data"
+        },
+        {
+            "id": "main.e13",
+            "source": "main.main",
+            "target": "reporter.generate_report"
+        },
+        {
+            "id": "main.e14",
+            "source": "main.main",
+            "target": "transformer.transform_special"
+        },
+        {
+            "id": "main.e15",
+            "source": "main.main",
+            "target": "analyzer.analyze_data"
+        },
+        {
+            "id": "main.e16",
+            "source": "main.main",
+            "target": "reporter.generate_report"
+        }
+    ]
+}

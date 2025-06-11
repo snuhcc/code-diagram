@@ -21,27 +21,23 @@ import { useFS, type FileNode } from '@/store/files';
 import { NodeProps } from '@xyflow/react';
 import hljs from 'highlight.js/lib/core';
 import python from 'highlight.js/lib/languages/python';
-import 'highlight.js/styles/atom-one-light.css'; // 원하는 스타일로 변경 가능
+import 'highlight.js/styles/atom-one-light.css';
 
 hljs.registerLanguage('python', python);
 
-// Global cache for diagram data and snippets
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
-const snippetCache = new Map<string, string>(); // <cleanPath_functionName, preview>
+const snippetCache = new Map<string, string>();
 
-// Dagre layout utility
 function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
   const g = new dagre.graphlib.Graph().setGraph({
     rankdir: 'TB',
-    nodesep: 40, // 기존 100 → 40 (수평 간격 감소)
-    ranksep: 40, // 기존 100 → 40 (수직 간격 감소)
+    nodesep: 20,
+    ranksep: 40,
   });
   g.setDefaultEdgeLabel(() => ({}));
-
-  nodes.forEach((n) => g.setNode(n.id, { width: 160, height: 40 }));
+  nodes.forEach((n) => g.setNode(n.id, { width: 120, height: 40 }));
   edges.forEach((e) => g.setEdge(e.source, e.target));
   dagre.layout(g);
-
   return nodes.map((n) => {
     const { x, y } = g.node(n.id);
     return { ...n, position: { x, y } };
@@ -51,41 +47,177 @@ function layout(nodes: Node[] = [], edges: Edge[] = []): Node[] {
 function layoutWithCluster(
   files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>
 ): Record<string, { x: number; y: number }> {
+  // 파일별로 노드 수 계산
+  const totalFiles = Object.keys(files).length;
+  const totalNodes = Object.values(files).reduce((sum, f) => sum + f.nodes.length, 0);
+  const avgNodesPerFile = totalNodes / totalFiles;
+  
+  // 화면 크기를 고려한 최대 너비 설정 (보통 화면 너비의 80% 정도)
+  const maxWidth = window.innerWidth * 0.1;
+  const nodeWidth = totalNodes > 50 ? 100 : 120;
+  
+  // 한 줄에 배치할 최대 노드 수 계산
+  const maxNodesPerRank = Math.floor(maxWidth / (nodeWidth + 30));
+  
+  // 노드가 많을수록 더 컴팩트한 레이아웃 사용
+  const nodesep = totalNodes > 50 ? 15 : totalNodes > 30 ? 20 : 25;
+  const ranksep = totalNodes > 50 ? 40 : totalNodes > 30 ? 50 : 60;
+  
   const g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
-    .setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 56 })  // 기존 100, 140 → 40, 56
+    .setGraph({
+      rankdir: 'TB', // 항상 위에서 아래로
+      nodesep: nodesep,
+      ranksep: ranksep,
+      ranker: 'tight-tree', // 더 컴팩트한 트리 레이아웃
+      align: 'DL',
+      marginx: 10,
+      marginy: 10,
+    })
     .setDefaultEdgeLabel(() => ({}));
-
-  /* 1️⃣ 파일을 클러스터로 */
+    
+  // 파일별 클러스터 생성
   Object.keys(files).forEach((file) => {
-    g.setNode(`cluster_${file}`, {});  // 크기는 Dagre가 계산
+    g.setNode(`cluster_${file}`, {
+      marginx: 10,
+      marginy: 10,
+    });
   });
-
-  /* 2️⃣ 함수 노드 + 부모 설정 */
-  Object.entries(files).forEach(([file, { nodes }]) => {
+  
+  // 각 파일별로 노드 레이아웃 최적화
+  Object.entries(files).forEach(([file, { nodes, edges }]) => {
+    // 노드의 depth를 계산하여 같은 레벨의 노드들을 파악
+    const nodeDepths = new Map<string, number>();
+    const nodeChildren = new Map<string, string[]>();
+    
+    // 자식 노드 맵핑 생성
+    edges.forEach(({ source, target }) => {
+      if (!nodeChildren.has(source)) {
+        nodeChildren.set(source, []);
+      }
+      nodeChildren.get(source)!.push(target);
+    });
+    
+    // BFS로 각 노드의 depth 계산
+    const visited = new Set<string>();
+    const queue: { node: string; depth: number }[] = [];
+    
+    // 루트 노드 찾기 (들어오는 엣지가 없는 노드)
+    const incomingEdges = new Set(edges.map(e => e.target));
+    const rootNodes = nodes.filter(n => !incomingEdges.has(n.id));
+    
+    rootNodes.forEach(root => {
+      queue.push({ node: root.id, depth: 0 });
+    });
+    
+    while (queue.length > 0) {
+      const { node, depth } = queue.shift()!;
+      if (visited.has(node)) continue;
+      
+      visited.add(node);
+      nodeDepths.set(node, depth);
+      
+      const children = nodeChildren.get(node) || [];
+      children.forEach(child => {
+        queue.push({ node: child, depth: depth + 1 });
+      });
+    }
+    
+    // 같은 depth의 노드들을 그룹화
+    const depthGroups = new Map<number, string[]>();
+    nodeDepths.forEach((depth, nodeId) => {
+      if (!depthGroups.has(depth)) {
+        depthGroups.set(depth, []);
+      }
+      depthGroups.get(depth)!.push(nodeId);
+    });
+    
+    // 각 depth에서 노드가 많으면 가상의 중간 노드를 추가하여 분산
+    let virtualNodeCount = 0;
+    depthGroups.forEach((nodesAtDepth, depth) => {
+      if (nodesAtDepth.length > maxNodesPerRank && depth > 0) {
+        // 노드들을 그룹으로 분할
+        const chunks = [];
+        for (let i = 0; i < nodesAtDepth.length; i += maxNodesPerRank) {
+          chunks.push(nodesAtDepth.slice(i, i + maxNodesPerRank));
+        }
+        
+        // 각 청크에 대해 가상 노드를 추가하여 계층 구조 생성
+        if (chunks.length > 1) {
+          chunks.forEach((chunk, chunkIndex) => {
+            const virtualNodeId = `virtual_${file}_${depth}_${virtualNodeCount++}`;
+            g.setNode(virtualNodeId, {
+              width: 1,
+              height: 1,
+              dummy: true,
+            });
+            g.setParent(virtualNodeId, `cluster_${file}`);
+            
+            // 부모 노드들과 가상 노드를 연결
+            const parents = new Set<string>();
+            chunk.forEach(nodeId => {
+              edges.forEach(edge => {
+                if (edge.target === nodeId) {
+                  parents.add(edge.source);
+                }
+              });
+            });
+            
+            parents.forEach(parent => {
+              g.setEdge(parent, virtualNodeId, {
+                weight: 0.1, // 낮은 가중치로 설정
+              });
+            });
+            
+            // 가상 노드와 실제 노드들을 연결
+            chunk.forEach(nodeId => {
+              g.setEdge(virtualNodeId, nodeId, {
+                weight: 10, // 높은 가중치로 설정
+              });
+            });
+          });
+        }
+      }
+    });
+    
+    // 실제 노드 추가
     nodes.forEach((n) => {
-      g.setNode(n.id, { width: 160, height: 40 });
+      const width = totalNodes > 50 ? 100 : 120;
+      const height = totalNodes > 50 ? 35 : 40;
+      
+      g.setNode(n.id, { 
+        width: width,
+        height: height,
+      });
       g.setParent(n.id, `cluster_${file}`);
     });
   });
-
-  /* 3️⃣ 엣지 추가 */
+  
+  // 엣지 추가 (가상 노드를 거치지 않는 원본 엣지)
   Object.values(files).forEach(({ edges }) => {
-    edges.forEach(({ source, target }) => g.setEdge(source, target));
+    edges.forEach(({ source, target }) => {
+      // 가상 노드를 통한 연결이 없는 경우에만 직접 연결
+      if (!g.hasEdge(source, target)) {
+        g.setEdge(source, target, {
+          weight: 1,
+        });
+      }
+    });
   });
-
+  
   dagre.layout(g);
-
-  /* 4️⃣ 좌표 맵 추출 */
+  
   const pos: Record<string, { x: number; y: number }> = {};
   g.nodes().forEach((id: string) => {
     const n = g.node(id);
-    if (n?.x != null && n?.y != null) pos[id] = { x: n.x, y: n.y };
+    // 가상 노드는 제외
+    if (n && !n.dummy && n.x != null && n.y != null) {
+      pos[id] = { x: n.x, y: n.y };
+    }
   });
+  
   return pos;
 }
 
-
-// Common types
 interface RawNode {
   id: string;
   label?: string;
@@ -99,25 +231,48 @@ interface RawEdge {
   type?: string;
 }
 
-// API endpoint
 const ENDPOINT_CG = '/api/generate_call_graph';
 const ENDPOINT_CFG = '/api/generate_control_flow_graph';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-// target folder
 const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
-console.log(`TARGET_FOLDER: ${TARGET_FOLDER}`);
 
-
-// Custom group node component
-function CustomGroupNode({ data, style }: NodeProps) {
+function CustomGroupNode({ data }: NodeProps) {
+  const { label, isCollapsed, onToggleCollapse } = data;
+  
+  if (isCollapsed) {
+    // 접힌 상태: 단순한 컨텐츠만 렌더링
+    return (
+      <div 
+        style={{ 
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 600,
+          fontSize: 13,
+          color: '#444',
+          cursor: 'pointer',
+          gap: 8,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleCollapse();
+        }}
+      >
+        <span>{label}</span>
+        <span style={{ fontSize: 16 }}>▸</span>
+      </div>
+    );
+  }
+  
+  // 펼쳐진 상태: 라벨은 상단에 위치
   return (
-    <div style={{ position: 'relative', width: style?.width, height: style?.height }}>
-      {/* Label above the group box */}
+    <>
       <div
         style={{
           position: 'absolute',
-          top: -32, // 기존 -22에서 -32로 더 위로 올림
+          top: -32,
           left: 0,
           width: '100%',
           textAlign: 'center',
@@ -126,96 +281,103 @@ function CustomGroupNode({ data, style }: NodeProps) {
           color: '#444',
           pointerEvents: 'none',
           userSelect: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
         }}
       >
-        {data?.label}
+        <span>{label}</span>
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse();
+          }}
+          style={{
+            fontSize: 16,
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+          }}
+        >
+          ▾
+        </span>
       </div>
-      {/* Group box */}
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          background: style?.background,
-          border: style?.border,
-          borderRadius: style?.borderRadius,
-          boxSizing: 'border-box',
-        }}
-      />
-    </div>
+    </>
   );
 }
 
 export default function DiagramViewer() {
-  // State
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState<string>();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<string>('');
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null); // ⭐️ 추가
-  const [cfgMessage, setCfgMessage] = useState<string | null>(null); // ⭐️ 메시지 상태 추가
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [cfgMessage, setCfgMessage] = useState<string | null>(null);
   const [cfgPanels, setCfgPanels] = useState<
     { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
   >([]);
-  // ⭐️ CFG 버튼 로딩 상태
   const [cfgLoading, setCfgLoading] = useState(false);
-  const [diagramReady, setDiagramReady] = useState(false); // ⭐️ 다이어그램 생성 버튼 상태
-  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null); // ⭐️ edge hover state 추가
+  const [diagramReady, setDiagramReady] = useState(false);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Zustand stores
   const editorState = useEditor.getState();
   const fsState = useFS.getState();
 
-  // Current active file path
   const activePath =
     editorState.tabs.find((t) => t.id === editorState.activeId)?.path ??
     editorState.tabs.at(-1)?.path ??
     '';
 
-  // Utility to extract function snippet and its starting line number from code
+  const onToggleCollapse = useCallback((groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  function isNodeHidden(nodeId: string, collapsedGroups: Set<string>, nodes: Node[]): boolean {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || !node.parentId) return false;
+    
+    // 부모가 접혀있으면 숨김
+    if (collapsedGroups.has(node.parentId)) {
+      return true;
+    }
+    
+    // 재귀적으로 상위 부모 확인
+    return isNodeHidden(node.parentId, collapsedGroups, nodes);
+  }
+
   function extractFunctionSnippetWithLine(code: string, functionName: string): { snippet: string, startLine: number } | null {
     const lines = code.split('\n');
     let startLine = -1;
-
-    // Find the start of the function definition at indentation level 0
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      if (line.trim().startsWith(`def ${functionName}(`)) {
-        if (line === line.trim()) { // No leading spaces
-          startLine = i;
-          break;
-        }
+      if (line.trim().startsWith(`def ${functionName}(`) && line === line.trim()) {
+        startLine = i;
+        break;
       }
     }
-
-    if (startLine === -1) {
-      return null;
-    }
-
-    // Find the end of the function (next line with indentation 0)
+    if (startLine === -1) return null;
     for (let i = startLine + 1; i < lines.length; i++) {
-      if (lines[i].trim() === '') {
-        continue;
-      }
+      if (lines[i].trim() === '') continue;
       if (!lines[i].startsWith(' ') && !lines[i].startsWith('\t')) {
-        return {
-          snippet: lines.slice(startLine, i).join('\n'),
-          startLine: startLine + 1, // 1-based line number
-        };
+        return { snippet: lines.slice(startLine, i).join('\n'), startLine: startLine + 1 };
       }
     }
-    return {
-      snippet: lines.slice(startLine).join('\n'),
-      startLine: startLine + 1,
-    };
+    return { snippet: lines.slice(startLine).join('\n'), startLine: startLine + 1 };
   }
 
-  // Utility to add line numbers and syntax highlight to code snippet
   function addLineNumbersAndHighlight(snippet: string, start: number = 1): string {
-    // highlight.js로 syntax highlight 적용
     const highlighted = hljs.highlight(snippet, { language: 'python' }).value;
-    // 줄 단위로 쪼개서 라인넘버 span 추가
     const lines = highlighted.split('\n');
     const pad = String(start + lines.length - 1).length;
     return lines
@@ -226,40 +388,27 @@ export default function DiagramViewer() {
       .join('\n');
   }
 
-  // Node click handler: open file in editor and highlight in explorer
   const onNodeClick: NodeMouseHandler = (_, node) => {
-    // 그룹 노드 클릭 시: 선택 상태 변경하지 않음
     if (node.type === 'group') {
-      // 그룹 노드는 선택 상태를 변경하지 않음
-      // 파일 경로를 찾기 위해 nodes에서 해당 그룹의 파일 경로를 역추적
-      // 그룹 노드 id: group-<file_path_escaped>
-      // nodes 중 parentId가 node.id인 첫번째 노드의 file을 사용
-      const childNode = nodes.find(n => n.parentId === node.id);
-      const filePath = childNode ? (childNode.data as any)?.file : undefined;
+      // 그룹 노드 클릭 시 파일 열기
+      const childNode = nodes.find(n => n.parentId === node.id && !isNodeHidden(n.id, collapsedGroups, nodes));
+      const filePath = childNode ? (childNode.data as any)?.file : (node.data as any)?.file;
       if (!filePath) return;
-
       const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
       const clean = filePath.replace(regex, '');
       editorState.open({
         id: nanoid(),
         path: clean,
         name: clean.split(/[\\/]/).pop() ?? clean,
-        // 첫번째 라인으로 이동 (예시: line: 1)
         line: 1,
       });
-
       const target = findByPath(fsState.tree, clean);
       if (target) fsState.setCurrent(target.id);
       return;
     }
-
-    // 함수 노드만 선택 상태 토글
     setSelectedNodeId(prev => prev === node.id ? null : node.id);
-
-    // 기존 함수 노드 클릭 동작
     const raw = (node.data as any)?.file as string | undefined;
     if (!raw) return;
-
     const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
     const clean = raw.replace(regex, '');
     editorState.open({
@@ -267,32 +416,26 @@ export default function DiagramViewer() {
       path: clean,
       name: clean.split(/[\\/]/).pop() ?? clean,
     });
-
     const target = findByPath(fsState.tree, clean);
     if (target) fsState.setCurrent(target.id);
   };
 
-  // Hover handlers
   const onEnter: NodeMouseHandler = async (_, node) => {
+    if (node.type === 'group') return; // 그룹 노드는 hover 효과 없음
+    
     setHoverId(node.id);
-
     const raw = (node.data as any)?.file as string | undefined;
     const functionName = (node.data as any)?.label as string | undefined;
-
     if (!raw || !functionName) {
       setSnippet('');
       return;
     }
-
     const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
     const clean = raw.replace(regex, '');
     const cacheKey = `${clean}_${functionName}`;
-
     if (snippetCache.has(cacheKey)) {
       try {
-        const txt = await fetch(
-          `/api/file?path=${encodeURIComponent(clean)}`
-        ).then((r) => r.text());
+        const txt = await fetch(`/api/file?path=${encodeURIComponent(clean)}`).then((r) => r.text());
         const result = extractFunctionSnippetWithLine(txt, functionName);
         if (result) {
           setSnippet(addLineNumbersAndHighlight(result.snippet, result.startLine));
@@ -304,12 +447,8 @@ export default function DiagramViewer() {
       }
       return;
     }
-
     try {
-      const txt = await fetch(
-        `/api/file?path=${encodeURIComponent(clean)}`
-      ).then((r) => r.text());
-
+      const txt = await fetch(`/api/file?path=${encodeURIComponent(clean)}`).then((r) => r.text());
       const result = extractFunctionSnippetWithLine(txt, functionName);
       if (result) {
         snippetCache.set(cacheKey, result.snippet);
@@ -327,7 +466,6 @@ export default function DiagramViewer() {
     setSnippet('');
   };
 
-  // Edge hover handlers
   const onEdgeMouseEnter = useCallback((event: React.MouseEvent, edge: Edge) => {
     setHoveredEdgeId(edge.id);
   }, []);
@@ -335,7 +473,6 @@ export default function DiagramViewer() {
     setHoveredEdgeId(null);
   }, []);
 
-  // Handle node changes (dragging, etc.)
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       setNodes((nds) => applyNodeChanges(changes, nds));
@@ -343,19 +480,16 @@ export default function DiagramViewer() {
     [setNodes]
   );
 
-  // Load diagram data and cache it
   useEffect(() => {
-    if (!diagramReady) return; // ⭐️ 버튼 누르기 전에는 아무것도 안함
+    if (!diagramReady) return;
     (async () => {
       if (diagramCache) {
         hydrate(diagramCache);
         setLoad(false);
         return;
       }
-
       setLoad(true);
       setErr(undefined);
-
       try {
         const res = await fetch(`${apiUrl}${ENDPOINT_CG}`, {
           method: 'POST',
@@ -363,11 +497,9 @@ export default function DiagramViewer() {
           body: JSON.stringify({ path: `../../${TARGET_FOLDER}`, file_type: 'py' }),
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-
         const raw = await res.json();
         const json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> =
           typeof raw?.data === 'string' ? JSON.parse(raw.data) : raw.data;
-
         diagramCache = json;
         hydrate(json);
       } catch (e: any) {
@@ -378,93 +510,106 @@ export default function DiagramViewer() {
         setLoad(false);
       }
     })();
-  }, [diagramReady]); // ⭐️ diagramReady가 true일 때만 동작
+  }, [diagramReady]);
 
-  // Compute node styles
   const finalNodes = nodes.map((n) => {
     const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
     const clean = ((n.data as any)?.file || '').replace(regex, '');
     const isActive = clean === activePath;
     const isHover = hoverId === n.id;
     const isSelected = selectedNodeId === n.id;
-    if (n.type === 'group') {
-      return {
-        ...n,
-        style: {
-          ...n.style,
-          background: isHover
+    const isGroup = n.type === 'group';
+    const isCollapsed = isGroup && collapsedGroups.has(n.id);
+    const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
+
+    return {
+      ...n,
+      hidden: isHidden,
+      style: {
+        ...n.style,
+        background: isGroup
+          ? isCollapsed 
+            ? '#f3f4f6'
+            : isHover
+              ? '#fef9c3'
+              : isSelected
+                ? '#fca5a5'
+                : isActive
+                  ? '#dbeafe'
+                  : '#FAFAFA'
+          : isHover
             ? '#fef9c3'
             : isSelected
               ? '#fca5a5'
               : isActive
                 ? '#dbeafe'
-                : '#FAFAFA',
-          border: isHover
+                : '#ffffff',
+        border: isGroup
+          ? isCollapsed
+            ? '2px solid #6b7280'
+            : isHover
+              ? '4px solid #eab308'
+              : isActive
+                ? '1px solid #fb923c'
+                : '1px solid #b9bfc9'
+          : isHover
             ? '4px solid #eab308'
-            : isActive
-              ? '1px solid #fb923c'
-              : '1px solid #b9bfc9',
-        },
-      };
-    }
-    // 일반 노드
-    return {
-      ...n,
-      style: {
-        ...n.style,
-        background: isHover
-          ? '#fef9c3'
-          : isSelected
-            ? '#fca5a5'
-            : isActive
-              ? '#dbeafe'
-              : '#ffffff',
-        border: isHover
-          ? '4px solid #eab308'
-          : isSelected
-            ? '4px solid #b91c1c'
-            : isActive
-              ? '1px solid #0284c7'
-              : '1px solid #4A90E2',
+            : isSelected
+              ? '4px solid #b91c1c'
+              : isActive
+                ? '1px solid #0284c7'
+                : '1px solid #4A90E2',
         transition: 'all 0.1s ease-in-out',
+        minWidth: isGroup ? (isCollapsed ? 200 : undefined) : n.style?.minWidth || 120,
+        width: isGroup && isCollapsed ? 200 : n.style?.width,
+        height: isGroup && isCollapsed ? 50 : n.style?.height,
+        cursor: isGroup && isCollapsed ? 'pointer' : 'default',
       },
+      data: isGroup
+        ? {
+            ...n.data,
+            isCollapsed,
+            onToggleCollapse: () => onToggleCollapse(n.id),
+          }
+        : n.data,
     };
   });
 
-  // ⭐️ Compute edge styles (hover effect)
   const finalEdges = edges.map((e) => {
+    const sourceHidden = isNodeHidden(e.source, collapsedGroups, nodes);
+    const targetHidden = isNodeHidden(e.target, collapsedGroups, nodes);
+    
+    // 엣지의 소스나 타겟이 숨겨져 있으면 엣지도 숨김
+    const isHidden = sourceHidden || targetHidden;
+    
     const isHover = hoveredEdgeId === e.id;
     return {
       ...e,
+      hidden: isHidden,
       style: {
         ...(e.style || {}),
-        stroke: isHover ? '#f59e42' : (e.style?.stroke ?? '#34A853'), // hover시 주황색
+        stroke: isHover ? '#f59e42' : (e.style?.stroke ?? '#34A853'),
         strokeWidth: isHover ? 4 : (e.style?.strokeWidth ?? 2),
         transition: 'all 0.13s',
         cursor: 'pointer',
       },
       markerEnd: {
         ...(e.markerEnd || {}),
-        color: isHover ? '#f59e42' : (e.markerEnd?.color ?? '#34A853'), // hover시 주황색
+        color: isHover ? '#f59e42' : (e.markerEnd?.color ?? '#34A853'),
       },
       zIndex: 10000,
     };
   });
 
-  // 레이아웃 재적용 함수
   const reLayout = useCallback(() => {
     if (diagramCache) {
-      // 기존에 받아온 JSON 캐시를 다시 hydrate하여 layoutWithCluster 로직 전체 재실행
       hydrate(diagramCache);
     }
   }, []);
 
-  // ⭐️ Control Flow Graph 버튼 핸들러 구현 (복수 패널 지원)
   const handleGenerateCFG = async () => {
     setCfgMessage(null);
     setCfgLoading(true);
-
-    // 선택된 노드 찾기 (group 타입이 아닌 함수 노드만)
     const selectedNode = nodes.find(n => n.id === selectedNodeId && n.type !== 'group');
     if (!selectedNode) {
       setCfgMessage('선택된 노드가 없습니다.');
@@ -479,7 +624,6 @@ export default function DiagramViewer() {
       return;
     }
     const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-
     try {
       const res = await fetch(`${apiUrl}${ENDPOINT_CFG}`, {
         method: 'POST',
@@ -493,9 +637,7 @@ export default function DiagramViewer() {
       if (data.status && data.status !== 200) {
         setCfgMessage('API 호출 실패: ' + (data.data || ''));
       } else {
-        // CFG JSON을 React Flow 노드/엣지로 변환
         const cfgRaw = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-        // 예시: { nodes: [{id, label}], edges: [{id, source, target}] }
         let cfgNodes = (cfgRaw.nodes || []).map((n: any) => ({
           id: n.id,
           data: { label: n.label || n.id },
@@ -518,16 +660,12 @@ export default function DiagramViewer() {
           animated: true,
           style: { stroke: '#0284c7', strokeWidth: 2 },
         }));
-
-        // layout 적용 (x/y 모두 0이거나 누락된 경우만)
         if (
           cfgNodes.length > 0 &&
           cfgNodes.every(n => (!n.position.x && !n.position.y))
         ) {
           cfgNodes = layout(cfgNodes, cfgEdges);
         }
-
-        // 패널 id는 file+functionName+timestamp로 유니크하게
         const id = `${file}__${functionName}__${Date.now()}`;
         setCfgPanels(panels => [
           ...panels,
@@ -551,9 +689,7 @@ export default function DiagramViewer() {
     }
   };
 
-  // Loading and error states
   if (!diagramReady) {
-    // 미니멀하고 깔끔한 버튼 디자인, 배경은 그대로
     return (
       <div className="flex items-center justify-center h-full w-full">
         <button
@@ -629,7 +765,6 @@ export default function DiagramViewer() {
       <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
     );
 
-  // Render
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
@@ -639,16 +774,14 @@ export default function DiagramViewer() {
         onNodeClick={onNodeClick}
         onNodeMouseEnter={onEnter}
         onNodeMouseLeave={onLeave}
-        onEdgeMouseEnter={onEdgeMouseEnter} // ⭐️
-        onEdgeMouseLeave={onEdgeMouseLeave} // ⭐️
+        onEdgeMouseEnter={onEdgeMouseEnter}
+        onEdgeMouseLeave={onEdgeMouseLeave}
         fitView
         minZoom={0.2}
         maxZoom={2}
         className="bg-gray-50"
-        nodeTypes={{
-          group: CustomGroupNode, // Register custom group node
-        }}
-        onPaneClick={() => setSelectedNodeId(null)} // 빈 공간 클릭 시 선택 해제
+        nodeTypes={{ group: CustomGroupNode }}
+        onPaneClick={() => setSelectedNodeId(null)}
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap
@@ -656,7 +789,7 @@ export default function DiagramViewer() {
           zoomable
           nodeColor={n =>
             n.type === 'group'
-              ? '#bdbdbd'
+              ? collapsedGroups.has(n.id) ? '#6b7280' : '#bdbdbd'
               : n.style?.background === '#fef9c3'
                 ? '#facc15'
                 : n.style?.background === '#dbeafe'
@@ -665,7 +798,7 @@ export default function DiagramViewer() {
           }
           nodeStrokeColor={n =>
             n.type === 'group'
-              ? '#757575'
+              ? collapsedGroups.has(n.id) ? '#374151' : '#757575'
               : n.style?.border?.includes('#eab308')
                 ? '#eab308'
                 : n.style?.border?.includes('#0284c7')
@@ -675,14 +808,13 @@ export default function DiagramViewer() {
           nodeStrokeWidth={2}
           maskColor="rgba(255,255,255,0.7)"
           style={{
-            background: '#f3f4f6', // 밝은 회색 배경 (tailwind gray-100)
-            border: '1.5px solid #cbd5e1', // 테두리 (tailwind slate-300)
+            background: '#f3f4f6',
+            border: '1.5px solid #cbd5e1',
             borderRadius: 6,
             boxShadow: '0 2px 8px #0002',
           }}
         />
         <Controls>
-          {/* ...기존 +, -, 잠금 버튼 등... */}
           <button
             type="button"
             title="Re-layout"
@@ -701,7 +833,6 @@ export default function DiagramViewer() {
               transition: 'border 0.15s',
             }}
           >
-            {/* 흑백 단색 레이아웃(정렬) 아이콘 */}
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <rect x="2" y="2" width="4" height="4" rx="1" fill="#222" />
               <rect x="10" y="2" width="4" height="4" rx="1" fill="#222" />
@@ -730,7 +861,6 @@ export default function DiagramViewer() {
               position: 'relative',
             }}
           >
-            {/* 그래프 생성 느낌의 아이콘 (노드+엣지+플러스) - 검은색 */}
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: cfgLoading ? 0.3 : 1 }}>
               <circle cx="6" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2" />
               <circle cx="14" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2" />
@@ -744,7 +874,6 @@ export default function DiagramViewer() {
                 <rect x="14.2" y="16" width="4.6" height="1" rx="0.5" fill="#fff" />
               </g>
             </svg>
-            {/* 로딩 스피너 */}
             {cfgLoading && (
               <span
                 style={{
@@ -770,8 +899,6 @@ export default function DiagramViewer() {
           </button>
         </Controls>
       </ReactFlow>
-
-      {/* ⭐️ Control Flow Graph 메시지/결과 표시 */}
       {cfgMessage && (
         <div
           style={{
@@ -790,8 +917,6 @@ export default function DiagramViewer() {
           {cfgMessage}
         </div>
       )}
-
-      {/* ⭐️ 복수 패널 지원 */}
       {cfgPanels.map((panel, idx) => (
         <div
           key={panel.id}
@@ -845,7 +970,6 @@ export default function DiagramViewer() {
             }
           }}
         >
-          {/* 헤더: 드래그 핸들 + expand/collapse/close */}
           <div
             style={{
               width: '100%',
@@ -878,9 +1002,7 @@ export default function DiagramViewer() {
               e.preventDefault();
             }}
           >
-            <span style={{ flex: 1 }}>
-              CFG ({panel.functionName})
-            </span>
+            <span style={{ flex: 1 }}>CFG ({panel.functionName})</span>
             <button
               onClick={e => {
                 e.stopPropagation();
@@ -974,7 +1096,6 @@ export default function DiagramViewer() {
           )}
         </div>
       ))}
-      {/* Code snippet panel */}
       {hoverId && snippet && (
         <div
           className="fixed z-50"
@@ -986,7 +1107,7 @@ export default function DiagramViewer() {
             width: 'auto',
             minHeight: 40,
             maxHeight: '80vh',
-            background: '#fafafa', // atom-one-light에 어울리는 밝은 배경
+            background: '#fafafa',
             color: '#1e293b',
             fontSize: 12,
             borderRadius: 8,
@@ -997,7 +1118,6 @@ export default function DiagramViewer() {
             wordBreak: 'break-all',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
           }}
-          // highlight.js 스타일 적용을 위해 hljs 클래스 추가
           dangerouslySetInnerHTML={{ __html: `<pre class="hljs">${snippet}</pre>` }}
         />
       )}
@@ -1007,11 +1127,8 @@ export default function DiagramViewer() {
   function hydrate(json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) {
     let allFunctionNodes: Node[] = [];
     let allRawEdges: RawEdge[] = [];
-
-    // Step 1: Collect all function nodes and all edges from JSON
     Object.entries(json).forEach(([file, data]) => {
       const { nodes: rawNodes, edges: rawEdges } = data;
-
       const fileFunctionNodes: Node[] = rawNodes.map((r) => ({
         id: r.id,
         data: { label: r.label || r.function_name || r.id, file: r.file },
@@ -1021,18 +1138,14 @@ export default function DiagramViewer() {
           borderRadius: 4,
           border: '1px solid #3b82f6',
           background: '#fff',
+          minWidth: 120,
         },
-        zIndex: 1, // Function nodes above group nodes
+        zIndex: 1,
       }));
-
       allFunctionNodes = allFunctionNodes.concat(fileFunctionNodes);
       allRawEdges = allRawEdges.concat(rawEdges);
     });
-
-    // Step 2: 전체 노드 id 집합 생성
     const allNodeIds = new Set(allFunctionNodes.map((n) => n.id));
-
-    // Step 3: edge의 source/target이 전체 노드에 있으면 추가 (cross-file edge 지원)
     const allEdges: Edge[] = allRawEdges
       .filter((e) => allNodeIds.has(e.source) && allNodeIds.has(e.target))
       .map((r) => ({
@@ -1041,54 +1154,43 @@ export default function DiagramViewer() {
         target: r.target,
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          width: 15, // 화살표 크기 증가
-          height: 15, // 화살표 크기 증가
-          color: '#34A853', // 더 진한 초록색
+          width: 15,
+          height: 15,
+          color: '#34A853',
         },
         animated: true,
-        style: { stroke: '#34A853', strokeWidth: 2 }, // 초록색, 두께 증가
-        zIndex: 10000, // Edges above all nodes, including during drag
-        // type: 'smoothstep', // Smooth step edges for better appearance
+        style: { stroke: '#34A853', strokeWidth: 2 },
+        zIndex: 10000,
       }));
-
-    // Step 2: Dagre를 사용해 모든 함수 노드 배치
-    const posMap = layoutWithCluster(json);       // ← 새 클러스터 레이아웃
+    const posMap = layoutWithCluster(json);
     const laidOutFunctionNodes = allFunctionNodes.map((n) => ({
       ...n,
       position: posMap[n.id] ?? { x: 0, y: 0 },
     }));
-
-    // Step 3: 파일별 그룹 노드 생성
     const groupNodes: Node[] = [];
-    const padding = 20;
+    const padding = 15;
     const fileToNodes: Record<string, Node[]> = {};
-
-    // 파일별로 함수 노드 그룹화
     laidOutFunctionNodes.forEach((node) => {
       const file = (node.data as any).file;
-      if (!fileToNodes[file]) {
-        fileToNodes[file] = [];
-      }
+      if (!fileToNodes[file]) fileToNodes[file] = [];
       fileToNodes[file].push(node);
     });
-
-    // Step 4: 그룹 노드 생성 및 자식 노드 위치 조정
     Object.entries(fileToNodes).forEach(([file, nodes]) => {
       if (nodes.length === 0) return;
-
-      // 그룹의 경계 상자 계산
       const xs = nodes.map((n) => n.position.x);
       const ys = nodes.map((n) => n.position.y);
       const minX = Math.min(...xs);
       const minY = Math.min(...ys);
-      const maxX = Math.max(...xs) + 160; // 대략적인 노드 너비
-      const maxY = Math.max(...ys) + 40;  // 대략적인 노드 높이
-
+      const maxX = Math.max(...xs) + 120;
+      const maxY = Math.max(...ys) + 40;
       const groupId = `group-${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
       groupNodes.push({
         id: groupId,
-        type: 'group', // This will use CustomGroupNode
-        data: { label: file.split('/').pop() || file },
+        type: 'group',
+        data: { 
+          label: file.split('/').pop() || file,
+          file: file // 그룹 노드에도 파일 경로 저장
+        },
         position: { x: minX - padding, y: minY - padding },
         style: {
           width: maxX - minX + 2 * padding,
@@ -1097,10 +1199,8 @@ export default function DiagramViewer() {
           border: '1px dashed #fb923c',
           borderRadius: 8,
         },
-        zIndex: 0, // Group nodes below function nodes and edges
+        zIndex: 0,
       });
-
-      // 함수 노드 위치를 그룹 기준으로 조정
       nodes.forEach((node) => {
         node.position = {
           x: node.position.x - (minX - padding),
@@ -1110,18 +1210,14 @@ export default function DiagramViewer() {
         node.extent = 'parent';
       });
     });
-
-    // Step 5: 그룹 노드와 함수 노드 결합 후 상태 설정
     const allNodes = [...groupNodes, ...laidOutFunctionNodes];
     setNodes(allNodes);
     setEdges(allEdges);
   }
 }
 
-// Utility to find FileNode by path
 function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
   const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-
   for (const n of nodes) {
     if (n.path?.replace(regex, '') === p) return n;
     if (n.children) {

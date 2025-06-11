@@ -1,0 +1,68 @@
+{
+    "nodes": [
+        {
+            "id": "preprocessor.preprocess_input",
+            "function_name": "preprocess_input",
+            "file": "preprocessor.py",
+            "line_start": 5,
+            "line_end": 11,
+            "description": "Normalizes the input array by scaling to [0,1] and optionally to [-1,1] if v2=True."
+        },
+        {
+            "id": "preprocessor._imread",
+            "function_name": "_imread",
+            "file": "preprocessor.py",
+            "line_start": 14,
+            "line_end": 15,
+            "description": "Wrapper around scipy.misc.imread to read image files."
+        },
+        {
+            "id": "preprocessor._imresize",
+            "function_name": "_imresize",
+            "file": "preprocessor.py",
+            "line_start": 18,
+            "line_end": 19,
+            "description": "Wrapper around scipy.misc.imresize to resize image arrays."
+        },
+        {
+            "id": "preprocessor.to_categorical",
+            "function_name": "to_categorical",
+            "file": "preprocessor.py",
+            "line_start": 22,
+            "line_end": 27,
+            "description": "Converts integer class labels into one-hot encoded vectors."
+        }
+    ],
+    "edges": [
+        {
+            "id": "preprocessor.e0",
+            "source": "preprocessor.preprocess_input",
+            "target": "np.ndarray.astype"
+        },
+        {
+            "id": "preprocessor.e1",
+            "source": "preprocessor._imread",
+            "target": "scipy.misc.imread"
+        },
+        {
+            "id": "preprocessor.e2",
+            "source": "preprocessor._imresize",
+            "target": "scipy.misc.imresize"
+        },
+        {
+            "id": "preprocessor.e3",
+            "source": "preprocessor.to_categorical",
+            "target": "np.asarray"
+        },
+        {
+            "id": "preprocessor.e4",
+            "source": "preprocessor.to_categorical",
+            "target": "np.zeros"
+        },
+        {
+            "id": "preprocessor.e5",
+            "source": "preprocessor.to_categorical",
+            "target": "np.arange"
+        }
+    ]
+}

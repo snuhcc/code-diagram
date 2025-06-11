@@ -1,0 +1,40 @@
+{
+    "nodes": [
+        {
+            "id": "aggregator.aggregate_data",
+            "function_name": "aggregate_data",
+            "file": "aggregator.py",
+            "line_start": 1,
+            "line_end": 11,
+            "description": "Aggregates data and computes count, sum, max, min, and average, then formats and prints the summary."
+        },
+        {
+            "id": "aggregator.compute_average",
+            "function_name": "compute_average",
+            "file": "aggregator.py",
+            "line_start": 13,
+            "line_end": 15,
+            "description": "Computes the average of the data list; returns 0 if the list is empty."
+        },
+        {
+            "id": "aggregator.format_summary",
+            "function_name": "format_summary",
+            "file": "aggregator.py",
+            "line_start": 17,
+            "line_end": 19,
+            "description": "Formats the statistics into a human-readable summary string."
+        }
+    ],
+    "edges": [
+        {
+            "id": "aggregator.e0",
+            "source": "aggregator.aggregate_data",
+            "target": "aggregator.compute_average"
+        },
+        {
+            "id": "aggregator.e1",
+            "source": "aggregator.aggregate_data",
+            "target": "aggregator.format_summary"
+        }
+    ]
+}

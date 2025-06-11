@@ -1,0 +1,40 @@
+{
+    "nodes": [
+        {
+            "id": "filterer.filter_even",
+            "function_name": "filter_even",
+            "file": "filterer.py",
+            "line_start": 1,
+            "line_end": 4,
+            "description": "Filters data by first removing odd numbers then keeping only values greater than 10."
+        },
+        {
+            "id": "filterer.remove_odd",
+            "function_name": "remove_odd",
+            "file": "filterer.py",
+            "line_start": 6,
+            "line_end": 8,
+            "description": "Removes odd numbers from the input list."
+        },
+        {
+            "id": "filterer.filter_gt",
+            "function_name": "filter_gt",
+            "file": "filterer.py",
+            "line_start": 10,
+            "line_end": 12,
+            "description": "Filters the input list to include only values greater than a given threshold."
+        }
+    ],
+    "edges": [
+        {
+            "id": "filterer.e0",
+            "source": "filterer.filter_even",
+            "target": "filterer.remove_odd"
+        },
+        {
+            "id": "filterer.e1",
+            "source": "filterer.filter_even",
+            "target": "filterer.filter_gt"
+        }
+    ]
+}

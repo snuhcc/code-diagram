@@ -1,0 +1,59 @@
+{
+    "nodes": [
+        {
+            "id": "video_emotion_color_demo.main",
+            "function_name": "main",
+            "file": "video_emotion_color_demo.py",
+            "line_start": 1,
+            "line_end": 91,
+            "description": "Main script that initializes models, captures video frames, detects faces, predicts emotions, and annotates frames with bounding boxes and emotion labels."
+        }
+    ],
+    "edges": [
+        {
+            "id": "main.e0",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.datasets.get_labels"
+        },
+        {
+            "id": "main.e1",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.load_detection_model"
+        },
+        {
+            "id": "main.e2",
+            "source": "video_emotion_color_demo.main",
+            "target": "keras.models.load_model"
+        },
+        {
+            "id": "main.e3",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.detect_faces"
+        },
+        {
+            "id": "main.e4",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.apply_offsets"
+        },
+        {
+            "id": "main.e5",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.preprocessor.preprocess_input"
+        },
+        {
+            "id": "main.e6",
+            "source": "video_emotion_color_demo.main",
+            "target": "statistics.mode"
+        },
+        {
+            "id": "main.e7",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.draw_bounding_box"
+        },
+        {
+            "id": "main.e8",
+            "source": "video_emotion_color_demo.main",
+            "target": "utils.inference.draw_text"
+        }
+    ]
+}

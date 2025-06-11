@@ -1,0 +1,266 @@
+{
+    "nodes": [
+        {
+            "id": "cnn.simple_CNN",
+            "function_name": "simple_CNN",
+            "file": "cnn.py",
+            "line_start": 14,
+            "line_end": 56,
+            "description": "Constructs a simple CNN using the Keras Sequential API, stacking Conv2D, BatchNormalization, Activation, AveragePooling2D, Dropout layers, and a final GlobalAveragePooling2D with softmax output."
+        },
+        {
+            "id": "cnn.simpler_CNN",
+            "function_name": "simpler_CNN",
+            "file": "cnn.py",
+            "line_start": 59,
+            "line_end": 108,
+            "description": "Builds a simplified CNN using Keras Sequential with strided Conv2D layers, BatchNormalization, Activation, Dropout, Flatten, and softmax output."
+        },
+        {
+            "id": "cnn.tiny_XCEPTION",
+            "function_name": "tiny_XCEPTION",
+            "file": "cnn.py",
+            "line_start": 111,
+            "line_end": 205,
+            "description": "Defines a small Xception-style model using the Keras functional API with separable convolutions, residual connections, batch normalization, activations, pooling, L2 regularization, and softmax output."
+        },
+        {
+            "id": "cnn.mini_XCEPTION",
+            "function_name": "mini_XCEPTION",
+            "file": "cnn.py",
+            "line_start": 207,
+            "line_end": 300,
+            "description": "Defines a mini Xception-style model with fewer filters, using separable convolutions, residual blocks, BatchNormalization, activations, pooling, L2 regularization, and softmax output."
+        },
+        {
+            "id": "cnn.big_XCEPTION",
+            "function_name": "big_XCEPTION",
+            "file": "cnn.py",
+            "line_start": 303,
+            "line_end": 345,
+            "description": "Defines a larger Xception-style model using the Keras functional API with more filters, separable convolutions, residual connections, batch normalization, activations, pooling, and softmax classification."
+        }
+    ],
+    "edges": [
+        {
+            "id": "simple_CNN.e0",
+            "source": "cnn.simple_CNN",
+            "target": "keras.models.Sequential"
+        },
+        {
+            "id": "simple_CNN.e1",
+            "source": "cnn.simple_CNN",
+            "target": "keras.models.Sequential.add"
+        },
+        {
+            "id": "simple_CNN.e2",
+            "source": "cnn.simple_CNN",
+            "target": "keras.layers.Convolution2D"
+        },
+        {
+            "id": "simple_CNN.e3",
+            "source": "cnn.simple_CNN",
+            "target": "keras.layers.BatchNormalization"
+        },
+        {
+            "id": "simple_CNN.e4",
+            "source": "cnn.simple_CNN",
+            "target": "keras.layers.Activation"
+        },
+        {
+            "id": "simple_CNN.e5",
+            "source": "cnn.simple_CNN",
+            "target": "keras.layers.AveragePooling2D"
+        },
+        {
+            "id": "simple_CNN.e6",
+            "source": "cnn.simple_CNN",
+            "target": "keras.layers.Dropout"
+        },
+        {
+            "id": "simple_CNN.e7",
+            "source": "cnn.simple_CNN",
+            "target": "keras.layers.GlobalAveragePooling2D"
+        },
+        {
+            "id": "simpler_CNN.e0",
+            "source": "cnn.simpler_CNN",
+            "target": "keras.models.Sequential"
+        },
+        {
+            "id": "simpler_CNN.e1",
+            "source": "cnn.simpler_CNN",
+            "target": "keras.models.Sequential.add"
+        },
+        {
+            "id": "simpler_CNN.e2",
+            "source": "cnn.simpler_CNN",
+            "target": "keras.layers.Convolution2D"
+        },
+        {
+            "id": "simpler_CNN.e3",
+            "source": "cnn.simpler_CNN",
+            "target": "keras.layers.BatchNormalization"
+        },
+        {
+            "id": "simpler_CNN.e4",
+            "source": "cnn.simpler_CNN",
+            "target": "keras.layers.Activation"
+        },
+        {
+            "id": "simpler_CNN.e5",
+            "source": "cnn.simpler_CNN",
+            "target": "keras.layers.Dropout"
+        },
+        {
+            "id": "simpler_CNN.e6",
+            "source": "cnn.simpler_CNN",
+            "target": "keras.layers.Flatten"
+        },
+        {
+            "id": "tiny_XCEPTION.e0",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.regularizers.l2"
+        },
+        {
+            "id": "tiny_XCEPTION.e1",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.layers.Input"
+        },
+        {
+            "id": "tiny_XCEPTION.e2",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.layers.Conv2D"
+        },
+        {
+            "id": "tiny_XCEPTION.e3",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.layers.BatchNormalization"
+        },
+        {
+            "id": "tiny_XCEPTION.e4",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.layers.Activation"
+        },
+        {
+            "id": "tiny_XCEPTION.e5",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.layers.SeparableConv2D"
+        },
+        {
+            "id": "tiny_XCEPTION.e6",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.layers.MaxPooling2D"
+        },
+        {
+            "id": "tiny_XCEPTION.e7",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.layers.add"
+        },
+        {
+            "id": "tiny_XCEPTION.e8",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.layers.GlobalAveragePooling2D"
+        },
+        {
+            "id": "tiny_XCEPTION.e9",
+            "source": "cnn.tiny_XCEPTION",
+            "target": "keras.models.Model"
+        },
+        {
+            "id": "mini_XCEPTION.e0",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.regularizers.l2"
+        },
+        {
+            "id": "mini_XCEPTION.e1",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.layers.Input"
+        },
+        {
+            "id": "mini_XCEPTION.e2",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.layers.Conv2D"
+        },
+        {
+            "id": "mini_XCEPTION.e3",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.layers.BatchNormalization"
+        },
+        {
+            "id": "mini_XCEPTION.e4",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.layers.Activation"
+        },
+        {
+            "id": "mini_XCEPTION.e5",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.layers.SeparableConv2D"
+        },
+        {
+            "id": "mini_XCEPTION.e6",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.layers.MaxPooling2D"
+        },
+        {
+            "id": "mini_XCEPTION.e7",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.layers.add"
+        },
+        {
+            "id": "mini_XCEPTION.e8",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.layers.GlobalAveragePooling2D"
+        },
+        {
+            "id": "mini_XCEPTION.e9",
+            "source": "cnn.mini_XCEPTION",
+            "target": "keras.models.Model"
+        },
+        {
+            "id": "big_XCEPTION.e0",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.layers.Input"
+        },
+        {
+            "id": "big_XCEPTION.e1",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.layers.Conv2D"
+        },
+        {
+            "id": "big_XCEPTION.e2",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.layers.BatchNormalization"
+        },
+        {
+            "id": "big_XCEPTION.e3",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.layers.Activation"
+        },
+        {
+            "id": "big_XCEPTION.e4",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.layers.SeparableConv2D"
+        },
+        {
+            "id": "big_XCEPTION.e5",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.layers.MaxPooling2D"
+        },
+        {
+            "id": "big_XCEPTION.e6",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.layers.add"
+        },
+        {
+            "id": "big_XCEPTION.e7",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.layers.GlobalAveragePooling2D"
+        },
+        {
+            "id": "big_XCEPTION.e8",
+            "source": "cnn.big_XCEPTION",
+            "target": "keras.models.Model"
+        }
+    ]
+}
