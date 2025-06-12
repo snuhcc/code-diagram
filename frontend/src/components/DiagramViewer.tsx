@@ -48,7 +48,7 @@ export default function DiagramViewer() {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [cfgMessage, setCfgMessage] = useState<string | null>(null);
+  const [cgPanelMessage, setCgPanelMessage] = useState<string | null>(null);
   const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
   const [cfgPanels, setCfgPanels] = useState<
     { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
@@ -334,18 +334,18 @@ export default function DiagramViewer() {
   }, []);
 
   const handleGenerateCFG = async () => {
-    setCfgMessage(null);
+    setCgPanelMessage(null);
     setCfgLoading(true);
     const selectedNode = nodes.find(n => n.id === selectedNodeId && n.type !== 'group');
     if (!selectedNode) {
-      setCfgMessage('선택된 노드가 없습니다.');
+      setCgPanelMessage('선택된 노드가 없습니다.');
       setCfgLoading(false);
       return;
     }
     const file = (selectedNode.data as any)?.file;
     const functionName = (selectedNode.data as any)?.label;
     if (!file || !functionName) {
-      setCfgMessage('노드 정보가 올바르지 않습니다.');
+      setCgPanelMessage('노드 정보가 올바르지 않습니다.');
       setCfgLoading(false);
       return;
     }
@@ -355,7 +355,7 @@ export default function DiagramViewer() {
       p => p.file === file && p.functionName === functionName
     );
     if (alreadyExists) {
-      setCfgMessage('이미 해당 함수의 CFG 패널이 열려 있습니다.');
+      setCgPanelMessage('이미 해당 함수의 CFG 패널이 열려 있습니다.');
       setCfgLoading(false);
       return;
     }
@@ -371,7 +371,7 @@ export default function DiagramViewer() {
       });
       const data = await res.json();
       if (data.status && data.status !== 200) {
-        setCfgMessage('API 호출 실패: ' + (data.data || ''));
+        setCgPanelMessage('API 호출 실패: ' + (data.data || ''));
       } else {
         const cfgRaw = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
         // 레이아웃이 필요한 경우 RawNode/RawEdge로 넘기고, 결과 좌표를 cfgNodes에 반영
@@ -433,10 +433,10 @@ export default function DiagramViewer() {
             height: 600, // 초기 height 증가
           },
         ]);
-        setCfgMessage(null);
+        setCgPanelMessage(null);
       }
     } catch (e: any) {
-      setCfgMessage('API 호출 중 오류가 발생했습니다. error: ' + e.message);
+      setCgPanelMessage('API 호출 중 오류가 발생했습니다. error: ' + e.message);
     } finally {
       setCfgLoading(false);
     }
@@ -686,7 +686,7 @@ export default function DiagramViewer() {
         nodeTypes={{ group: CustomGroupNode }}
         onPaneClick={() => {
           setSelectedNodeId(null);
-          setCfgMessage(null); // 빈 공간 클릭 시 메시지 clear
+          setCgPanelMessage(null); // 빈 공간 클릭 시 메시지 clear
         }}
       >
         <Background variant="dots" gap={16} size={1} />
@@ -840,7 +840,7 @@ export default function DiagramViewer() {
           </button>
         </Controls>
       </ReactFlow>
-      {cfgMessage && (
+      {cgPanelMessage && (
         <div
           style={{
             position: 'absolute',
@@ -855,7 +855,7 @@ export default function DiagramViewer() {
             boxShadow: '0 2px 8px #0002',
           }}
         >
-          {cfgMessage}
+          {cgPanelMessage}
         </div>
       )}
       {cfgPanels.map((panel, idx) => (
