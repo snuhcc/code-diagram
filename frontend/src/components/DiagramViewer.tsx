@@ -49,9 +49,7 @@ export default function DiagramViewer() {
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [cfgMessage, setCfgMessage] = useState<string | null>(null);
-  const [cfgPanels, setCfgPanels] = useState<
-    { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
-  >([]);
+  const [cfgPanels, setCfgPanels] = useState<CFGPanel[]>([]);
   const [cfgLoading, setCfgLoading] = useState(false);
   const [diagramReady, setDiagramReady] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
@@ -191,29 +189,25 @@ export default function DiagramViewer() {
     openFile(node.data.file || panel.file, line_start, { from: line_start, to: line_end });
   }, [apiUrl, openFile]);
 
-  const handleGenerateCFG = async () => {
+  const handleGenerateCFG = useCallback(async () => {
     setCfgMessage(null);
     setCfgLoading(true);
     
     const selectedNode = nodes.find(n => n.id === selectedNodeId && n.type !== 'group');
     if (!selectedNode) {
-      setCgPanelMessage('선택된 노드가 없습니다.');
+      setCfgMessage('선택된 노드가 없습니다.');
       setCfgLoading(false);
       return;
     }
     
     const { file, label: functionName } = selectedNode.data as any;
     if (!file || !functionName) {
-      setCgPanelMessage('노드 정보가 올바르지 않습니다.');
+      setCfgMessage('노드 정보가 올바르지 않습니다.');
       setCfgLoading(false);
       return;
     }
 
-    // Prevent duplicate panel for the same file/function
-    const alreadyExists = cfgPanels.some(
-      p => p.file === file && p.functionName === functionName
-    );
-    if (alreadyExists) {
+    if (cfgPanels.some(p => p.file === file && p.functionName === functionName)) {
       setCfgMessage('이미 해당 함수의 CFG 패널이 열려 있습니다.');
       setCfgLoading(false);
       return;
@@ -229,36 +223,38 @@ export default function DiagramViewer() {
       const data = await res.json();
       if (data.status && data.status !== 200) {
         setCfgMessage('API 호출 실패: ' + (data.data || ''));
-      } else {
-        const cfgRaw = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-        // 레이아웃이 필요한 경우 RawNode/RawEdge로 넘기고, 결과 좌표를 cfgNodes에 반영
-        let cfgNodes = (cfgRaw.nodes || []).map((n: any) => ({
-          id: n.id,
-          data: { 
-            label: n.label || n.id,
-            file: n.file || file,
-            line_start: n.line_start || 1,
-            line_end: n.line_end || 1,
-          },
-          position: { x: n.x ?? 0, y: n.y ?? 0 },
-          style: {
-            padding: 4,
-            borderRadius: 3,
-            border: '1px solid #0284c7',
-            background: '#fff',
-            fontSize: 12,
-            minWidth: 40,
-            minHeight: 24,
-          },
-        }));
-        const cfgEdges = (cfgRaw.edges || []).map((e: any) => ({
-          id: e.id || `${e.source}-${e.target}`,
-          source: e.source,
-          target: e.target,
-          markerEnd: { type: MarkerType.ArrowClosed },
-          animated: true,
-          style: { stroke: '#0284c7', strokeWidth: 2 },
-        }));
+        return;
+      }
+      
+      const cfgData = parseApiResponse(data);
+      let cfgNodes = (cfgData.nodes || []).map((n: any) => ({
+        id: n.id,
+        data: { 
+          label: n.label || n.id,
+          file: n.file || file,
+          line_start: n.line_start || 1,
+          line_end: n.line_end || 1,
+        },
+        position: { x: n.x ?? 0, y: n.y ?? 0 },
+        style: {
+          padding: 4,
+          borderRadius: 3,
+          border: '1px solid #0284c7',
+          background: '#fff',
+          fontSize: 12,
+          minWidth: 40,
+          minHeight: 24,
+        },
+      }));
+      
+      const cfgEdges = (cfgData.edges || []).map((e: any) => ({
+        id: e.id || `${e.source}-${e.target}`,
+        source: e.source,
+        target: e.target,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        animated: true,
+        style: { stroke: '#0284c7', strokeWidth: 2 },
+      }));
 
       if (cfgData.nodes?.length > 0 && cfgData.nodes.every((n: any) => !n.x && !n.y)) {
         const posMap = calculateLayout({ [file]: { nodes: cfgData.nodes, edges: cfgData.edges } }, {});
@@ -268,29 +264,24 @@ export default function DiagramViewer() {
         }));
       }
 
-        console.log('CFG Panel nodes:', cfgNodes);
-        console.log('CFG Panel edges:', cfgEdges);
-
-        const id = `${file}__${functionName}__${Date.now()}`;
-        setCfgPanels(panels => [
-          ...panels,
-          {
-            id,
-            functionName,
-            file,
-            result: { nodes: cfgNodes, edges: cfgEdges },
-            expanded: true,
-            pos: { x: 24 + panels.length * 32, y: 24 + panels.length * 32 },
-            dragging: false,
-            dragOffset: { x: 0, y: 0 },
-            width: 800, // 초기 width 증가
-            height: 600, // 초기 height 증가
-          },
-        ]);
-        setCfgMessage(null);
-      }
+      setCfgPanels(panels => [
+        ...panels,
+        {
+          id: `${file}__${functionName}__${Date.now()}`,
+          functionName,
+          file,
+          result: { nodes: cfgNodes, edges: cfgEdges },
+          expanded: true,
+          pos: { x: 24 + panels.length * 32, y: 24 + panels.length * 32 },
+          dragging: false,
+          dragOffset: { x: 0, y: 0 },
+          width: STYLES.CFG_PANEL.WIDTH,
+          height: STYLES.CFG_PANEL.HEIGHT,
+        },
+      ]);
+      setCfgMessage(null);
     } catch (e: any) {
-      setCgPanelMessage('API 호출 중 오류가 발생했습니다. error: ' + e.message);
+      setCfgMessage('API 호출 중 오류가 발생했습니다. error: ' + e.message);
     } finally {
       setCfgLoading(false);
     }
@@ -410,7 +401,167 @@ export default function DiagramViewer() {
 
     setNodes([...groupNodes, ...laidOutNodes]);
     setEdges(allEdges);
-  };
+  }, []);
+
+  // Load diagram
+  useEffect(() => {
+    if (!diagramReady) return;
+    
+    (async () => {
+      if (diagramCache) {
+        hydrate(diagramCache);
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      setError(undefined);
+      
+      try {
+        const res = await fetch(`${apiUrl}${ENDPOINTS.CG}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: `../../${TARGET_FOLDER}`, file_type: 'py' }),
+        });
+        
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        
+        const data = await res.json();
+        const json = parseApiResponse(data);
+        diagramCache = json;
+        hydrate(json);
+      } catch (e: any) {
+        setError(String(e));
+        setNodes([]);
+        setEdges([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [diagramReady, apiUrl, hydrate]);
+
+  // Process edges for collapsed groups
+  const processedEdges = useMemo(() => {
+    const processed = edges.map(e => {
+      const sourceRep = findRepresentativeNode(e.source, collapsedGroups, nodes);
+      const targetRep = findRepresentativeNode(e.target, collapsedGroups, nodes);
+      
+      if (sourceRep === targetRep && collapsedGroups.has(sourceRep)) {
+        return { ...e, hidden: true };
+      }
+      
+      const isRedirected = sourceRep !== e.source || targetRep !== e.target;
+      const finalEdge = isRedirected ? {
+        ...e,
+        id: `${e.id}_redirected_${sourceRep}_${targetRep}`,
+        source: sourceRep,
+        target: targetRep,
+        data: {
+          ...e.data,
+          originalSource: e.source,
+          originalTarget: e.target,
+          isRedirected: true,
+        },
+      } : e;
+      
+      const isHover = hoveredEdgeId === finalEdge.id;
+      
+      return {
+        ...finalEdge,
+        hidden: false,
+        style: {
+          ...(finalEdge.style || {}),
+          stroke: isHover ? STYLES.COLORS.EDGE.HOVER : STYLES.COLORS.EDGE.DEFAULT,
+          strokeWidth: isHover ? 4 : (isRedirected ? 3 : 2),
+          strokeDasharray: isRedirected ? '5 5' : undefined,
+          transition: 'all 0.13s',
+          cursor: 'pointer',
+        },
+        markerEnd: {
+          ...(finalEdge.markerEnd || {}),
+          color: isHover ? STYLES.COLORS.EDGE.HOVER : STYLES.COLORS.EDGE.DEFAULT,
+        },
+        zIndex: isRedirected ? 10001 : 10000,
+      };
+    });
+
+    // Remove duplicates
+    const seen = new Map<string, Edge>();
+    processed.forEach(edge => {
+      const key = `${edge.source}-${edge.target}`;
+      if (!seen.has(key) || edge.data?.isRedirected) {
+        seen.set(key, edge);
+      }
+    });
+    
+    return Array.from(seen.values());
+  }, [edges, collapsedGroups, nodes, hoveredEdgeId]);
+
+  // Process nodes for styling
+  const finalNodes = useMemo(() => {
+    return nodes.map(n => {
+      const cleanPath = cleanFilePath((n.data as any)?.file || '', TARGET_FOLDER);
+      const isActive = cleanPath === activePath;
+      const isHover = hoverId === n.id;
+      const isSelected = selectedNodeId === n.id;
+      const isGroup = n.type === 'group';
+      const isCollapsed = isGroup && collapsedGroups.has(n.id);
+      const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
+
+      return {
+        ...n,
+        type: isGroup ? 'group' : (n.type || 'default'),
+        hidden: isHidden,
+        style: {
+          ...n.style,
+          background: isGroup
+            ? isCollapsed 
+              ? STYLES.COLORS.GROUP.COLLAPSED
+              : isHover
+                ? STYLES.COLORS.NODE.HOVER
+                : isSelected
+                  ? STYLES.COLORS.NODE.SELECTED
+                  : isActive
+                    ? STYLES.COLORS.NODE.ACTIVE
+                    : STYLES.COLORS.GROUP.DEFAULT
+            : isHover
+              ? STYLES.COLORS.NODE.HOVER
+              : isSelected
+                ? STYLES.COLORS.NODE.SELECTED
+                : isActive
+                  ? STYLES.COLORS.NODE.ACTIVE
+                  : STYLES.COLORS.NODE.DEFAULT,
+          border: isGroup
+            ? isCollapsed
+              ? `2px solid ${STYLES.COLORS.GROUP.BORDER_COLLAPSED}`
+              : isHover
+                ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
+                : isActive
+                  ? `1px solid ${STYLES.COLORS.GROUP.BORDER_ACTIVE}`
+                  : `1px solid ${STYLES.COLORS.GROUP.BORDER}`
+            : isHover
+              ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
+              : isSelected
+                ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
+                : isActive
+                  ? `1px solid ${STYLES.COLORS.NODE.BORDER_ACTIVE}`
+                  : `1px solid ${STYLES.COLORS.NODE.BORDER}`,
+          transition: 'all 0.1s ease-in-out',
+          minWidth: isGroup ? (isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : undefined) : (n.style?.width as number),
+          width: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : n.style?.width,
+          height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : n.style?.height,
+          cursor: isGroup && isCollapsed ? 'pointer' : 'default',
+        },
+        data: isGroup
+          ? {
+              ...n.data,
+              isCollapsed,
+              onToggleCollapse: () => toggleCollapse(n.id),
+            }
+          : n.data,
+      };
+    });
+  }, [nodes, activePath, hoverId, selectedNodeId, collapsedGroups, toggleCollapse]);
 
   if (!diagramReady) {
     return (
@@ -460,7 +611,7 @@ export default function DiagramViewer() {
         nodeTypes={{ group: CustomGroupNode }}
         onPaneClick={() => {
           setSelectedNodeId(null);
-          setCfgMessage(null); // 빈 공간 클릭 시 메시지 clear
+          setCfgMessage(null);
         }}
       >
         <Background variant="dots" gap={16} size={1} />
@@ -489,41 +640,6 @@ export default function DiagramViewer() {
           }}
         />
         <Controls>
-          {/* --- Expand/Collapse All Groups Toggle Button --- */}
-          <button
-            type="button"
-            title={allGroupsCollapsed ? "Expand all groups" : "Collapse all groups"}
-            onClick={handleToggleAllGroups}
-            style={{
-              width: 20,
-              height: 20,
-              background: '#fff',
-              padding: 0,
-              margin: 4,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 2px #0001',
-              transition: 'border 0.15s',
-              position: 'relative',
-              border: '1px solid #e5e7eb',
-              borderRadius: 4,
-            }}
-          >
-            {allGroupsCollapsed ? (
-              // Expand icon: Down arrow (like VSCode "chevron-down")
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <polyline points="7.5,4.5 12,9 7.5,13.5" stroke="#222" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            ) : (
-              // Collapse icon: Right arrow (like VSCode "chevron-right")
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <polyline points="4.5,7.5 9,12 13.5,7.5" stroke="#222" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
-          </button>
-          {/* --- End Expand/Collapse All Groups Toggle Button --- */}
           <button
             type="button"
             title="Re-layout"
@@ -568,21 +684,9 @@ export default function DiagramViewer() {
           </button>
         </Controls>
       </ReactFlow>
+      
       {cfgMessage && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 24,
-            background: '#fee2e2',
-            color: '#b91c1c',
-            padding: '8px 16px',
-            borderRadius: 6,
-            zIndex: 100,
-            fontSize: 14,
-            boxShadow: '0 2px 8px #0002',
-          }}
-        >
+        <div className="absolute top-[60px] right-6 bg-red-100 text-red-800 px-4 py-2 rounded-md z-[100] text-sm shadow-md">
           {cfgMessage}
         </div>
       )}
@@ -590,373 +694,275 @@ export default function DiagramViewer() {
       {cfgPanels.map((panel, idx) => (
         <CFGPanelComponent
           key={panel.id}
-          style={{
-            position: 'fixed',
-            top: panel.pos.y,
-            right: panel.pos.x,
-            background: '#f1f5f9',
-            color: '#222',
-            padding: panel.expanded ? '12px 18px 18px 18px' : '8px 18px 8px 18px',
-            borderRadius: 8,
-            zIndex: 200 + idx,
-            fontSize: 13,
-            minWidth: 220,
-            maxWidth: 1600,
-            minHeight: panel.expanded ? 0 : 0,
-            maxHeight: panel.expanded ? 1200 : 44,
-            boxShadow: '0 2px 8px #0002',
-            whiteSpace: 'pre-wrap',
-            overflow: panel.expanded ? 'auto' : 'hidden',
-            transition: 'all 0.2s cubic-bezier(.4,2,.6,1)',
-            display: 'flex',
-            flexDirection: 'column',
-            cursor: panel.dragging ? 'move' : 'default',
-            userSelect: panel.dragging ? 'none' : 'auto',
-            pointerEvents: panel.dragging ? 'none' : 'auto',
-            width: panel.width ?? 400,
-            height: panel.expanded ? (panel.height ?? 320) : undefined,
-            resize: 'none',
-          }}
-        >
-          {/* ▼ CFG 패널 우측 상단 메시지 영역 */}
-          {cfgPanelMessage && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 12,
-                background: 'transparent',
-                padding: 0,
-                borderRadius: 5,
-                zIndex: 300,
-                fontSize: 13,
-                fontWeight: 500,
-                boxShadow: 'none',
-                pointerEvents: 'none',
-                maxWidth: 340,
-                textOverflow: 'ellipsis',
-                overflow: 'hidden',
-                whiteSpace: 'normal',
-              }}
-              // 설명 메시지는 HTML로 렌더링
-              dangerouslySetInnerHTML={{ __html: cfgPanelMessage }}
-            />
-          )}
-          <div
-            style={{
-              width: '100%',
-              minHeight: 28,
-              display: 'flex',
-              alignItems: 'center',
-              fontWeight: 600,
-              fontSize: 13,
-              color: '#555',
-              userSelect: 'none',
-              marginBottom: panel.expanded ? 8 : 0,
-              gap: 4,
-              cursor: 'move',
-            }}
-            onMouseDown={e => {
-              // Only start drag if not clicking on a button
-              if (
-                (e.target as HTMLElement).closest('button') ||
-                (e.target as HTMLElement).tagName === 'BUTTON'
-              ) {
-                return;
-              }
-              // Start global drag for this panel
-              const startX = e.clientX;
-              const startY = e.clientY;
-              const origX = panel.pos.x;
-              const origY = panel.pos.y;
-              let dragging = true;
-
-              setCfgPanels(panels =>
-                panels.map(p =>
-                  p.id === panel.id
-                    ? { ...p, dragging: true }
-                    : p
-                )
-              );
-
-              const onMouseMove = (moveEvent: MouseEvent) => {
-                if (!dragging) return;
-                const dx = moveEvent.clientX - startX;
-                const dy = moveEvent.clientY - startY;
-                
-                // Calculate new position
-                const newX = origX - dx;
-                const newY = origY + dy;
-                
-                // Get panel dimensions
-                const panelWidth = panel.width ?? 400;
-                const panelHeight = panel.expanded ? (panel.height ?? 320) : 44;
-                
-                // Apply boundaries to keep panel on screen
-                const minX = 20; // Minimum distance from right edge
-                const maxX = window.innerWidth - panelWidth - 20; // Maximum distance from left edge
-                const minY = 20; // Minimum distance from top
-                const maxY = window.innerHeight - panelHeight - 20; // Maximum distance from bottom
-                
-                const boundedX = Math.max(minX, Math.min(newX, maxX));
-                const boundedY = Math.max(minY, Math.min(newY, maxY));
-                
-                setCfgPanels(panels =>
-                  panels.map(p =>
-                    p.id === panel.id
-                      ? {
-                          ...p,
-                          pos: {
-                            x: boundedX,
-                            y: boundedY,
-                          },
-                        }
-                      : p
-                  )
-                );
-              };
-
-              const onMouseUp = () => {
-                dragging = false;
-                setCfgPanels(panels =>
-                  panels.map(p =>
-                    p.id === panel.id
-                      ? { ...p, dragging: false }
-                      : p
-                  )
-                );
-                window.removeEventListener('mousemove', onMouseMove);
-                window.removeEventListener('mouseup', onMouseUp);
-              };
-
-              window.addEventListener('mousemove', onMouseMove);
-              window.addEventListener('mouseup', onMouseUp);
-              e.preventDefault();
-            }}
-          >
-            <span style={{ flex: 1 }}>
-                CFG ({panel.functionName}
-                {panel.file && (
-                  <> @ {panel.file.split(/[\\/]/).pop()}</>
-                )}
-              )
-            </span>
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                setCfgPanels(panels =>
-                  panels.map(p =>
-                    p.id === panel.id ? { ...p, expanded: !p.expanded } : p
-                  )
-                );
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                fontSize: 16,
-                color: '#888',
-                cursor: 'pointer',
-                padding: 0,
-                marginRight: 4,
-                lineHeight: 1,
-                width: 24,
-                height: 24,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'transform 0.15s',
-                transform: panel.expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-              }}
-              aria-label={panel.expanded ? 'Collapse' : 'Expand'}
-              title={panel.expanded ? 'Collapse' : 'Expand'}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                setCfgPanels(panels => panels.filter(p => p.id !== panel.id));
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                fontSize: 16,
-                color: '#888',
-                cursor: 'pointer',
-                padding: 0,
-                lineHeight: 1,
-                width: 24,
-                height: 24,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              aria-label="Close"
-              title="Close"
-            >
-              ×
-            </button>
-          </div>
-          {panel.expanded && (
-            <div style={{ width: '100%', height: panel.height ?? 320, overflow: 'auto', position: 'relative' }}>
-              {panel.result && panel.result.nodes && panel.result.edges ? (
-                <div style={{ width: '100%', height: '100%', background: '#f8fafc', borderRadius: 6 }}>
-                  <ReactFlow
-                    nodes={panel.result.nodes}
-                    edges={panel.result.edges}
-                    fitView
-                    minZoom={0.2}
-                    maxZoom={2}
-                    className="bg-gray-50"
-                    style={{ width: '100%', height: '100%' }}
-                    defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
-                    // ▼ 노드 hover 시 label을 setCfgPanelMessage로 출력 + 설명 API 호출
-                    onNodeMouseEnter={async (_, node) => {
-                      const label = (node.data as any)?.label ?? node.id;
-                      const file = (node.data as any)?.file;
-                      const line_start = (node.data as any)?.line_start ?? undefined;
-                      const line_end = (node.data as any)?.line_end ?? undefined;
-
-                      // 1. 로딩 메시지 표시 (아인슈타인 아이콘 + 말풍선)
-                      setCfgPanelMessage(
-                        `<div style="display:flex;align-items:flex-start;gap:8px;">
-                          <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
-                          <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
-                            설명을 불러오는 중입니다...
-                          </span>
-                        </div>`
-                      );
-
-                      try {
-                        // 2. API 호출
-                        const res = await fetch(`${apiUrl}${ENDPOINT_INLINE_CODE_EXPLANATION}`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            file_path: panel.file,
-                            line_start,
-                            line_end,
-                          }),
-                        });
-                        console.log('Explain API response:', res);
-                        const data = await res.json();
-                        console.log('Explain API data:', data);
-                        let explain = typeof data.explanation === 'string' ? data.explanation : (data.data?.explanation ?? '');
-                        if (!explain) explain = '설명을 가져올 수 없습니다.';
-
-                        // 3. 설명 메시지 표시 (아인슈타인 아이콘 + 말풍선)
-                        setCfgPanelMessage(
-                          `<div style="display:flex;align-items:flex-start;gap:8px;">
-                            <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
-                            <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;white-space;">
-                              ${explain}
-                            </span>
-                          </div>`
-                        );
-                      } catch (e: any) {
-                        setCfgPanelMessage(
-                          `<div style="display:flex;align-items:flex-start;gap:8px;">
-                            <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
-                            <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
-                              설명을 가져오는 중 오류가 발생했습니다.
-                            </span>
-                          </div>`
-                        );
-                      }
-
-                      // 기존 코드: 파일 열기/탭 활성화
-                      if (file) {
-                        const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-                        const clean = file.replace(regex, '');
-                        const tab = editorState.tabs.find(t => t.path === clean);
-                        if (tab) {
-                          editorState.setActive(tab.id, { from: line_start, to: line_end });
-                        } else {
-                          editorState.open({
-                            id: nanoid(),
-                            path: clean,
-                            name: clean.split(/[\\/]/).pop() ?? clean,
-                            line: line_start,
-                            highlight: {from: line_start, to: line_end},
-                          });
-                        }
-                        const target = findByPath(fsState.tree, clean);
-                        if (target) fsState.setCurrent(target.id);
-                      }
-                    }}
-                    onNodeMouseLeave={() => {
-                      setCfgPanelMessage(null);
-                    }}
-                  >
-                    <Background variant="dots" gap={16} size={1} />
-                    <Controls showInteractive={false} />
-                  </ReactFlow>
-                </div>
-              ) : (
-                <pre style={{
-                  margin: 0,
-                  fontSize: 13,
-                  background: 'none',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  maxWidth: 560,
-                  maxHeight: 520,
-                  padding: 0,
-                }}>
-                  {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
-                </pre>
-              )}
-              {/* Resize handle */}
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 2,
-                  bottom: 2,
-                  width: 18,
-                  height: 18,
-                  cursor: 'nwse-resize',
-                  zIndex: 10,
-                  background: 'transparent',
-                  display: panel.resizing === false ? 'block' : 'block',
-                  userSelect: 'none',
-                }}
-                onMouseDown={e => handleResizeStart(panel.id, e)}
-              >
-                <svg width="18" height="18" style={{ pointerEvents: 'none' }}>
-                  <polyline points="4,18 18,4" stroke="#888" strokeWidth="2" fill="none" />
-                  <rect x="12" y="12" width="5" height="5" fill="#e5e7eb" stroke="#888" strokeWidth="1" />
-                </svg>
-              </div>
-            </div>
-          )}
-        </div>
+          panel={panel}
+          index={idx}
+          onUpdate={handleCFGPanelUpdate}
+          onClose={handleCFGPanelClose}
+          onNodeHover={handleCFGNodeHover}
+          message={cfgPanelMessage}
+        />
       ))}
+      
       {hoverId && snippet && (
         <div
-          className="fixed z-50"
-          style={{
-            top: 16,
-            right: 16,
-            minWidth: 320,
-            maxWidth: '40vw',
-            width: 'auto',
-            minHeight: 40,
-            maxHeight: '80vh',
-            background: '#fafafa',
-            color: '#1e293b',
-            fontSize: 12,
-            borderRadius: 8,
-            boxShadow: '0 4px 16px #0004',
-            padding: 16,
-            overflow: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-          }}
+          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-auto font-mono"
           dangerouslySetInnerHTML={{ __html: `<pre class="hljs">${snippet}</pre>` }}
         />
+      )}
+    </div>
+  );
+}
+
+// CFG Panel Component
+function CFGPanelComponent({
+  panel,
+  index,
+  onUpdate,
+  onClose,
+  onNodeHover,
+  message,
+}: {
+  panel: CFGPanel;
+  index: number;
+  onUpdate: (id: string, updates: Partial<CFGPanel>) => void;
+  onClose: (id: string) => void;
+  onNodeHover: (node: Node | null, panel: CFGPanel) => void;
+  message?: string | null;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origX = panel.pos.x;
+    const origY = panel.pos.y;
+    
+    setIsDragging(true);
+    onUpdate(panel.id, { dragging: true });
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      
+      const newX = origX - dx;
+      const newY = origY + dy;
+      
+      const panelWidth = panel.width ?? STYLES.CFG_PANEL.WIDTH;
+      const panelHeight = panel.expanded ? (panel.height ?? STYLES.CFG_PANEL.HEIGHT) : 44;
+      
+      const boundedX = Math.max(20, Math.min(newX, window.innerWidth - panelWidth - 20));
+      const boundedY = Math.max(20, Math.min(newY, window.innerHeight - panelHeight - 20));
+      
+      onUpdate(panel.id, { pos: { x: boundedX, y: boundedY } });
+    };
+
+    const onMouseUp = () => {
+      setIsDragging(false);
+      onUpdate(panel.id, { dragging: false });
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    e.preventDefault();
+  }, [panel, onUpdate]);
+
+  const handleResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = panel.width ?? STYLES.CFG_PANEL.WIDTH;
+    const startHeight = panel.height ?? STYLES.CFG_PANEL.HEIGHT;
+
+    onUpdate(panel.id, { resizing: true });
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      
+      const newWidth = Math.max(300, Math.min(1600, startWidth + dx));
+      const newHeight = Math.max(200, Math.min(1200, startHeight + dy));
+      
+      onUpdate(panel.id, { width: newWidth, height: newHeight });
+    };
+
+    const onMouseUp = () => {
+      onUpdate(panel.id, { resizing: false });
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }, [panel, onUpdate]);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: panel.pos.y,
+        right: panel.pos.x,
+        background: '#f1f5f9',
+        color: '#222',
+        padding: panel.expanded ? '12px 18px 18px 18px' : '8px 18px',
+        borderRadius: 8,
+        zIndex: 200 + index,
+        fontSize: 13,
+        minWidth: 220,
+        maxWidth: 1600,
+        maxHeight: panel.expanded ? 1200 : 44,
+        boxShadow: '0 2px 8px #0002',
+        overflow: panel.expanded ? 'auto' : 'hidden',
+        transition: 'all 0.2s cubic-bezier(.4,2,.6,1)',
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: isDragging ? 'move' : 'default',
+        userSelect: isDragging ? 'none' : 'auto',
+        width: panel.width ?? STYLES.CFG_PANEL.WIDTH,
+        height: panel.expanded ? (panel.height ?? STYLES.CFG_PANEL.HEIGHT) : undefined,
+      }}
+    >
+      {message && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 12,
+            zIndex: 300,
+            fontSize: 13,
+            fontWeight: 500,
+            pointerEvents: 'none',
+            maxWidth: 340,
+          }}
+          dangerouslySetInnerHTML={{ __html: message }}
+        />
+      )}
+      
+      <div
+        style={{
+          width: '100%',
+          minHeight: 28,
+          display: 'flex',
+          alignItems: 'center',
+          fontWeight: 600,
+          fontSize: 13,
+          color: '#555',
+          userSelect: 'none',
+          marginBottom: panel.expanded ? 8 : 0,
+          gap: 4,
+          cursor: 'move',
+        }}
+        onMouseDown={handleMouseDown}
+      >
+        <span style={{ flex: 1 }}>
+          CFG ({panel.functionName}
+          {panel.file && <> @ {panel.file.split(/[\\/]/).pop()}</>})
+        </span>
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            onUpdate(panel.id, { expanded: !panel.expanded });
+          }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#888',
+            cursor: 'pointer',
+            padding: 0,
+            width: 24,
+            height: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'transform 0.15s',
+            transform: panel.expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+          }}
+          aria-label={panel.expanded ? 'Collapse' : 'Expand'}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            onClose(panel.id);
+          }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#888',
+            cursor: 'pointer',
+            padding: 0,
+            width: 24,
+            height: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+      
+      {panel.expanded && (
+        <div style={{ width: '100%', height: panel.height ?? STYLES.CFG_PANEL.HEIGHT, overflow: 'auto', position: 'relative' }}>
+          {panel.result?.nodes && panel.result?.edges ? (
+            <div style={{ width: '100%', height: '100%', background: '#f8fafc', borderRadius: 6 }}>
+              <ReactFlow
+                nodes={panel.result.nodes}
+                edges={panel.result.edges}
+                fitView
+                minZoom={0.2}
+                maxZoom={2}
+                className="bg-gray-50"
+                style={{ width: '100%', height: '100%' }}
+                defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
+                onNodeMouseEnter={(_, node) => onNodeHover(node, panel)}
+                onNodeMouseLeave={() => onNodeHover(null, panel)}
+              >
+                <Background variant="dots" gap={16} size={1} />
+                <Controls showInteractive={false} />
+              </ReactFlow>
+            </div>
+          ) : (
+            <pre style={{
+              margin: 0,
+              fontSize: 13,
+              background: 'none',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              maxWidth: 560,
+              maxHeight: 520,
+              padding: 0,
+            }}>
+              {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
+            </pre>
+          )}
+          
+          <div
+            style={{
+              position: 'absolute',
+              right: 2,
+              bottom: 2,
+              width: 18,
+              height: 18,
+              cursor: 'nwse-resize',
+              zIndex: 10,
+              userSelect: 'none',
+            }}
+            onMouseDown={handleResize}
+          >
+            <svg width="18" height="18" style={{ pointerEvents: 'none' }}>
+              <polyline points="4,18 18,4" stroke="#888" strokeWidth="2" fill="none" />
+              <rect x="12" y="12" width="5" height="5" fill="#e5e7eb" stroke="#888" strokeWidth="1" />
+            </svg>
+          </div>
+        </div>
       )}
     </div>
   );
