@@ -14,6 +14,7 @@ interface Session {
 }
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+const targetFolder = process.env.NEXT_PUBLIC_TARGET_FOLDER || ''; // 추가
 
 export default function ChatUI() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -131,6 +132,12 @@ export default function ChatUI() {
     setIsBotTyping(true); // 답변 대기 시작
 
     try {
+      // context_files 생성 시 targetFolder를 앞에 붙임
+      const contextFiles =
+        input.match(/@(\S+)/g)?.map((m) => {
+          const file = m.slice(1);
+          return targetFolder ? `${targetFolder}/${file}` : file;
+        }) || [];
       const res = await fetch(`${apiUrl}/api/chatbot/session/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -139,7 +146,7 @@ export default function ChatUI() {
           query: input,
           code: '',
           diagram: '',
-          context_files: input.match(/@(\S+)/g)?.map((m) => m.slice(1)) || [],
+          context_files: contextFiles,
         }),
       });
       if (!res.ok) throw new Error(`Failed to send message: ${res.status}`);

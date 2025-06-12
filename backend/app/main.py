@@ -92,6 +92,7 @@ async def api_close_session(req: SessionRequest):
 @app.post("/api/chatbot/session/chat", response_model=ChatbotQueryResponse)
 async def api_session_chat(req: ChatbotQueryRequest):
     try:
+        print(f"Received request: {req}")
         if not req.session_id:
             raise HTTPException(status_code=400, detail="Session ID is required")
         if not req.query:
