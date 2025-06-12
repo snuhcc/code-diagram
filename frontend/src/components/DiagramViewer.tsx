@@ -1100,6 +1100,26 @@ export default function DiagramViewer() {
                         </div>`
                       );
 
+                      // 기존 코드: 파일 열기/탭 활성화
+                      if (file) {
+                        const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+                        const clean = file.replace(regex, '');
+                        const tab = editorState.tabs.find(t => t.path === clean);
+                        if (tab) {
+                          editorState.setActive(tab.id, { from: line_start, to: line_end });
+                        } else {
+                          editorState.open({
+                            id: nanoid(),
+                            path: clean,
+                            name: clean.split(/[\\/]/).pop() ?? clean,
+                            line: line_start,
+                            highlight: {from: line_start, to: line_end},
+                          });
+                        }
+                        const target = findByPath(fsState.tree, clean);
+                        if (target) fsState.setCurrent(target.id);
+                      }
+
                       try {
                         // 2. API 호출
                         const res = await fetch(`${apiUrl}${ENDPOINT_INLINE_CODE_EXPLANATION}`, {
@@ -1137,25 +1157,6 @@ export default function DiagramViewer() {
                         );
                       }
 
-                      // 기존 코드: 파일 열기/탭 활성화
-                      if (file) {
-                        const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-                        const clean = file.replace(regex, '');
-                        const tab = editorState.tabs.find(t => t.path === clean);
-                        if (tab) {
-                          editorState.setActive(tab.id, { from: line_start, to: line_end });
-                        } else {
-                          editorState.open({
-                            id: nanoid(),
-                            path: clean,
-                            name: clean.split(/[\\/]/).pop() ?? clean,
-                            line: line_start,
-                            highlight: {from: line_start, to: line_end},
-                          });
-                        }
-                        const target = findByPath(fsState.tree, clean);
-                        if (target) fsState.setCurrent(target.id);
-                      }
                     }}
                     onNodeMouseLeave={() => {
                       setCfgPanelMessage(null);

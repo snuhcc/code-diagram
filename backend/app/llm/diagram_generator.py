@@ -18,6 +18,7 @@ from typing import Optional
 import json
 from llm.constants import (
     OPENAI_O4_MINI,
+    OPENAI_GPT_4_1,
     BACKEND_ROOT_DIR,
     CG_JSON_OUTPUT,
     WORKSPACE_ROOT_DIR
@@ -160,9 +161,9 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
         print(f"Extracted function code for {function_name}:\n{function_code}")
 
         llm = ChatOpenAI(
-            model=OPENAI_O4_MINI,
+            model=OPENAI_GPT_4_1,
             use_responses_api=True,
-            model_kwargs={"reasoning": reasoning_medium}
+            # model_kwargs={"reasoning": reasoning_medium}
         )
 
         chat_prompt = ChatPromptTemplate.from_messages(
