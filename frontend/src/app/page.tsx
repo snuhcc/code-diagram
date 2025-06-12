@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useFS } from '@/store/files';
+import { useEditor } from '@/store/editor';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import IconBar from '@/components/IconBar';
@@ -22,6 +23,7 @@ const VHandle = () => (
 
 export default function Home() {
   const { current } = useFS();
+  const { tabs } = useEditor(); // tabs 상태 가져오기
   const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarContent, setSidebarContent] = useState<'explorer' | 'search'>('explorer');
   const [showDia, setDia] = useState(true);
@@ -53,12 +55,15 @@ export default function Home() {
   const toggleDia = () => setDia(!showDia);
   const toggleChat = () => setChat(!showChat);
 
+  // 탭이 있는지 확인
+  const hasOpenTabs = tabs.length > 0;
+
   return (
     <div className="flex h-full">
       <IconBar
         states={{
           explorer: sidebarContent === 'explorer' && showSidebar,
-          search: !(sidebarContent === 'search' && showSidebar),
+          search: sidebarContent === 'search' && showSidebar,
           diagram: showDia,
           chat: showChat,
         }}
@@ -73,32 +78,44 @@ export default function Home() {
         {showSidebar && (
           <>
             <Panel defaultSize={15} minSize={12}>
-              {sidebarContent === 'explorer' ? <FileExplorer /> : <SearchPanel />}
+              <PanelGroup direction="vertical">
+                <Panel defaultSize={showChat ? 70 : 100} minSize={30}>
+                  {sidebarContent === 'explorer' ? <FileExplorer /> : <SearchPanel />}
+                </Panel>
+                {showChat && (
+                  <>
+                    <VHandle />
+                    <Panel defaultSize={30} minSize={20}>
+                      <ChatUI />
+                    </Panel>
+                  </>
+                )}
+              </PanelGroup>
             </Panel>
             <HHandle />
           </>
         )}
-        <Panel defaultSize={55} minSize={30} className="border-x border-slate-300">
-          <EditorTabs />
+        
+        {/* 에디터 패널 - 탭이 없으면 크기가 0 */}
+        <Panel 
+          defaultSize={hasOpenTabs ? 55 : 0} 
+          minSize={hasOpenTabs ? 30 : 0}
+          maxSize={hasOpenTabs ? 70 : 0}
+          className={hasOpenTabs ? "border-x border-slate-300" : ""}
+        >
+          {hasOpenTabs && <EditorTabs />}
         </Panel>
-        {(showDia || showChat) && <HHandle />}
-        {(showDia || showChat) && (
-          <Panel defaultSize={30} minSize={18} className="flex-1 min-w-0">
-            <PanelGroup direction="vertical">
-              {showDia && (
-                <>
-                  <Panel defaultSize={70} minSize={30}>
-                    <DiagramViewer />
-                  </Panel>
-                  {showChat && <VHandle />}
-                </>
-              )}
-              {showChat && (
-                <Panel defaultSize={30} minSize={20}>
-                  <ChatUI />
-                </Panel>
-              )}
-            </PanelGroup>
+        
+        {/* 에디터와 다이어그램 사이의 핸들 - 탭이 있을 때만 표시 */}
+        {hasOpenTabs && showDia && <HHandle />}
+        
+        {/* 다이어그램 패널 - 항상 존재하지만 크기가 변함 */}
+        {showDia && (
+          <Panel 
+            defaultSize={hasOpenTabs ? 45 : 85} 
+            minSize={hasOpenTabs ? 18 : 30}
+          >
+            <DiagramViewer />
           </Panel>
         )}
       </PanelGroup>

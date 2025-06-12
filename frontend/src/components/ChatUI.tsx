@@ -173,7 +173,7 @@ export default function ChatUI() {
   }, [currentLog, currentSessionId]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-slate-50">
       <div className="flex items-center space-x-2 bg-slate-200 border-b border-slate-300 p-2 overflow-x-auto">
         {sessions.map((session, index) => (
           <div
@@ -202,7 +202,7 @@ export default function ChatUI() {
 
       <div
         ref={chatContainerRef}
-        className="flex-1 p-4 overflow-y-auto"
+        className="flex-1 p-4 overflow-y-auto bg-white"
       >
         {sessions.length === 0 ? (
           <p className="text-center text-gray-500">
@@ -232,7 +232,7 @@ export default function ChatUI() {
       </div>
 
       {currentSessionId && (
-        <div className="relative p-4 border-t border-slate-300">
+        <div className="relative p-4 border-t border-slate-300 bg-white">
           <form onSubmit={send}>
             <input
               type="text"
