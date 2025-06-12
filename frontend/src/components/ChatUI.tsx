@@ -27,6 +27,7 @@ export default function ChatUI() {
   const dropdownRef = useRef<HTMLDivElement>(null); // 추가: 드롭다운 컨테이너 ref
   const dropdownItemRefs = useRef<(HTMLDivElement | null)[]>([]); // 추가: 각 아이템 ref
   const [isBotTyping, setIsBotTyping] = useState(false);
+  const [isGraphSearch, setIsGraphSearch] = useState(false); // Call Graph Search 활성화 상태
   const { tree } = useFS();
   const allFiles = getAllFilePaths(tree);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -92,7 +93,26 @@ export default function ChatUI() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    
+    // 그래프 검색 모드에서 예시 텍스트를 사용자가 수정하면 예시 텍스트 제거
+    const examples = [
+      '예시) getUserData함수가 호출되는 흐름은 어떤게 있습니까?',
+      '예시) handleLogin함수를 호출하는 모든 함수들을 보여주세요',
+      '예시) processPayment함수와 연관된 호출 관계를 분석해주세요'
+    ];
+    if (isGraphSearch && examples.includes(input) && value !== input) {
+      setInput(value);
+      return;
+    }
+    
     setInput(value);
+
+    // 그래프 검색 모드에서는 파일 자동완성 비활성화
+    if (isGraphSearch) {
+      setShowDropdown(false);
+      setDropdownSelectedIndex(-1);
+      return;
+    }
 
     const atIndex = value.lastIndexOf('@');
     if (atIndex >= 0) {
@@ -119,7 +139,8 @@ export default function ChatUI() {
 
   // Keyboard navigation for dropdown
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showDropdown || dropdownItems.length === 0) return;
+    // 그래프 검색 모드에서는 드롭다운 키보드 네비게이션 비활성화
+    if (isGraphSearch || !showDropdown || dropdownItems.length === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -170,6 +191,24 @@ export default function ChatUI() {
     }
     setShowDropdown(false);
     setDropdownSelectedIndex(-1);
+  };
+
+  // Call Graph Search 토글 함수
+  const toggleGraphSearch = () => {
+    setIsGraphSearch(!isGraphSearch);
+    if (!isGraphSearch) {
+      // 그래프 검색 모드 활성화 시 예시 텍스트 설정 (랜덤으로 선택)
+      const examples = [
+        '예시) getUserData함수가 호출되는 흐름은 어떤게 있습니까?',
+        '예시) handleLogin함수를 호출하는 모든 함수들을 보여주세요',
+        '예시) processPayment함수와 연관된 호출 관계를 분석해주세요'
+      ];
+      const randomExample = examples[Math.floor(Math.random() * examples.length)];
+      setInput(randomExample);
+    } else {
+      // 비활성화 시 입력창 비우기
+      setInput('');
+    }
   };
 
   const send = async (e: FormEvent) => {
@@ -293,20 +332,51 @@ export default function ChatUI() {
 
       {currentSessionId && (
         <div className="relative p-4 border-t border-slate-300 bg-white">
+          {/* Call Graph Search 버튼 */}
+          <div className="mb-3">
+            <button
+              onClick={toggleGraphSearch}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                isGraphSearch
+                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              🔍 Call Graph Search
+            </button>
+          </div>
+          
           <form onSubmit={send}>
             <input
               type="text"
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleInputKeyDown}
-              className="w-full p-2 border rounded"
-              placeholder="Type your message..."
+              onFocus={() => {
+                // 사용자가 입력을 시작하면 그래프 검색 모드에서도 예시 텍스트 제거
+                const examples = [
+                  '예시) getUserData함수가 호출되는 흐름은 어떤게 있습니까?',
+                  '예시) handleLogin함수를 호출하는 모든 함수들을 보여주세요',
+                  '예시) processPayment함수와 연관된 호출 관계를 분석해주세요'
+                ];
+                if (isGraphSearch && examples.includes(input)) {
+                  setInput('');
+                }
+              }}
+              className={`w-full p-2 border rounded transition-colors ${
+                isGraphSearch ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-300'
+              }`}
+              placeholder={
+                isGraphSearch
+                  ? "[Call Graph Search Mode] Type your query here..."
+                  : "[Chat Mode] Type your query here..."
+              }
             />
             <button type="submit" className="hidden">
               Send
             </button>
           </form>
-          {showDropdown && (
+          {showDropdown && !isGraphSearch && (
             <div
               ref={dropdownRef}
               className="absolute z-10 bg-white border border-slate-300 rounded shadow-md max-h-60 overflow-y-auto"

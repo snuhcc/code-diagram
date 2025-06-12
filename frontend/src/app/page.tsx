@@ -85,7 +85,7 @@ export default function Home() {
                 {showChat && (
                   <>
                     <VHandle />
-                    <Panel defaultSize={30} minSize={20}>
+                    <Panel defaultSize={100} minSize={20}>
                       <ChatUI />
                     </Panel>
                   </>
