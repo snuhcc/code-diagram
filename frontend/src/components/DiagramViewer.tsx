@@ -33,6 +33,7 @@ import {
   calculateNodeWidth,
   ENDPOINTS,
   STYLES,
+  calculateCFGLayout, // 추가
 } from './diagramUtils';
 
 // Constants
@@ -257,13 +258,8 @@ export default function DiagramViewer() {
         style: { stroke: '#0284c7', strokeWidth: 2 },
       }));
 
-      if (cfgData.nodes?.length > 0 && cfgData.nodes.every((n: any) => !n.x && !n.y)) {
-        const posMap = calculateLayout({ [file]: { nodes: cfgData.nodes, edges: cfgData.edges } }, {});
-        cfgNodes = cfgNodes.map((n: any) => ({
-          ...n,
-          position: posMap[n.id] ?? { x: 0, y: 0 }
-        }));
-      }
+      // --- CFG 노드 dagre TB 레이아웃 적용 ---
+      cfgNodes = calculateCFGLayout(cfgNodes, cfgEdges, { direction: 'TB' });
 
       setCfgPanels(panels => [
         ...panels,

@@ -381,6 +381,43 @@ export function calculateLayout(
   return positions;
 }
 
+// --- CFG Panel Layout (Dagre TB) ---
+export function calculateCFGLayout(
+  nodes: Node[],
+  edges: Edge[],
+  options?: { direction?: 'TB' | 'LR'; nodeWidth?: number; nodeHeight?: number }
+): Node[] {
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+
+  const direction = options?.direction || 'TB';
+  const nodeWidth = options?.nodeWidth || 120;
+  const nodeHeight = options?.nodeHeight || 40;
+
+  g.setGraph({ rankdir: direction });
+
+  nodes.forEach(node => {
+    g.setNode(node.id, {
+      width: (node.style?.width as number) || nodeWidth,
+      height: (node.style?.height as number) || nodeHeight,
+    });
+  });
+
+  edges.forEach(edge => {
+    g.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(g);
+
+  return nodes.map(node => {
+    const pos = g.node(node.id);
+    return {
+      ...node,
+      position: { x: pos?.x - (pos?.width ?? nodeWidth) / 2, y: pos?.y - (pos?.height ?? nodeHeight) / 2 },
+    };
+  });
+}
+
 // Custom Group Node Component
 export function CustomGroupNode({ data }: NodeProps) {
   const { label, isCollapsed, onToggleCollapse } = data;
