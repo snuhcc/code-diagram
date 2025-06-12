@@ -7,6 +7,55 @@ import 'highlight.js/styles/atom-one-light.css';
 
 hljs.registerLanguage('python', python);
 
+// Constants
+export const ENDPOINTS = {
+  CG: '/api/generate_call_graph',
+  CFG: '/api/generate_control_flow_graph',
+  INLINE_CODE_EXPLANATION: '/api/inline_code_explanation',
+} as const;
+
+export const STYLES = {
+  NODE: {
+    MIN_WIDTH: 60,
+    PADDING: 16,
+    HEIGHT: { SMALL: 35, DEFAULT: 40 },
+    FONT_SIZE: '12px',
+    FONT_FAMILY: 'Arial, sans-serif',
+  },
+  GROUP: {
+    PADDING: 20,
+    COLLAPSED_WIDTH: 200,
+    COLLAPSED_HEIGHT: 50,
+  },
+  COLORS: {
+    NODE: {
+      DEFAULT: '#ffffff',
+      HOVER: '#fef9c3',
+      SELECTED: '#fca5a5',
+      ACTIVE: '#dbeafe',
+      BORDER: '#4A90E2',
+      BORDER_HOVER: '#eab308',
+      BORDER_SELECTED: '#b91c1c',
+      BORDER_ACTIVE: '#0284c7',
+    },
+    GROUP: {
+      DEFAULT: '#FAFAFA',
+      COLLAPSED: '#f3f4f6',
+      BORDER: '#b9bfc9',
+      BORDER_COLLAPSED: '#6b7280',
+      BORDER_ACTIVE: '#fb923c',
+    },
+    EDGE: {
+      DEFAULT: '#34A853',
+      HOVER: '#f59e42',
+    },
+  },
+  CFG_PANEL: {
+    WIDTH: 800,
+    HEIGHT: 600,
+  },
+} as const;
+
 // Types
 export interface RawNode {
   id: string;
@@ -40,282 +89,236 @@ export interface CFGPanel {
 export const snippetCache = new Map<string, string>();
 
 // Helper Functions
-export function getTextWidth(text: string, font: string = '12px Arial'): number {
+export function getTextWidth(text: string, font: string = `${STYLES.NODE.FONT_SIZE} ${STYLES.NODE.FONT_FAMILY}`): number {
   if (typeof document === 'undefined') return text.length * 7;
   const canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
   const context = canvas.getContext("2d");
-  if (!context) {
-    return text.length * 7;
-  }
+  if (!context) return text.length * 7;
   context.font = font;
-  const metrics = context.measureText(text);
-  return metrics.width;
+  return context.measureText(text).width;
 }
-(getTextWidth as any).canvas = null;
 
-export function extractFunctionSnippetWithLine(code: string, functionName: string): { snippet: string, startLine: number } | null {
+export function extractFunctionSnippet(code: string, functionName: string): { snippet: string, startLine: number } | null {
   const lines = code.split('\n');
-  let startLine = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.trim().startsWith(`def ${functionName}(`) && line === line.trim()) {
-      startLine = i;
-      break;
-    }
-  }
-  if (startLine === -1) return null;
-  for (let i = startLine + 1; i < lines.length; i++) {
+  const startIndex = lines.findIndex(line => line.trim().startsWith(`def ${functionName}(`));
+  if (startIndex === -1) return null;
+  
+  for (let i = startIndex + 1; i < lines.length; i++) {
     if (lines[i].trim() === '') continue;
     if (!lines[i].startsWith(' ') && !lines[i].startsWith('\t')) {
-      return { snippet: lines.slice(startLine, i).join('\n'), startLine: startLine + 1 };
+      return { snippet: lines.slice(startIndex, i).join('\n'), startLine: startIndex + 1 };
     }
   }
-  return { snippet: lines.slice(startLine).join('\n'), startLine: startLine + 1 };
+  return { snippet: lines.slice(startIndex).join('\n'), startLine: startIndex + 1 };
 }
 
-export function addLineNumbersAndHighlight(snippet: string, start: number = 1): string {
+export function highlightWithLineNumbers(snippet: string, startLine: number = 1): string {
   const highlighted = hljs.highlight(snippet, { language: 'python' }).value;
   const lines = highlighted.split('\n');
-  const pad = String(start + lines.length - 1).length;
+  const padding = String(startLine + lines.length - 1).length;
   return lines
-    .map((line, idx) => {
-      const num = String(start + idx).padStart(pad, ' ');
-      return `<span style="color:#64748b">${num}</span>  ${line}`;
-    })
+    .map((line, idx) => `<span style="color:#64748b">${String(startLine + idx).padStart(padding, ' ')}</span>  ${line}`)
     .join('\n');
 }
 
 export function isNodeHidden(nodeId: string, collapsedGroups: Set<string>, nodes: Node[]): boolean {
   const node = nodes.find(n => n.id === nodeId);
-  if (!node || !node.parentId) return false;
-  
-  if (collapsedGroups.has(node.parentId)) {
-    return true;
-  }
-  
-  return isNodeHidden(node.parentId, collapsedGroups, nodes);
+  if (!node?.parentId) return false;
+  return collapsedGroups.has(node.parentId) || isNodeHidden(node.parentId, collapsedGroups, nodes);
 }
 
-export function findRepresentativeGroup(nodeId: string, collapsedGroups: Set<string>, nodes: Node[]): string {
+export function findRepresentativeNode(nodeId: string, collapsedGroups: Set<string>, nodes: Node[]): string {
   const node = nodes.find(n => n.id === nodeId);
-  if (!node) {
-    return nodeId;
-  }
+  if (!node) return nodeId;
+  if (node.type === 'group' || !node.parentId) return nodeId;
+  if (collapsedGroups.has(node.parentId)) return node.parentId;
   
-  if (node.type === 'group') {
-    return nodeId;
+  let current = node;
+  while (current.parentId) {
+    const parent = nodes.find(n => n.id === current.parentId);
+    if (!parent) break;
+    if (parent.type === 'group' && collapsedGroups.has(parent.id)) return parent.id;
+    current = parent;
   }
-  
-  if (node.parentId && collapsedGroups.has(node.parentId)) {
-    return node.parentId;
-  }
-  
-  let currentNode = node;
-  while (currentNode.parentId) {
-    const parentNode = nodes.find(n => n.id === currentNode.parentId);
-    if (!parentNode) break;
-    
-    if (parentNode.type === 'group' && collapsedGroups.has(parentNode.id)) {
-      return parentNode.id;
-    }
-    currentNode = parentNode;
-  }
-  
   return nodeId;
 }
 
-export function getRedirectedEdge(edge: Edge, collapsedGroups: Set<string>, nodes: Node[]): Edge | null {
-  const sourceNode = nodes.find(n => n.id === edge.source);
-  const targetNode = nodes.find(n => n.id === edge.target);
-  
-  if (!sourceNode || !targetNode) {
-    return edge;
-  }
-  
-  const newSource = findRepresentativeGroup(edge.source, collapsedGroups, nodes);
-  const newTarget = findRepresentativeGroup(edge.target, collapsedGroups, nodes);
-  
-  if (newSource === newTarget) {
-    return null;
-  }
-  
-  if (newSource === edge.source && newTarget === edge.target) {
-    return edge;
-  }
-  
-  return {
-    ...edge,
-    id: `${edge.id}_redirected_${newSource}_${newTarget}`,
-    source: newSource,
-    target: newTarget,
-    data: {
-      ...edge.data,
-      originalSource: edge.source,
-      originalTarget: edge.target,
-      isRedirected: true,
-    },
-  };
-}
-
-// Layout Function
-export function layoutWithCluster(
+// Mindmap-style layout function with better horizontal spreading
+export function calculateLayout(
   files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>,
   nodeWidths: Record<string, number>
 ): Record<string, { x: number; y: number }> {
-  const totalFiles = Object.keys(files).length;
-  const totalNodes = Object.values(files).reduce((sum, f) => sum + f.nodes.length, 0);
+  const positions: Record<string, { x: number; y: number }> = {};
   
-  const maxWidth = window.innerWidth * 0.5;
+  // Layout configuration - 이 값들을 조정하여 퍼짐 정도를 제어
+  const LAYOUT_CONFIG = {
+    HORIZONTAL_SPACING: 1500,     // 가로 방향 기본 간격 (값이 클수록 더 넓게 퍼짐)
+    VERTICAL_SPACING: 100,       // 세로 방향 기본 간격
+    LEVEL_RADIUS_INCREMENT: 10, // 레벨별 반경 증가량 (값이 클수록 레벨간 거리가 멀어짐)
+    INITIAL_RADIUS: 100,         // 첫 번째 레벨의 반경
+    SIBLING_ANGLE_SPREAD: Math.PI * 0.1, // 형제 노드들이 퍼지는 각도 (라디안, 최대 2*PI)
+    FILE_SPACING_X: 600,        // 파일 간 가로 간격
+    FILE_SPACING_Y: 500,         // 파일 간 세로 간격
+  };
   
-  const averageNodeWidth = Object.values(nodeWidths).length > 0 
-    ? Object.values(nodeWidths).reduce((sum, w) => sum + w, 0) / Object.values(nodeWidths).length
-    : (totalNodes > 50 ? 100 : 120);
-
-  const maxNodesPerRank = Math.floor(maxWidth / (averageNodeWidth + 30));
+  let globalOffsetX = 0;
+  let globalOffsetY = 0;
   
-  const nodesep = totalNodes > 50 ? 15 : totalNodes > 30 ? 20 : 25;
-  const ranksep = totalNodes > 50 ? 40 : totalNodes > 30 ? 50 : 60;
-  
-  const g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
-    .setGraph({
-      rankdir: 'TB',
-      nodesep: nodesep,
-      ranksep: ranksep,
-      ranker: 'tight-tree',
-      align: 'DL',
-      marginx: 10,
-      marginy: 10,
-    })
-    .setDefaultEdgeLabel(() => ({}));
+  // Process each file separately
+  Object.entries(files).forEach(([file, { nodes, edges }], fileIndex) => {
+    // Create adjacency lists
+    const children: Record<string, string[]> = {};
+    const parents: Record<string, string[]> = {};
     
-  Object.keys(files).forEach((file) => {
-    g.setNode(`cluster_${file}`, {
-      marginx: 10,
-      marginy: 10,
-    });
-  });
-  
-  Object.entries(files).forEach(([file, { nodes, edges }]) => {
-    const nodeDepths = new Map<string, number>();
-    const nodeChildren = new Map<string, string[]>();
-    
-    edges.forEach(({ source, target }) => {
-      if (!nodeChildren.has(source)) {
-        nodeChildren.set(source, []);
-      }
-      nodeChildren.get(source)!.push(target);
+    edges.forEach(edge => {
+      if (!children[edge.source]) children[edge.source] = [];
+      if (!parents[edge.target]) parents[edge.target] = [];
+      children[edge.source].push(edge.target);
+      parents[edge.target].push(edge.source);
     });
     
-    const visited = new Set<string>();
-    const queue: { node: string; depth: number }[] = [];
-    const incomingEdges = new Set(edges.map(e => e.target));
-    const rootNodes = nodes.filter(n => !incomingEdges.has(n.id));
+    // Find root nodes (nodes with no parents)
+    const roots = nodes.filter(node => !parents[node.id] || parents[node.id].length === 0);
     
-    rootNodes.forEach(root => {
-      queue.push({ node: root.id, depth: 0 });
-    });
+    // If no roots found, select nodes with the most children
+    const rootNodes = roots.length > 0 ? roots : 
+      nodes.sort((a, b) => (children[b.id]?.length || 0) - (children[a.id]?.length || 0)).slice(0, 1);
     
-    while (queue.length > 0) {
-      const { node, depth } = queue.shift()!;
-      if (visited.has(node)) continue;
+    // Calculate file offset in a grid pattern for better space usage
+    const filesPerRow = Math.ceil(Math.sqrt(Object.keys(files).length));
+    const fileRow = Math.floor(fileIndex / filesPerRow);
+    const fileCol = fileIndex % filesPerRow;
+    
+    const fileOffsetX = fileCol * LAYOUT_CONFIG.FILE_SPACING_X;
+    const fileOffsetY = fileRow * LAYOUT_CONFIG.FILE_SPACING_Y;
+    
+    rootNodes.forEach((root, rootIndex) => {
+      const rootOffsetX = rootIndex * LAYOUT_CONFIG.FILE_SPACING_X * 0.5;
       
-      visited.add(node);
-      nodeDepths.set(node, depth);
+      // BFS to assign levels and distribute nodes
+      const visited = new Set<string>();
+      const queue: { 
+        id: string; 
+        level: number; 
+        angle: number; 
+        parentPos?: { x: number; y: number };
+        sectorStart?: number;
+        sectorEnd?: number;
+      }[] = [];
       
-      const children = nodeChildren.get(node) || [];
-      children.forEach(child => {
-        queue.push({ node: child, depth: depth + 1 });
-      });
-    }
-    
-    const depthGroups = new Map<number, string[]>();
-    nodeDepths.forEach((depth, nodeId) => {
-      if (!depthGroups.has(depth)) {
-        depthGroups.set(depth, []);
-      }
-      depthGroups.get(depth)!.push(nodeId);
-    });
-    
-    let virtualNodeCount = 0;
-    depthGroups.forEach((nodesAtDepth, depth) => {
-      if (nodesAtDepth.length > maxNodesPerRank && depth > 0) {
-        const chunks = [];
-        for (let i = 0; i < nodesAtDepth.length; i += maxNodesPerRank) {
-          chunks.push(nodesAtDepth.slice(i, i + maxNodesPerRank));
-        }
+      // Start with root at center
+      const rootX = 400 + fileOffsetX + rootOffsetX;
+      const rootY = 400 + fileOffsetY;
+      positions[root.id] = { x: rootX, y: rootY };
+      visited.add(root.id);
+      
+      // Add children to queue with angles
+      const rootChildren = children[root.id] || [];
+      const childCount = rootChildren.length;
+      
+      if (childCount > 0) {
+        // Distribute children around the full circle for root
+        const angleStep = (2 * Math.PI) / childCount;
+        const startAngle = -Math.PI / 2; // Start from top
         
-        if (chunks.length > 1) {
-          chunks.forEach((chunk, chunkIndex) => {
-            const virtualNodeId = `virtual_${file}_${depth}_${virtualNodeCount++}`;
-            g.setNode(virtualNodeId, {
-              width: 1,
-              height: 1,
-              dummy: true,
-            });
-            g.setParent(virtualNodeId, `cluster_${file}`);
+        rootChildren.forEach((childId, index) => {
+          const angle = startAngle + index * angleStep;
+          queue.push({ 
+            id: childId, 
+            level: 1, 
+            angle,
+            parentPos: positions[root.id],
+            sectorStart: angle - angleStep / 2,
+            sectorEnd: angle + angleStep / 2
+          });
+        });
+      }
+      
+      // Process queue
+      while (queue.length > 0) {
+        const { id, level, angle, parentPos, sectorStart = 0, sectorEnd = 2 * Math.PI } = queue.shift()!;
+        
+        if (visited.has(id)) continue;
+        visited.add(id);
+        
+        // Calculate position based on angle and level
+        const radius = LAYOUT_CONFIG.INITIAL_RADIUS + (level - 1) * LAYOUT_CONFIG.LEVEL_RADIUS_INCREMENT;
+        const x = parentPos!.x + Math.cos(angle) * radius;
+        const y = parentPos!.y + Math.sin(angle) * radius;
+        
+        positions[id] = { x, y };
+        
+        // Add children with adjusted angles
+        const nodeChildren = children[id] || [];
+        const unvisitedChildren = nodeChildren.filter(c => !visited.has(c));
+        const childChildCount = unvisitedChildren.length;
+        
+        if (childChildCount > 0) {
+          // Calculate the sector for this node's children
+          const sectorSize = Math.min(sectorEnd - sectorStart, LAYOUT_CONFIG.SIBLING_ANGLE_SPREAD);
+          const childSectorStart = angle - sectorSize / 2;
+          const childSectorEnd = angle + sectorSize / 2;
+          const childAngleStep = sectorSize / (childChildCount + 1);
+          
+          unvisitedChildren.forEach((childId, index) => {
+            const childAngle = childSectorStart + (index + 1) * childAngleStep;
+            const childSectorSize = sectorSize / childChildCount;
             
-            const parents = new Set<string>();
-            chunk.forEach(nodeId => {
-              edges.forEach(edge => {
-                if (edge.target === nodeId) {
-                  parents.add(edge.source);
-                }
-              });
-            });
-            
-            parents.forEach(parent => {
-              g.setEdge(parent, virtualNodeId, {
-                weight: 0.1,
-              });
-            });
-            
-            chunk.forEach(nodeId => {
-              g.setEdge(virtualNodeId, nodeId, {
-                weight: 10,
-              });
+            queue.push({ 
+              id: childId, 
+              level: level + 1, 
+              angle: childAngle,
+              parentPos: positions[id],
+              sectorStart: childAngle - childSectorSize / 2,
+              sectorEnd: childAngle + childSectorSize / 2
             });
           });
         }
       }
+      
+      // Handle any unvisited nodes (disconnected components)
+      nodes.forEach(node => {
+        if (!visited.has(node.id)) {
+          // Place disconnected nodes in a grid to the right
+          const unvisitedIndex = Array.from(visited).length;
+          const gridCol = unvisitedIndex % 4;
+          const gridRow = Math.floor(unvisitedIndex / 4);
+          
+          positions[node.id] = {
+            x: rootX + LAYOUT_CONFIG.INITIAL_RADIUS * 3 + gridCol * LAYOUT_CONFIG.HORIZONTAL_SPACING,
+            y: rootY - LAYOUT_CONFIG.INITIAL_RADIUS + gridRow * LAYOUT_CONFIG.VERTICAL_SPACING
+          };
+          visited.add(node.id);
+        }
+      });
     });
     
-    nodes.forEach((n) => {
-      const width = nodeWidths[n.id] || (totalNodes > 50 ? 100 : 120);
-      const height = totalNodes > 50 ? 35 : 40;
-      
-      g.setNode(n.id, { 
-        width: width,
-        height: height,
-      });
-      g.setParent(n.id, `cluster_${file}`);
-    });
+    // Update global offset for next file
+    globalOffsetX = Math.max(globalOffsetX, ...Object.values(positions).map(p => p.x));
+    globalOffsetY = Math.max(globalOffsetY, ...Object.values(positions).map(p => p.y));
   });
   
-  Object.values(files).forEach(({ edges }) => {
-    edges.forEach(({ source, target }) => {
-      if (!g.hasEdge(source, target)) {
-        g.setEdge(source, target, {
-          weight: 1,
-        });
-      }
-    });
+  // Center the entire diagram
+  const allX = Object.values(positions).map(p => p.x);
+  const allY = Object.values(positions).map(p => p.y);
+  const minX = Math.min(...allX);
+  const minY = Math.min(...allY);
+  const maxX = Math.max(...allX);
+  const maxY = Math.max(...allY);
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  
+  // Adjust all positions to center
+  Object.keys(positions).forEach(id => {
+    positions[id].x -= centerX - 400;
+    positions[id].y -= centerY - 400;
   });
   
-  dagre.layout(g);
-  
-  const pos: Record<string, { x: number; y: number }> = {};
-  g.nodes().forEach((id: string) => {
-    const n = g.node(id);
-    if (n && !n.dummy && n.x != null && n.y != null) {
-      pos[id] = { x: n.x, y: n.y };
-    }
-  });
-  
-  return pos;
+  return positions;
 }
 
 // Custom Group Node Component
-export function CustomGroupNode({ data, id }: NodeProps) {
+export function CustomGroupNode({ data }: NodeProps) {
   const { label, isCollapsed, onToggleCollapse } = data;
 
   const ChevronIcon = ({ direction = 'down' }: { direction: 'down' | 'right' }) => (
@@ -324,9 +327,6 @@ export function CustomGroupNode({ data, id }: NodeProps) {
       height={20}
       viewBox="0 0 24 24"
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         color: '#6366f1',
         transition: 'transform 0.15s',
         transform: direction === 'right' ? 'rotate(-90deg)' : 'none',
@@ -365,7 +365,7 @@ export function CustomGroupNode({ data, id }: NodeProps) {
           }}
         >
           <ChevronIcon direction="right" />
-          <span style={{ display: 'flex', alignItems: 'center' }}>{label}</span>
+          <span>{label}</span>
         </div>
       </>
     );
@@ -384,61 +384,48 @@ export function CustomGroupNode({ data, id }: NodeProps) {
           fontWeight: 600,
           fontSize: 13,
           color: '#444',
-          pointerEvents: 'none',
-          userSelect: 'none',
           display: 'flex',
-          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
           height: 32,
         }}
       >
-        <div
-          style={{
-            display: 'inline-flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            pointerEvents: 'auto',
-            height: '100%',
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse();
           }}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleCollapse();
-            }}
-            style={{
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              lineHeight: 1,
-              height: '1em',
-            }}
-          >
-            <ChevronIcon direction="down" />
-          </span>
-          <span
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              lineHeight: 1,
-              height: '1em',
-            }}
-          >
-            {label}
-          </span>
-        </div>
+          <ChevronIcon direction="down" />
+        </span>
+        <span>{label}</span>
       </div>
     </>
   );
 }
 
+// Utility functions
+export function parseApiResponse(response: any): any {
+  return typeof response?.data === 'string' ? JSON.parse(response.data) : response.data;
+}
+
+export function cleanFilePath(path: string, targetFolder?: string): string {
+  if (!targetFolder) return path;
+  const regex = new RegExp(`^${targetFolder}[\\\\/]`);
+  return path.replace(regex, '');
+}
+
+export function calculateNodeWidth(label: string): number {
+  const textWidth = getTextWidth(label);
+  return Math.max(STYLES.NODE.MIN_WIDTH, textWidth + STYLES.NODE.PADDING);
+}
+
 [DiagramViewer.tsx]
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -460,29 +447,29 @@ import {
   RawEdge,
   CFGPanel,
   snippetCache,
-  getTextWidth,
-  extractFunctionSnippetWithLine,
-  addLineNumbersAndHighlight,
+  extractFunctionSnippet,
+  highlightWithLineNumbers,
   isNodeHidden,
-  findRepresentativeGroup,
-  getRedirectedEdge,
-  layoutWithCluster,
+  findRepresentativeNode,
+  calculateLayout,
   CustomGroupNode,
+  parseApiResponse,
+  cleanFilePath,
+  calculateNodeWidth,
+  ENDPOINTS,
+  STYLES,
 } from './diagramUtils';
 
 // Constants
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
-const ENDPOINT_CG = '/api/generate_call_graph';
-const ENDPOINT_CFG = '/api/generate_control_flow_graph';
-const ENDPOINT_INLINE_CODE_EXPLANATION = '/api/inline_code_explanation';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
 
 export default function DiagramViewer() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [loading, setLoad] = useState(true);
-  const [error, setErr] = useState<string>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -497,118 +484,82 @@ export default function DiagramViewer() {
   const editorState = useEditor.getState();
   const fsState = useFS.getState();
 
-  const activePath =
-    editorState.tabs.find((t) => t.id === editorState.activeId)?.path ??
-    editorState.tabs.at(-1)?.path ??
-    '';
+  const activePath = editorState.tabs.find(t => t.id === editorState.activeId)?.path ?? '';
 
-  const onToggleCollapse = useCallback((groupId: string) => {
-    setCollapsedGroups((prev) => {
+  // Handlers
+  const toggleCollapse = useCallback((groupId: string) => {
+    setCollapsedGroups(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(groupId)) {
-        newSet.delete(groupId);
-      } else {
-        newSet.add(groupId);
-      }
+      newSet.has(groupId) ? newSet.delete(groupId) : newSet.add(groupId);
       return newSet;
     });
   }, []);
 
-  const onNodeClick: NodeMouseHandler = (_, node) => {
+  const openFile = useCallback((filePath: string, line?: number, highlight?: { from: number; to: number }) => {
+    const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
+    editorState.open({
+      id: nanoid(),
+      path: cleanPath,
+      name: cleanPath.split(/[\\/]/).pop() ?? cleanPath,
+      line,
+      highlight,
+    });
+    const target = findByPath(fsState.tree, cleanPath);
+    if (target) fsState.setCurrent(target.id);
+  }, [editorState, fsState]);
+
+  const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
     if (node.type === 'group') {
       const childNode = nodes.find(n => n.parentId === node.id && !isNodeHidden(n.id, collapsedGroups, nodes));
-      const filePath = childNode ? (childNode.data as any)?.file : (node.data as any)?.file;
-      if (!filePath) return;
-      const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-      const clean = filePath.replace(regex, '');
-      editorState.open({
-        id: nanoid(),
-        path: clean,
-        name: clean.split(/[\\/]/).pop() ?? clean,
-        line: 1,
-      });
-      const target = findByPath(fsState.tree, clean);
-      if (target) fsState.setCurrent(target.id);
+      const filePath = (childNode?.data as any)?.file || (node.data as any)?.file;
+      if (filePath) openFile(filePath, 1);
       return;
     }
     setSelectedNodeId(prev => prev === node.id ? null : node.id);
-    const raw = (node.data as any)?.file as string | undefined;
-    if (!raw) return;
-    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-    const clean = raw.replace(regex, '');
-    editorState.open({
-      id: nanoid(),
-      path: clean,
-      name: clean.split(/[\\/]/).pop() ?? clean,
-    });
-    const target = findByPath(fsState.tree, clean);
-    if (target) fsState.setCurrent(target.id);
-  };
+    const filePath = (node.data as any)?.file;
+    if (filePath) openFile(filePath);
+  }, [nodes, collapsedGroups, openFile]);
 
-  const onEnter: NodeMouseHandler = async (_, node) => {
+  const onNodeMouseEnter: NodeMouseHandler = useCallback(async (_, node) => {
     if (node.type === 'group') return;
-    
+
     setHoverId(node.id);
-    const raw = (node.data as any)?.file as string | undefined;
-    const functionName = (node.data as any)?.label as string | undefined;
-    if (!raw || !functionName) {
+    const filePath = (node.data as any)?.file;
+    const functionName = (node.data as any)?.label;
+    if (!filePath || !functionName) {
       setSnippet('');
       return;
     }
-    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-    const clean = raw.replace(regex, '');
-    const cacheKey = `${clean}_${functionName}`;
-    if (snippetCache.has(cacheKey)) {
-      try {
-        const txt = await fetch(`/api/file?path=${encodeURIComponent(clean)}`).then((r) => r.text());
-        const result = extractFunctionSnippetWithLine(txt, functionName);
-        if (result) {
-          setSnippet(addLineNumbersAndHighlight(result.snippet, result.startLine));
-        } else {
-          setSnippet('(function not found)');
-        }
-      } catch {
-        setSnippet('(preview unavailable)');
-      }
-      return;
-    }
+
+    const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
+    const cacheKey = `${cleanPath}_${functionName}`;
+
     try {
-      const txt = await fetch(`/api/file?path=${encodeURIComponent(clean)}`).then((r) => r.text());
-      const result = extractFunctionSnippetWithLine(txt, functionName);
+      let code = snippetCache.get(cacheKey);
+      if (!code) {
+        const response = await fetch(`/api/file?path=${encodeURIComponent(cleanPath)}`);
+        code = await response.text();
+      }
+
+      const result = extractFunctionSnippet(code, functionName);
       if (result) {
         snippetCache.set(cacheKey, result.snippet);
-        setSnippet(addLineNumbersAndHighlight(result.snippet, result.startLine));
+        setSnippet(highlightWithLineNumbers(result.snippet, result.startLine));
       } else {
         setSnippet('(function not found)');
       }
     } catch {
       setSnippet('(preview unavailable)');
     }
-  };
+  }, []);
 
-  const onLeave: NodeMouseHandler = () => {
+  const onNodeMouseLeave = useCallback(() => {
     setHoverId(null);
     setSnippet('');
-  };
-
-  const onEdgeMouseEnter = useCallback((event: React.MouseEvent, edge: Edge) => {
-    setHoveredEdgeId(edge.id);
   }, []);
-  const onEdgeMouseLeave = useCallback(() => {
-    setHoveredEdgeId(null);
-  }, []);
-
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds));
-    },
-    [setNodes]
-  );
 
   const handleCFGPanelUpdate = useCallback((id: string, updates: Partial<CFGPanel>) => {
-    setCfgPanels(panels =>
-      panels.map(p => p.id === id ? { ...p, ...updates } : p)
-    );
+    setCfgPanels(panels => panels.map(p => p.id === id ? { ...p, ...updates } : p));
   }, []);
 
   const handleCFGPanelClose = useCallback((id: string) => {
@@ -621,12 +572,8 @@ export default function DiagramViewer() {
       return;
     }
 
-    const label = (node.data as any)?.label ?? node.id;
-    const file = (node.data as any)?.file;
-    const line_start = (node.data as any)?.line_start ?? undefined;
-    const line_end = (node.data as any)?.line_end ?? undefined;
+    const { line_start, line_end } = node.data as any;
 
-    // 1. 로딩 메시지 표시
     setCfgPanelMessage(
       `<div style="display:flex;align-items:flex-start;gap:8px;">
         <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
@@ -637,30 +584,23 @@ export default function DiagramViewer() {
     );
 
     try {
-      // 2. API 호출
-      const res = await fetch(`${apiUrl}${ENDPOINT_INLINE_CODE_EXPLANATION}`, {
+      const res = await fetch(`${apiUrl}${ENDPOINTS.INLINE_CODE_EXPLANATION}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file_path: panel.file,
-          line_start,
-          line_end,
-        }),
+        body: JSON.stringify({ file_path: panel.file, line_start, line_end }),
       });
       const data = await res.json();
-      let explain = typeof data.explanation === 'string' ? data.explanation : (data.data?.explanation ?? '');
-      if (!explain) explain = '설명을 가져올 수 없습니다.';
+      const explanation = data.explanation || data.data?.explanation || '설명을 가져올 수 없습니다.';
 
-      // 3. 설명 메시지 표시
       setCfgPanelMessage(
         `<div style="display:flex;align-items:flex-start;gap:8px;">
           <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
-          <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;white-space;">
-            ${explain}
+          <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;">
+            ${explanation}
           </span>
         </div>`
       );
-    } catch (e: any) {
+    } catch {
       setCfgPanelMessage(
         `<div style="display:flex;align-items:flex-start;gap:8px;">
           <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
@@ -671,372 +611,175 @@ export default function DiagramViewer() {
       );
     }
 
-    // 기존 코드: 파일 열기/탭 활성화
-    if (file) {
-      const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-      const clean = file.replace(regex, '');
-      const tab = editorState.tabs.find(t => t.path === clean);
-      if (tab) {
-        editorState.setActive(tab.id, { from: line_start, to: line_end });
-      } else {
-        editorState.open({
-          id: nanoid(),
-          path: clean,
-          name: clean.split(/[\\/]/).pop() ?? clean,
-          line: line_start,
-          highlight: {from: line_start, to: line_end},
-        });
-      }
-      const target = findByPath(fsState.tree, clean);
-      if (target) fsState.setCurrent(target.id);
-    }
-  }, [apiUrl, editorState, fsState]);
+    openFile(node.data.file || panel.file, line_start, { from: line_start, to: line_end });
+  }, [apiUrl, openFile]);
 
-  const handleGenerateCFG = async () => {
+  const handleGenerateCFG = useCallback(async () => {
     setCfgMessage(null);
     setCfgLoading(true);
+
     const selectedNode = nodes.find(n => n.id === selectedNodeId && n.type !== 'group');
     if (!selectedNode) {
       setCfgMessage('선택된 노드가 없습니다.');
       setCfgLoading(false);
       return;
     }
-    const file = (selectedNode.data as any)?.file;
-    const functionName = (selectedNode.data as any)?.label;
+
+    const { file, label: functionName } = selectedNode.data as any;
     if (!file || !functionName) {
       setCfgMessage('노드 정보가 올바르지 않습니다.');
       setCfgLoading(false);
       return;
     }
 
-    // Prevent duplicate panel for the same file/function
-    const alreadyExists = cfgPanels.some(
-      p => p.file === file && p.functionName === functionName
-    );
-    if (alreadyExists) {
+    if (cfgPanels.some(p => p.file === file && p.functionName === functionName)) {
       setCfgMessage('이미 해당 함수의 CFG 패널이 열려 있습니다.');
       setCfgLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`${apiUrl}${ENDPOINT_CFG}`, {
+      const res = await fetch(`${apiUrl}${ENDPOINTS.CFG}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file_path: file,
-          function_name: functionName,
-        }),
+        body: JSON.stringify({ file_path: file, function_name: functionName }),
       });
+
       const data = await res.json();
       if (data.status && data.status !== 200) {
         setCfgMessage('API 호출 실패: ' + (data.data || ''));
-      } else {
-        const cfgRaw = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-        let cfgNodes = (cfgRaw.nodes || []).map((n: any) => ({
-          id: n.id,
-          data: { 
-            label: n.label || n.id,
-            file: n.file || file,
-            line_start: n.line_start || 1,
-            line_end: n.line_end || 1,
-          },
-          position: { x: n.x ?? 0, y: n.y ?? 0 },
-          style: {
-            padding: 4,
-            borderRadius: 3,
-            border: '1px solid #0284c7',
-            background: '#fff',
-            fontSize: 12,
-            minWidth: 40,
-            minHeight: 24,
-          },
-        }));
-        const cfgEdges = (cfgRaw.edges || []).map((e: any) => ({
-          id: e.id || `${e.source}-${e.target}`,
-          source: e.source,
-          target: e.target,
-          markerEnd: { type: MarkerType.ArrowClosed },
-          animated: true,
-          style: { stroke: '#0284c7', strokeWidth: 2 },
-        }));
-
-        if (
-          cfgRaw.nodes?.length > 0 &&
-          cfgRaw.nodes.every((n: any) => (!n.x && !n.y))
-        ) {
-          const posMap = layoutWithCluster({ [file]: { nodes: cfgRaw.nodes, edges: cfgRaw.edges } }, {});
-          cfgNodes = cfgNodes.map((n: any) => ({
-            ...n,
-            position: posMap[n.id] ?? { x: 0, y: 0 }
-          }));
-        }
-
-        const id = `${file}__${functionName}__${Date.now()}`;
-        setCfgPanels(panels => [
-          ...panels,
-          {
-            id,
-            functionName,
-            file,
-            result: { nodes: cfgNodes, edges: cfgEdges },
-            expanded: true,
-            pos: { x: 24 + panels.length * 32, y: 24 + panels.length * 32 },
-            dragging: false,
-            dragOffset: { x: 0, y: 0 },
-            width: 800,
-            height: 600,
-          },
-        ]);
-        setCfgMessage(null);
+        return;
       }
+
+      const cfgData = parseApiResponse(data);
+      let cfgNodes = (cfgData.nodes || []).map((n: any) => ({
+        id: n.id,
+        data: {
+          label: n.label || n.id,
+          file: n.file || file,
+          line_start: n.line_start || 1,
+          line_end: n.line_end || 1,
+        },
+        position: { x: n.x ?? 0, y: n.y ?? 0 },
+        style: {
+          padding: 4,
+          borderRadius: 3,
+          border: '1px solid #0284c7',
+          background: '#fff',
+          fontSize: 12,
+          minWidth: 40,
+          minHeight: 24,
+        },
+      }));
+
+      const cfgEdges = (cfgData.edges || []).map((e: any) => ({
+        id: e.id || `${e.source}-${e.target}`,
+        source: e.source,
+        target: e.target,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        animated: true,
+        style: { stroke: '#0284c7', strokeWidth: 2 },
+      }));
+
+      if (cfgData.nodes?.length > 0 && cfgData.nodes.every((n: any) => !n.x && !n.y)) {
+        const posMap = calculateLayout({ [file]: { nodes: cfgData.nodes, edges: cfgData.edges } }, {});
+        cfgNodes = cfgNodes.map((n: any) => ({
+          ...n,
+          position: posMap[n.id] ?? { x: 0, y: 0 }
+        }));
+      }
+
+      setCfgPanels(panels => [
+        ...panels,
+        {
+          id: `${file}__${functionName}__${Date.now()}`,
+          functionName,
+          file,
+          result: { nodes: cfgNodes, edges: cfgEdges },
+          expanded: true,
+          pos: { x: 24 + panels.length * 32, y: 24 + panels.length * 32 },
+          dragging: false,
+          dragOffset: { x: 0, y: 0 },
+          width: STYLES.CFG_PANEL.WIDTH,
+          height: STYLES.CFG_PANEL.HEIGHT,
+        },
+      ]);
+      setCfgMessage(null);
     } catch (e: any) {
       setCfgMessage('API 호출 중 오류가 발생했습니다. error: ' + e.message);
     } finally {
       setCfgLoading(false);
     }
-  };
+  }, [nodes, selectedNodeId, cfgPanels, apiUrl]);
 
-  useEffect(() => {
-    if (!diagramReady) return;
-    (async () => {
-      if (diagramCache) {
-        hydrate(diagramCache);
-        setLoad(false);
-        return;
-      }
-      setLoad(true);
-      setErr(undefined);
-      try {
-        const res = await fetch(`${apiUrl}${ENDPOINT_CG}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: `../../${TARGET_FOLDER}`, file_type: 'py' }),
-        });
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        const raw = await res.json();
-        const json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> =
-          typeof raw?.data === 'string' ? JSON.parse(raw.data) : raw.data;
-        diagramCache = json;
-        hydrate(json);
-      } catch (e: any) {
-        setErr(String(e));
-        setNodes([]);
-        setEdges([]);
-      } finally {
-        setLoad(false);
-      }
-    })();
-  }, [diagramReady]);
+  const hydrate = useCallback((json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) => {
+    const nodeWidths: Record<string, number> = {};
+    const nodeFont = `${STYLES.NODE.FONT_SIZE} ${STYLES.NODE.FONT_FAMILY}`;
 
-  // Process edges to handle collapsed groups
-  const processedEdges = edges.map((e) => {
-    const sourceRepresentative = findRepresentativeGroup(e.source, collapsedGroups, nodes);
-    const targetRepresentative = findRepresentativeGroup(e.target, collapsedGroups, nodes);
-    
-    const isRedirected = sourceRepresentative !== e.source || targetRepresentative !== e.target;
-    
-    if (sourceRepresentative === targetRepresentative && collapsedGroups.has(sourceRepresentative)) {
-      return {
-        ...e,
-        hidden: true,
-      };
-    }
-    
-    const finalEdge = isRedirected ? {
-      ...e,
-      id: `${e.id}_redirected_${sourceRepresentative}_${targetRepresentative}`,
-      source: sourceRepresentative,
-      target: targetRepresentative,
-      data: {
-        ...e.data,
-        originalSource: e.source,
-        originalTarget: e.target,
-        isRedirected: true,
-      },
-    } : e;
-    
-    const isHover = hoveredEdgeId === finalEdge.id;
-    
-    return {
-      ...finalEdge,
-      hidden: false,
-      style: {
-        ...(finalEdge.style || {}),
-        stroke: isHover ? '#f59e42' : '#34A853',
-        strokeWidth: isHover ? 4 : (isRedirected ? 3 : (finalEdge.style?.strokeWidth ?? 2)),
-        strokeDasharray: isRedirected ? '5 5' : undefined,
-        transition: 'all 0.13s',
-        cursor: 'pointer',
-      },
-      markerEnd: {
-        ...(finalEdge.markerEnd || {}),
-        color: isHover ? '#f59e42' : '#34A853',
-      },
-      zIndex: isRedirected ? 10001 : 10000,
-    };
-  });
-
-  // Remove duplicate edges and ensure unique keys
-  const seenEdges = new Map<string, Edge>();
-  processedEdges.forEach((edge) => {
-    const key = `${edge.source}-${edge.target}`;
-    const existingEdge = seenEdges.get(key);
-    
-    if (!existingEdge || edge.data?.isRedirected) {
-      seenEdges.set(key, edge);
-    }
-  });
-  
-  const finalEdges = Array.from(seenEdges.values());
-
-  // Create finalNodes
-  const finalNodes = nodes.map((n) => {
-    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-    const clean = ((n.data as any)?.file || '').replace(regex, '');
-    const isActive = clean === activePath;
-    const isHover = hoverId === n.id;
-    const isSelected = selectedNodeId === n.id;
-    const isGroup = n.type === 'group';
-    const isCollapsed = isGroup && collapsedGroups.has(n.id);
-    const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
-
-    return {
-      ...n,
-      type: isGroup ? 'group' : (n.type || 'default'),
-      hidden: isHidden,
-      style: {
-        ...n.style,
-        background: isGroup
-          ? isCollapsed 
-            ? '#f3f4f6'
-            : isHover
-              ? '#fef9c3'
-              : isSelected
-                ? '#fca5a5'
-                : isActive
-                  ? '#dbeafe'
-                  : '#FAFAFA'
-          : isHover
-            ? '#fef9c3'
-            : isSelected
-              ? '#fca5a5'
-              : isActive
-                ? '#dbeafe'
-                : '#ffffff',
-        border: isGroup
-          ? isCollapsed
-            ? '2px solid #6b7280'
-            : isHover
-              ? '4px solid #eab308'
-              : isActive
-                ? '1px solid #fb923c'
-                : '1px solid #b9bfc9'
-          : isHover
-            ? '4px solid #eab308'
-            : isSelected
-              ? '4px solid #b91c1c'
-              : isActive
-                ? '1px solid #0284c7'
-                : '1px solid #4A90E2',
-        transition: 'all 0.1s ease-in-out',
-        minWidth: isGroup ? (isCollapsed ? 200 : undefined) : (n.style?.width as number | undefined),
-        width: isGroup && isCollapsed ? 200 : n.style?.width,
-        height: isGroup && isCollapsed ? 50 : n.style?.height,
-        cursor: isGroup && isCollapsed ? 'pointer' : 'default',
-      },
-      data: isGroup
-        ? {
-            ...n.data,
-            isCollapsed,
-            onToggleCollapse: () => onToggleCollapse(n.id),
-          }
-        : n.data,
-    };
-  });
-
-  const reLayout = useCallback(() => {
-    if (diagramCache) {
-      hydrate(diagramCache);
-    }
-  }, []);
-
-  const hydrate = (json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) => {
-    const nodeSpecificWidths: Record<string, number> = {};
-    const textHorizontalPaddingTotal = 16;
-    const minNodeWidth = 60;
-    const nodeFontSize = '12px';
-    const nodeFontFamily = 'Arial, sans-serif';
-    const nodeFont = `${nodeFontSize} ${nodeFontFamily}`;
-
-    // Pre-calculate widths for all function nodes
+    // Calculate node widths
     Object.values(json).forEach(data => {
-      data.nodes.forEach(rawNode => {
-        const label = rawNode.label || rawNode.function_name || rawNode.id;
-        const estimatedTextWidth = getTextWidth(label, nodeFont);
-        const calculatedWidth = Math.max(minNodeWidth, estimatedTextWidth + textHorizontalPaddingTotal);
-        nodeSpecificWidths[rawNode.id] = calculatedWidth;
+      data.nodes.forEach(node => {
+        const label = node.label || node.function_name || node.id;
+        nodeWidths[node.id] = calculateNodeWidth(label);
       });
     });
 
+    // Create nodes
     let allFunctionNodes: Node[] = [];
     let allRawEdges: RawEdge[] = [];
+
     Object.entries(json).forEach(([file, data]) => {
-      const { nodes: rawNodes, edges: rawEdges } = data;
-      const fileFunctionNodes: Node[] = rawNodes.map((r) => {
-        const label = r.label || r.function_name || r.id;
-        const nodeWidth = nodeSpecificWidths[r.id];
-        return {
-          id: r.id,
-          data: { label: label, file: r.file },
-          position: { x: 0, y: 0 },
-          style: {
-            padding: '6px 8px',
-            borderRadius: 4,
-            border: '1px solid #3b82f6',
-            background: '#fff',
-            width: nodeWidth,
-            fontSize: nodeFontSize,
-            fontFamily: nodeFontFamily,
-          },
-          zIndex: 1,
-        };
-      });
-      allFunctionNodes = allFunctionNodes.concat(fileFunctionNodes);
-      allRawEdges = allRawEdges.concat(rawEdges);
+      const functionNodes = data.nodes.map(n => ({
+        id: n.id,
+        data: { label: n.label || n.function_name || n.id, file: n.file },
+        position: { x: 0, y: 0 },
+        style: {
+          padding: '6px 8px',
+          borderRadius: 4,
+          border: '1px solid #3b82f6',
+          background: '#fff',
+          width: nodeWidths[n.id],
+          fontSize: STYLES.NODE.FONT_SIZE,
+          fontFamily: STYLES.NODE.FONT_FAMILY,
+        },
+        zIndex: 1,
+      }));
+      allFunctionNodes = allFunctionNodes.concat(functionNodes);
+      allRawEdges = allRawEdges.concat(data.edges);
     });
-    const allNodeIds = new Set(allFunctionNodes.map((n) => n.id));
+
+    // Create edges
+    const nodeIds = new Set(allFunctionNodes.map(n => n.id));
     const allEdges: Edge[] = allRawEdges
-      .filter((e) => allNodeIds.has(e.source) && allNodeIds.has(e.target))
-      .map((r) => ({
-        id: r.id,
-        source: r.source,
-        target: r.target,
+      .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
+      .map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 15,
           height: 15,
-          color: '#34A853',
+          color: STYLES.COLORS.EDGE.DEFAULT,
         },
         animated: true,
-        style: { stroke: '#34A853', strokeWidth: 2 },
+        style: { stroke: STYLES.COLORS.EDGE.DEFAULT, strokeWidth: 2 },
         zIndex: 10000,
         type: 'step',
       }));
 
-    const posMap = layoutWithCluster(json, nodeSpecificWidths);
-
-    const laidOutFunctionNodes = allFunctionNodes.map((n) => ({
+    // Calculate layout
+    const posMap = calculateLayout(json, nodeWidths);
+    const laidOutNodes = allFunctionNodes.map(n => ({
       ...n,
       position: posMap[n.id] ?? { x: 0, y: 0 },
     }));
 
+    // Create groups
     const groupNodes: Node[] = [];
-    const groupPadding = 20;
-    const defaultNodeHeight = 30;
-
     const fileToNodes: Record<string, Node[]> = {};
-    laidOutFunctionNodes.forEach((node) => {
+
+    laidOutNodes.forEach(node => {
       const file = (node.data as any).file;
       if (!fileToNodes[file]) fileToNodes[file] = [];
       fileToNodes[file].push(node);
@@ -1044,133 +787,248 @@ export default function DiagramViewer() {
 
     Object.entries(fileToNodes).forEach(([file, nodesInGroup]) => {
       if (nodesInGroup.length === 0) return;
-      const xs = nodesInGroup.map((n) => n.position.x);
-      const ys = nodesInGroup.map((n) => n.position.y);
+
+      const xs = nodesInGroup.map(n => n.position.x);
+      const ys = nodesInGroup.map(n => n.position.y);
       const minX = Math.min(...xs);
       const minY = Math.min(...ys);
-      
-      const maxX = Math.max(...nodesInGroup.map(n => n.position.x + ((n.style?.width as number) || minNodeWidth)));
-      const maxY = Math.max(...nodesInGroup.map(n => n.position.y + ((n.style?.height as number) || defaultNodeHeight)));
-      
+      const maxX = Math.max(...nodesInGroup.map(n => n.position.x + ((n.style?.width as number) || STYLES.NODE.MIN_WIDTH)));
+      const maxY = Math.max(...nodesInGroup.map(n => n.position.y + ((n.style?.height as number) || STYLES.NODE.HEIGHT.DEFAULT)));
+
       const groupId = `group-${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
       groupNodes.push({
         id: groupId,
         type: 'group',
-        data: { 
+        data: {
           label: file.split('/').pop() || file,
           file: file
         },
-        position: { x: minX - groupPadding, y: minY - groupPadding },
+        position: { x: minX - STYLES.GROUP.PADDING, y: minY - STYLES.GROUP.PADDING },
         style: {
-          width: maxX - minX + 2 * groupPadding,
-          height: maxY - minY + 2 * groupPadding,
+          width: maxX - minX + 2 * STYLES.GROUP.PADDING,
+          height: maxY - minY + 2 * STYLES.GROUP.PADDING,
           background: 'rgba(0, 0, 0, 0.05)',
           border: '1px dashed #fb923c',
           borderRadius: 8,
         },
         zIndex: 0,
       });
-      nodesInGroup.forEach((node) => {
+
+      nodesInGroup.forEach(node => {
         node.position = {
-          x: node.position.x - (minX - groupPadding),
-          y: node.position.y - (minY - groupPadding),
+          x: node.position.x - (minX - STYLES.GROUP.PADDING),
+          y: node.position.y - (minY - STYLES.GROUP.PADDING),
         };
         node.parentId = groupId;
         node.extent = 'parent';
       });
     });
-    const allNodes = [...groupNodes, ...laidOutFunctionNodes];
-    setNodes(allNodes);
+
+    setNodes([...groupNodes, ...laidOutNodes]);
     setEdges(allEdges);
-  };
+  }, []);
+
+  // Load diagram
+  useEffect(() => {
+    if (!diagramReady) return;
+
+    (async () => {
+      if (diagramCache) {
+        hydrate(diagramCache);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(undefined);
+
+      try {
+        const res = await fetch(`${apiUrl}${ENDPOINTS.CG}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: `../../${TARGET_FOLDER}`, file_type: 'py' }),
+        });
+
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+
+        const data = await res.json();
+        const json = parseApiResponse(data);
+        diagramCache = json;
+        hydrate(json);
+      } catch (e: any) {
+        setError(String(e));
+        setNodes([]);
+        setEdges([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [diagramReady, apiUrl, hydrate]);
+
+  // Process edges for collapsed groups
+  const processedEdges = useMemo(() => {
+    const processed = edges.map(e => {
+      const sourceRep = findRepresentativeNode(e.source, collapsedGroups, nodes);
+      const targetRep = findRepresentativeNode(e.target, collapsedGroups, nodes);
+
+      if (sourceRep === targetRep && collapsedGroups.has(sourceRep)) {
+        return { ...e, hidden: true };
+      }
+
+      const isRedirected = sourceRep !== e.source || targetRep !== e.target;
+      const finalEdge = isRedirected ? {
+        ...e,
+        id: `${e.id}_redirected_${sourceRep}_${targetRep}`,
+        source: sourceRep,
+        target: targetRep,
+        data: {
+          ...e.data,
+          originalSource: e.source,
+          originalTarget: e.target,
+          isRedirected: true,
+        },
+      } : e;
+
+      const isHover = hoveredEdgeId === finalEdge.id;
+
+      return {
+        ...finalEdge,
+        hidden: false,
+        style: {
+          ...(finalEdge.style || {}),
+          stroke: isHover ? STYLES.COLORS.EDGE.HOVER : STYLES.COLORS.EDGE.DEFAULT,
+          strokeWidth: isHover ? 4 : (isRedirected ? 3 : 2),
+          strokeDasharray: isRedirected ? '5 5' : undefined,
+          transition: 'all 0.13s',
+          cursor: 'pointer',
+        },
+        markerEnd: {
+          ...(finalEdge.markerEnd || {}),
+          color: isHover ? STYLES.COLORS.EDGE.HOVER : STYLES.COLORS.EDGE.DEFAULT,
+        },
+        zIndex: isRedirected ? 10001 : 10000,
+      };
+    });
+
+    // Remove duplicates
+    const seen = new Map<string, Edge>();
+    processed.forEach(edge => {
+      const key = `${edge.source}-${edge.target}`;
+      if (!seen.has(key) || edge.data?.isRedirected) {
+        seen.set(key, edge);
+      }
+    });
+
+    return Array.from(seen.values());
+  }, [edges, collapsedGroups, nodes, hoveredEdgeId]);
+
+  // Process nodes for styling
+  const finalNodes = useMemo(() => {
+    return nodes.map(n => {
+      const cleanPath = cleanFilePath((n.data as any)?.file || '', TARGET_FOLDER);
+      const isActive = cleanPath === activePath;
+      const isHover = hoverId === n.id;
+      const isSelected = selectedNodeId === n.id;
+      const isGroup = n.type === 'group';
+      const isCollapsed = isGroup && collapsedGroups.has(n.id);
+      const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
+
+      return {
+        ...n,
+        type: isGroup ? 'group' : (n.type || 'default'),
+        hidden: isHidden,
+        style: {
+          ...n.style,
+          background: isGroup
+            ? isCollapsed
+              ? STYLES.COLORS.GROUP.COLLAPSED
+              : isHover
+                ? STYLES.COLORS.NODE.HOVER
+                : isSelected
+                  ? STYLES.COLORS.NODE.SELECTED
+                  : isActive
+                    ? STYLES.COLORS.NODE.ACTIVE
+                    : STYLES.COLORS.GROUP.DEFAULT
+            : isHover
+              ? STYLES.COLORS.NODE.HOVER
+              : isSelected
+                ? STYLES.COLORS.NODE.SELECTED
+                : isActive
+                  ? STYLES.COLORS.NODE.ACTIVE
+                  : STYLES.COLORS.NODE.DEFAULT,
+          border: isGroup
+            ? isCollapsed
+              ? `2px solid ${STYLES.COLORS.GROUP.BORDER_COLLAPSED}`
+              : isHover
+                ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
+                : isActive
+                  ? `1px solid ${STYLES.COLORS.GROUP.BORDER_ACTIVE}`
+                  : `1px solid ${STYLES.COLORS.GROUP.BORDER}`
+            : isHover
+              ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
+              : isSelected
+                ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
+                : isActive
+                  ? `1px solid ${STYLES.COLORS.NODE.BORDER_ACTIVE}`
+                  : `1px solid ${STYLES.COLORS.NODE.BORDER}`,
+          transition: 'all 0.1s ease-in-out',
+          minWidth: isGroup ? (isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : undefined) : (n.style?.width as number),
+          width: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : n.style?.width,
+          height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : n.style?.height,
+          cursor: isGroup && isCollapsed ? 'pointer' : 'default',
+        },
+        data: isGroup
+          ? {
+            ...n.data,
+            isCollapsed,
+            onToggleCollapse: () => toggleCollapse(n.id),
+          }
+          : n.data,
+      };
+    });
+  }, [nodes, activePath, hoverId, selectedNodeId, collapsedGroups, toggleCollapse]);
 
   if (!diagramReady) {
     return (
       <div className="flex items-center justify-center h-full w-full">
         <button
           onClick={() => setDiagramReady(true)}
-          style={{
-            minWidth: 180,
-            padding: '12px 32px',
-            borderRadius: 8,
-            background: '#fff',
-            color: '#3b3b4f',
-            fontWeight: 600,
-            fontSize: 18,
-            border: '1.5px solid #d1d5db',
-            boxShadow: '0 2px 8px #0001',
-            outline: 'none',
-            cursor: 'pointer',
-            transition: 'background 0.13s, box-shadow 0.13s, border 0.13s, color 0.13s',
-            letterSpacing: 0.5,
-          }}
-          onMouseOver={e => {
-            e.currentTarget.style.background = '#f3f4f6';
-            e.currentTarget.style.border = '1.5px solid #6366f1';
-            e.currentTarget.style.color = '#4338ca';
-          }}
-          onMouseOut={e => {
-            e.currentTarget.style.background = '#fff';
-            e.currentTarget.style.border = '1.5px solid #d1d5db';
-            e.currentTarget.style.color = '#3b3b4f';
-          }}
+          className="min-w-[180px] px-8 py-3 rounded-lg bg-white text-gray-700 font-semibold text-lg border border-gray-300 shadow-sm hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 transition-all"
         >
-          <span style={{
-            display: 'inline-block',
-            marginRight: 8,
-            verticalAlign: 'middle',
-            fontSize: 18,
-            color: '#6366f1',
-            transition: 'color 0.13s',
-          }}>▶</span>
+          <span className="inline-block mr-2 text-indigo-500">▶</span>
           Generate Diagram
         </button>
       </div>
     );
   }
 
-  if (loading)
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-full w-full">
-        <svg
-          className="animate-spin h-8 w-8 text-blue-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-          />
+        <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
         <span className="ml-3 text-sm text-slate-500">diagram loading…</span>
       </div>
     );
-  if (error)
-    return (
-      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
-    );
+  }
+
+  if (error) {
+    return <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>;
+  }
 
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
         nodes={finalNodes}
-        edges={finalEdges}
-        onNodesChange={onNodesChange}
+        edges={processedEdges}
+        onNodesChange={(changes) => setNodes(nds => applyNodeChanges(changes, nds))}
         onNodeClick={onNodeClick}
-        onNodeMouseEnter={onEnter}
-        onNodeMouseLeave={onLeave}
-        onEdgeMouseEnter={onEdgeMouseEnter}
-        onEdgeMouseLeave={onEdgeMouseLeave}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
+        onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+        onEdgeMouseLeave={() => setHoveredEdgeId(null)}
         fitView
         minZoom={0.2}
         maxZoom={2}
@@ -1185,24 +1043,18 @@ export default function DiagramViewer() {
         <MiniMap
           pannable
           zoomable
-          nodeColor={n =>
-            n.type === 'group'
-              ? collapsedGroups.has(n.id) ? '#6b7280' : '#bdbdbd'
-              : n.style?.background === '#fef9c3'
-                ? '#facc15'
-                : n.style?.background === '#dbeafe'
-                  ? '#0284c7'
-                  : '#2563eb'
-          }
-          nodeStrokeColor={n =>
-            n.type === 'group'
-              ? collapsedGroups.has(n.id) ? '#374151' : '#757575'
-              : n.style?.border?.includes('#eab308')
-                ? '#eab308'
-                : n.style?.border?.includes('#0284c7')
-                  ? '#0284c7'
-                  : '#1e40af'
-          }
+          nodeColor={n => {
+            if (n.type === 'group') return collapsedGroups.has(n.id) ? '#6b7280' : '#bdbdbd';
+            const bg = n.style?.background;
+            return bg === STYLES.COLORS.NODE.HOVER ? '#facc15' :
+              bg === STYLES.COLORS.NODE.ACTIVE ? '#0284c7' : '#2563eb';
+          }}
+          nodeStrokeColor={n => {
+            if (n.type === 'group') return collapsedGroups.has(n.id) ? '#374151' : '#757575';
+            const border = n.style?.border;
+            return border?.includes(STYLES.COLORS.NODE.BORDER_HOVER) ? STYLES.COLORS.NODE.BORDER_HOVER :
+              border?.includes(STYLES.COLORS.NODE.BORDER_ACTIVE) ? STYLES.COLORS.NODE.BORDER_ACTIVE : '#1e40af';
+          }}
           nodeStrokeWidth={2}
           maskColor="rgba(255,255,255,0.7)"
           style={{
@@ -1216,20 +1068,8 @@ export default function DiagramViewer() {
           <button
             type="button"
             title="Re-layout"
-            onClick={reLayout}
-            style={{
-              width: 20,
-              height: 20,
-              background: '#fff',
-              padding: 0,
-              margin: 4,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 2px #0001',
-              transition: 'border 0.15s',
-            }}
+            onClick={() => diagramCache && hydrate(diagramCache)}
+            className="w-5 h-5 bg-white p-0 m-1 cursor-pointer flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <rect x="2" y="2" width="4" height="4" rx="1" fill="#222" />
@@ -1244,20 +1084,7 @@ export default function DiagramViewer() {
             title="Generate Control Flow Graph"
             onClick={handleGenerateCFG}
             disabled={cfgLoading}
-            style={{
-              width: 20,
-              height: 20,
-              background: '#fff',
-              padding: 0,
-              margin: 4,
-              cursor: cfgLoading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 2px #0001',
-              transition: 'border 0.15s',
-              position: 'relative',
-            }}
+            className="w-5 h-5 bg-white p-0 m-1 cursor-pointer flex items-center justify-center shadow-sm hover:shadow-md transition-shadow relative disabled:cursor-not-allowed"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: cfgLoading ? 0.3 : 1 }}>
               <circle cx="6" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2" />
@@ -1273,48 +1100,22 @@ export default function DiagramViewer() {
               </g>
             </svg>
             {cfgLoading && (
-              <span
-                style={{
-                  position: 'absolute',
-                  left: 0, top: 0, width: '100%', height: '100%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.7)',
-                  borderRadius: 4,
-                }}
-              >
+              <span className="absolute inset-0 flex items-center justify-center bg-white/70 rounded">
                 <svg className="animate-spin" width="16" height="16" viewBox="0 0 16 16">
-                  <circle
-                    cx="8" cy="8" r="6"
-                    stroke="#0284c7"
-                    strokeWidth="2"
-                    fill="none"
-                    strokeDasharray="28"
-                    strokeDashoffset="10"
-                  />
+                  <circle cx="8" cy="8" r="6" stroke="#0284c7" strokeWidth="2" fill="none" strokeDasharray="28" strokeDashoffset="10" />
                 </svg>
               </span>
             )}
           </button>
         </Controls>
       </ReactFlow>
+
       {cfgMessage && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 24,
-            background: '#fee2e2',
-            color: '#b91c1c',
-            padding: '8px 16px',
-            borderRadius: 6,
-            zIndex: 100,
-            fontSize: 14,
-            boxShadow: '0 2px 8px #0002',
-          }}
-        >
+        <div className="absolute top-[60px] right-6 bg-red-100 text-red-800 px-4 py-2 rounded-md z-[100] text-sm shadow-md">
           {cfgMessage}
         </div>
       )}
+
       {cfgPanels.map((panel, idx) => (
         <CFGPanelComponent
           key={panel.id}
@@ -1326,28 +1127,10 @@ export default function DiagramViewer() {
           message={cfgPanelMessage}
         />
       ))}
+
       {hoverId && snippet && (
         <div
-          className="fixed z-50"
-          style={{
-            top: 16,
-            right: 16,
-            minWidth: 320,
-            maxWidth: '40vw',
-            width: 'auto',
-            minHeight: 40,
-            maxHeight: '80vh',
-            background: '#fafafa',
-            color: '#1e293b',
-            fontSize: 12,
-            borderRadius: 8,
-            boxShadow: '0 4px 16px #0004',
-            padding: 16,
-            overflow: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-          }}
+          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-auto font-mono pointer-events-none"
           dangerouslySetInnerHTML={{ __html: `<pre class="hljs">${snippet}</pre>` }}
         />
       )}
@@ -1374,42 +1157,30 @@ function CFGPanelComponent({
   const [isDragging, setIsDragging] = useState(false);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (
-      (e.target as HTMLElement).closest('button') ||
-      (e.target as HTMLElement).tagName === 'BUTTON'
-    ) {
-      return;
-    }
+    if ((e.target as HTMLElement).closest('button')) return;
 
     const startX = e.clientX;
     const startY = e.clientY;
     const origX = panel.pos.x;
     const origY = panel.pos.y;
-    
+
     setIsDragging(true);
     onUpdate(panel.id, { dragging: true });
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
-      
+
       const newX = origX - dx;
       const newY = origY + dy;
-      
-      const panelWidth = panel.width ?? 400;
-      const panelHeight = panel.expanded ? (panel.height ?? 320) : 44;
-      
-      const minX = 20;
-      const maxX = window.innerWidth - panelWidth - 20;
-      const minY = 20;
-      const maxY = window.innerHeight - panelHeight - 20;
-      
-      const boundedX = Math.max(minX, Math.min(newX, maxX));
-      const boundedY = Math.max(minY, Math.min(newY, maxY));
-      
-      onUpdate(panel.id, {
-        pos: { x: boundedX, y: boundedY }
-      });
+
+      const panelWidth = panel.width ?? STYLES.CFG_PANEL.WIDTH;
+      const panelHeight = panel.expanded ? (panel.height ?? STYLES.CFG_PANEL.HEIGHT) : 44;
+
+      const boundedX = Math.max(20, Math.min(newX, window.innerWidth - panelWidth - 20));
+      const boundedY = Math.max(20, Math.min(newY, window.innerHeight - panelHeight - 20));
+
+      onUpdate(panel.id, { pos: { x: boundedX, y: boundedY } });
     };
 
     const onMouseUp = () => {
@@ -1428,22 +1199,19 @@ function CFGPanelComponent({
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
-    const startWidth = panel.width ?? 400;
-    const startHeight = panel.height ?? 320;
+    const startWidth = panel.width ?? STYLES.CFG_PANEL.WIDTH;
+    const startHeight = panel.height ?? STYLES.CFG_PANEL.HEIGHT;
 
     onUpdate(panel.id, { resizing: true });
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
-      
+
       const newWidth = Math.max(300, Math.min(1600, startWidth + dx));
       const newHeight = Math.max(200, Math.min(1200, startHeight + dy));
-      
-      onUpdate(panel.id, {
-        width: newWidth,
-        height: newHeight
-      });
+
+      onUpdate(panel.id, { width: newWidth, height: newHeight });
     };
 
     const onMouseUp = () => {
@@ -1464,26 +1232,22 @@ function CFGPanelComponent({
         right: panel.pos.x,
         background: '#f1f5f9',
         color: '#222',
-        padding: panel.expanded ? '12px 18px 18px 18px' : '8px 18px 8px 18px',
+        padding: panel.expanded ? '12px 18px 18px 18px' : '8px 18px',
         borderRadius: 8,
         zIndex: 200 + index,
         fontSize: 13,
         minWidth: 220,
         maxWidth: 1600,
-        minHeight: panel.expanded ? 0 : 0,
         maxHeight: panel.expanded ? 1200 : 44,
         boxShadow: '0 2px 8px #0002',
-        whiteSpace: 'pre-wrap',
         overflow: panel.expanded ? 'auto' : 'hidden',
         transition: 'all 0.2s cubic-bezier(.4,2,.6,1)',
         display: 'flex',
         flexDirection: 'column',
         cursor: isDragging ? 'move' : 'default',
         userSelect: isDragging ? 'none' : 'auto',
-        pointerEvents: isDragging ? 'none' : 'auto',
-        width: panel.width ?? 400,
-        height: panel.expanded ? (panel.height ?? 320) : undefined,
-        resize: 'none',
+        width: panel.width ?? STYLES.CFG_PANEL.WIDTH,
+        height: panel.expanded ? (panel.height ?? STYLES.CFG_PANEL.HEIGHT) : undefined,
       }}
     >
       {message && (
@@ -1492,23 +1256,16 @@ function CFGPanelComponent({
             position: 'absolute',
             top: 8,
             right: 12,
-            background: 'transparent',
-            padding: 0,
-            borderRadius: 5,
             zIndex: 300,
             fontSize: 13,
             fontWeight: 500,
-            boxShadow: 'none',
             pointerEvents: 'none',
             maxWidth: 340,
-            textOverflow: 'ellipsis',
-            overflow: 'hidden',
-            whiteSpace: 'normal',
           }}
           dangerouslySetInnerHTML={{ __html: message }}
         />
       )}
-      
+
       <div
         style={{
           width: '100%',
@@ -1527,10 +1284,7 @@ function CFGPanelComponent({
       >
         <span style={{ flex: 1 }}>
           CFG ({panel.functionName}
-          {panel.file && (
-            <> @ {panel.file.split(/[\\/]/).pop()}</>
-          )}
-          )
+          {panel.file && <> @ {panel.file.split(/[\\/]/).pop()}</>})
         </span>
         <button
           onClick={e => {
@@ -1540,12 +1294,9 @@ function CFGPanelComponent({
           style={{
             background: 'transparent',
             border: 'none',
-            fontSize: 16,
             color: '#888',
             cursor: 'pointer',
             padding: 0,
-            marginRight: 4,
-            lineHeight: 1,
             width: 24,
             height: 24,
             display: 'flex',
@@ -1555,10 +1306,9 @@ function CFGPanelComponent({
             transform: panel.expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
           }}
           aria-label={panel.expanded ? 'Collapse' : 'Expand'}
-          title={panel.expanded ? 'Collapse' : 'Expand'}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <button
@@ -1569,11 +1319,9 @@ function CFGPanelComponent({
           style={{
             background: 'transparent',
             border: 'none',
-            fontSize: 16,
             color: '#888',
             cursor: 'pointer',
             padding: 0,
-            lineHeight: 1,
             width: 24,
             height: 24,
             display: 'flex',
@@ -1581,15 +1329,14 @@ function CFGPanelComponent({
             justifyContent: 'center',
           }}
           aria-label="Close"
-          title="Close"
         >
           ×
         </button>
       </div>
-      
+
       {panel.expanded && (
-        <div style={{ width: '100%', height: panel.height ?? 320, overflow: 'auto', position: 'relative' }}>
-          {panel.result && panel.result.nodes && panel.result.edges ? (
+        <div style={{ width: '100%', height: panel.height ?? STYLES.CFG_PANEL.HEIGHT, overflow: 'auto', position: 'relative' }}>
+          {panel.result?.nodes && panel.result?.edges ? (
             <div style={{ width: '100%', height: '100%', background: '#f8fafc', borderRadius: 6 }}>
               <ReactFlow
                 nodes={panel.result.nodes}
@@ -1621,7 +1368,7 @@ function CFGPanelComponent({
               {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
             </pre>
           )}
-          
+
           <div
             style={{
               position: 'absolute',
@@ -1631,7 +1378,6 @@ function CFGPanelComponent({
               height: 18,
               cursor: 'nwse-resize',
               zIndex: 10,
-              background: 'transparent',
               userSelect: 'none',
             }}
             onMouseDown={handleResize}
@@ -1647,12 +1393,7 @@ function CFGPanelComponent({
   );
 }
 
-/**
- * 파일 트리에서 경로로 노드 찾기
- * @param nodes 파일 노드 배열
- * @param p 찾을 경로
- * @returns 찾은 파일 노드
- */
+// Helper function
 function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
   const regex = new RegExp(`^${process.env.NEXT_PUBLIC_TARGET_FOLDER}[\\\\/]`);
   for (const n of nodes) {

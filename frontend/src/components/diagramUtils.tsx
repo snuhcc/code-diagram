@@ -22,7 +22,7 @@ export const STYLES = {
     FONT_FAMILY: 'Arial, sans-serif',
   },
   GROUP: {
-    PADDING: 20,
+    PADDING: 20, // Reduced from 40 to 20
     COLLAPSED_WIDTH: 200,
     COLLAPSED_HEIGHT: 50,
   },
@@ -142,51 +142,240 @@ export function findRepresentativeNode(nodeId: string, collapsedGroups: Set<stri
   return nodeId;
 }
 
+// Mindmap-style layout function with adjusted spacing
 export function calculateLayout(
   files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>,
   nodeWidths: Record<string, number>
 ): Record<string, { x: number; y: number }> {
-  const totalNodes = Object.values(files).reduce((sum, f) => sum + f.nodes.length, 0);
-  const nodesep = totalNodes > 50 ? 15 : totalNodes > 30 ? 20 : 25;
-  const ranksep = totalNodes > 50 ? 40 : totalNodes > 30 ? 50 : 60;
-  
-  const g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
-    .setGraph({
-      rankdir: 'TB',
-      nodesep,
-      ranksep,
-      ranker: 'tight-tree',
-      align: 'DL',
-      marginx: 10,
-      marginy: 10,
-    })
-    .setDefaultEdgeLabel(() => ({}));
-    
-  Object.keys(files).forEach(file => g.setNode(`cluster_${file}`, { marginx: 10, marginy: 10 }));
-  
-  Object.entries(files).forEach(([file, { nodes, edges }]) => {
-    nodes.forEach(n => {
-      const width = nodeWidths[n.id] || STYLES.NODE.MIN_WIDTH;
-      const height = totalNodes > 50 ? STYLES.NODE.HEIGHT.SMALL : STYLES.NODE.HEIGHT.DEFAULT;
-      g.setNode(n.id, { width, height });
-      g.setParent(n.id, `cluster_${file}`);
-    });
-  });
-  
-  Object.values(files).forEach(({ edges }) => {
-    edges.forEach(({ source, target }) => {
-      if (!g.hasEdge(source, target)) g.setEdge(source, target, { weight: 1 });
-    });
-  });
-  
-  dagre.layout(g);
-  
   const positions: Record<string, { x: number; y: number }> = {};
-  g.nodes().forEach(id => {
-    const node = g.node(id);
-    if (node && !id.startsWith('cluster_') && node.x != null && node.y != null) {
-      positions[id] = { x: node.x, y: node.y };
+  const groupNodes = new Set<string>(); // 그룹 노드 추적
+  
+  // 더 컴팩트한 레이아웃 설정
+  const LAYOUT_CONFIG = {
+    HORIZONTAL_SPACING: 150,     
+    VERTICAL_SPACING: 60,        
+    LEVEL_RADIUS_INCREMENT: 40,  
+    INITIAL_RADIUS: 50,          
+    SIBLING_ANGLE_SPREAD: Math.PI * 0.15, 
+    FILE_SPACING_X: 450,         // 350에서 450으로 더 증가
+    FILE_SPACING_Y: 400,         // 300에서 400으로 더 증가
+    GROUP_MIN_DISTANCE: 300,     // 200에서 300으로 증가
+  };
+  
+  // 그룹 노드 충돌 감지 함수 (더 큰 여백 포함)
+  function isGroupColliding(pos1: { x: number; y: number }, pos2: { x: number; y: number }): boolean {
+    const distance = Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2));
+    return distance < LAYOUT_CONFIG.GROUP_MIN_DISTANCE;
+  }
+  
+  // 그룹 위치 조정 함수 (더 강력한 분리 로직)
+  function adjustGroupPositions() {
+    const maxIterations = 50; // 최대 반복 횟수
+    let iteration = 0;
+    
+    while (iteration < maxIterations) {
+      const groupPositions = Object.entries(positions)
+        .filter(([id]) => groupNodes.has(id))
+        .map(([id, pos]) => ({ id, pos }));
+      
+      let hasCollision = false;
+      
+      for (let i = 0; i < groupPositions.length; i++) {
+        for (let j = i + 1; j < groupPositions.length; j++) {
+          const group1 = groupPositions[i];
+          const group2 = groupPositions[j];
+          
+          if (isGroupColliding(group1.pos, group2.pos)) {
+            hasCollision = true;
+            
+            const dx = group2.pos.x - group1.pos.x;
+            const dy = group2.pos.y - group1.pos.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance === 0) {
+              // 완전히 같은 위치인 경우 각도 기반으로 분산
+              const angle = (j * 2 * Math.PI) / groupPositions.length;
+              group2.pos.x = group1.pos.x + Math.cos(angle) * LAYOUT_CONFIG.GROUP_MIN_DISTANCE;
+              group2.pos.y = group1.pos.y + Math.sin(angle) * LAYOUT_CONFIG.GROUP_MIN_DISTANCE;
+            } else {
+              // 충돌 방향으로 밀어내기 (더 강한 힘으로)
+              const pushDistance = LAYOUT_CONFIG.GROUP_MIN_DISTANCE - distance + 50; // 추가 여백
+              const pushX = (dx / distance) * pushDistance;
+              const pushY = (dy / distance) * pushDistance;
+              
+              // 양쪽 그룹을 모두 이동 (더 안정적인 분리)
+              const moveDistance = pushDistance / 2;
+              group1.pos.x -= (dx / distance) * moveDistance * 0.3;
+              group1.pos.y -= (dy / distance) * moveDistance * 0.3;
+              group2.pos.x += (dx / distance) * moveDistance * 0.7;
+              group2.pos.y += (dy / distance) * moveDistance * 0.7;
+            }
+            
+            // 업데이트된 위치를 positions에 반영
+            positions[group1.id] = { ...group1.pos };
+            positions[group2.id] = { ...group2.pos };
+          }
+        }
+      }
+      
+      if (!hasCollision) break;
+      iteration++;
     }
+  }
+  
+  // 먼저 그룹 노드들의 기본 위치를 설정
+  const fileEntries = Object.entries(files);
+  const filesPerRow = Math.max(2, Math.ceil(Math.sqrt(fileEntries.length)));
+  
+  fileEntries.forEach(([file], fileIndex) => {
+    groupNodes.add(file);
+    
+    const fileRow = Math.floor(fileIndex / filesPerRow);
+    const fileCol = fileIndex % filesPerRow;
+    
+    const fileOffsetX = fileCol * LAYOUT_CONFIG.FILE_SPACING_X;
+    const fileOffsetY = fileRow * LAYOUT_CONFIG.FILE_SPACING_Y;
+    
+    // 그룹 노드 위치 먼저 설정
+    positions[file] = {
+      x: 200 + fileOffsetX,
+      y: 200 + fileOffsetY
+    };
+  });
+  
+  // 그룹 노드 충돌 해결
+  adjustGroupPositions();
+  
+  let globalOffsetX = 0;
+  let globalOffsetY = 0;
+  
+  Object.entries(files).forEach(([file, { nodes, edges }], fileIndex) => {
+    const children: Record<string, string[]> = {};
+    const parents: Record<string, string[]> = {};
+    
+    edges.forEach(edge => {
+      if (!children[edge.source]) children[edge.source] = [];
+      if (!parents[edge.target]) parents[edge.target] = [];
+      children[edge.source].push(edge.target);
+      parents[edge.target].push(edge.source);
+    });
+    
+    const roots = nodes.filter(node => !parents[node.id] || parents[node.id].length === 0);
+    const rootNodes = roots.length > 0 ? roots : 
+      nodes.sort((a, b) => (children[b.id]?.length || 0) - (children[a.id]?.length || 0)).slice(0, 1);
+    
+    // 그룹의 중심점을 기준으로 내부 노드들 배치
+    const groupCenter = positions[file];
+    
+    rootNodes.forEach((root, rootIndex) => {
+      const rootOffsetX = rootIndex * LAYOUT_CONFIG.FILE_SPACING_X * 0.2;
+      
+      const visited = new Set<string>();
+      const queue: { 
+        id: string; 
+        level: number; 
+        angle: number; 
+        parentPos?: { x: number; y: number };
+        sectorStart?: number;
+        sectorEnd?: number;
+      }[] = [];
+      
+      const rootX = groupCenter.x + rootOffsetX;
+      const rootY = groupCenter.y;
+      positions[root.id] = { x: rootX, y: rootY };
+      visited.add(root.id);
+      
+      const rootChildren = children[root.id] || [];
+      const childCount = rootChildren.length;
+      
+      if (childCount > 0) {
+        const angleStep = (2 * Math.PI) / childCount;
+        const startAngle = -Math.PI / 2;
+        
+        rootChildren.forEach((childId, index) => {
+          const angle = startAngle + index * angleStep;
+          queue.push({ 
+            id: childId, 
+            level: 1, 
+            angle,
+            parentPos: positions[root.id],
+            sectorStart: angle - angleStep / 2,
+            sectorEnd: angle + angleStep / 2
+          });
+        });
+      }
+      
+      while (queue.length > 0) {
+        const { id, level, angle, parentPos, sectorStart = 0, sectorEnd = 2 * Math.PI } = queue.shift()!;
+        
+        if (visited.has(id)) continue;
+        visited.add(id);
+        
+        const radius = LAYOUT_CONFIG.INITIAL_RADIUS + (level - 1) * LAYOUT_CONFIG.LEVEL_RADIUS_INCREMENT;
+        const x = parentPos!.x + Math.cos(angle) * radius;
+        const y = parentPos!.y + Math.sin(angle) * radius;
+        
+        positions[id] = { x, y };
+        
+        const nodeChildren = children[id] || [];
+        const unvisitedChildren = nodeChildren.filter(c => !visited.has(c));
+        const childChildCount = unvisitedChildren.length;
+        
+        if (childChildCount > 0) {
+          const sectorSize = Math.min(sectorEnd - sectorStart, LAYOUT_CONFIG.SIBLING_ANGLE_SPREAD);
+          const childSectorStart = angle - sectorSize / 2;
+          const childSectorEnd = angle + sectorSize / 2;
+          const childAngleStep = sectorSize / (childChildCount + 1);
+          
+          unvisitedChildren.forEach((childId, index) => {
+            const childAngle = childSectorStart + (index + 1) * childAngleStep;
+            const childSectorSize = sectorSize / childChildCount;
+            
+            queue.push({ 
+              id: childId, 
+              level: level + 1, 
+              angle: childAngle,
+              parentPos: positions[id],
+              sectorStart: childAngle - childSectorSize / 2,
+              sectorEnd: childAngle + childSectorSize / 2
+            });
+          });
+        }
+      }
+      
+      // 연결되지 않은 노드들 배치
+      nodes.forEach(node => {
+        if (!visited.has(node.id)) {
+          const unvisitedIndex = Array.from(visited).length;
+          const gridCol = unvisitedIndex % 3;
+          const gridRow = Math.floor(unvisitedIndex / 3);
+          
+          positions[node.id] = {
+            x: rootX + LAYOUT_CONFIG.INITIAL_RADIUS * 2 + gridCol * LAYOUT_CONFIG.HORIZONTAL_SPACING,
+            y: rootY - LAYOUT_CONFIG.INITIAL_RADIUS + gridRow * LAYOUT_CONFIG.VERTICAL_SPACING
+          };
+          visited.add(node.id);
+        }
+      });
+    });
+    
+    globalOffsetX = Math.max(globalOffsetX, ...Object.values(positions).map(p => p.x));
+    globalOffsetY = Math.max(globalOffsetY, ...Object.values(positions).map(p => p.y));
+  });
+  
+  // 전체 다이어그램 중앙 정렬
+  const allX = Object.values(positions).map(p => p.x);
+  const allY = Object.values(positions).map(p => p.y);
+  const minX = Math.min(...allX);
+  const minY = Math.min(...allY);
+  const maxX = Math.max(...allX);
+  const maxY = Math.max(...allY);
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  
+  Object.keys(positions).forEach(id => {
+    positions[id].x -= centerX - 400;
+    positions[id].y -= centerY - 400;
   });
   
   return positions;

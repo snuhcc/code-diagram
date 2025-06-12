@@ -291,7 +291,6 @@ export default function DiagramViewer() {
     const nodeWidths: Record<string, number> = {};
     const nodeFont = `${STYLES.NODE.FONT_SIZE} ${STYLES.NODE.FONT_FAMILY}`;
 
-    // Calculate node widths
     Object.values(json).forEach(data => {
       data.nodes.forEach(node => {
         const label = node.label || node.function_name || node.id;
@@ -299,7 +298,6 @@ export default function DiagramViewer() {
       });
     });
 
-    // Create nodes
     let allFunctionNodes: Node[] = [];
     let allRawEdges: RawEdge[] = [];
 
@@ -323,7 +321,6 @@ export default function DiagramViewer() {
       allRawEdges = allRawEdges.concat(data.edges);
     });
 
-    // Create edges
     const nodeIds = new Set(allFunctionNodes.map(n => n.id));
     const allEdges: Edge[] = allRawEdges
       .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
@@ -343,14 +340,12 @@ export default function DiagramViewer() {
         type: 'step',
       }));
 
-    // Calculate layout
     const posMap = calculateLayout(json, nodeWidths);
     const laidOutNodes = allFunctionNodes.map(n => ({
       ...n,
       position: posMap[n.id] ?? { x: 0, y: 0 },
     }));
 
-    // Create groups
     const groupNodes: Node[] = [];
     const fileToNodes: Record<string, Node[]> = {};
 
@@ -403,7 +398,6 @@ export default function DiagramViewer() {
     setEdges(allEdges);
   }, []);
 
-  // Load diagram
   useEffect(() => {
     if (!diagramReady) return;
 
@@ -440,7 +434,6 @@ export default function DiagramViewer() {
     })();
   }, [diagramReady, apiUrl, hydrate]);
 
-  // Process edges for collapsed groups
   const processedEdges = useMemo(() => {
     const processed = edges.map(e => {
       const sourceRep = findRepresentativeNode(e.source, collapsedGroups, nodes);
@@ -485,7 +478,6 @@ export default function DiagramViewer() {
       };
     });
 
-    // Remove duplicates
     const seen = new Map<string, Edge>();
     processed.forEach(edge => {
       const key = `${edge.source}-${edge.target}`;
@@ -497,7 +489,6 @@ export default function DiagramViewer() {
     return Array.from(seen.values());
   }, [edges, collapsedGroups, nodes, hoveredEdgeId]);
 
-  // Process nodes for styling
   const finalNodes = useMemo(() => {
     return nodes.map(n => {
       const cleanPath = cleanFilePath((n.data as any)?.file || '', TARGET_FOLDER);
