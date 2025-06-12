@@ -49,6 +49,7 @@ export default function DiagramViewer() {
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [cfgMessage, setCfgMessage] = useState<string | null>(null);
+  const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
   const [cfgPanels, setCfgPanels] = useState<
     { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
   >([]);
