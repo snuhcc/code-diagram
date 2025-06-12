@@ -158,6 +158,8 @@ export default function DiagramViewer() {
       </div>`
     );
 
+    openFile(node.data.file || panel.file, line_start, { from: line_start, to: line_end });
+
     try {
       const res = await fetch(`${apiUrl}${ENDPOINTS.INLINE_CODE_EXPLANATION}`, {
         method: 'POST',
@@ -186,7 +188,6 @@ export default function DiagramViewer() {
       );
     }
 
-    openFile(node.data.file || panel.file, line_start, { from: line_start, to: line_end });
   }, [apiUrl, openFile]);
 
   const handleGenerateCFG = useCallback(async () => {
