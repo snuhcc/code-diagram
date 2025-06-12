@@ -30,8 +30,13 @@ export default function ChatUI() {
   const { tree } = useFS();
   const allFiles = getAllFilePaths(tree);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const didInit = useRef(false); // Strict Mode 중복방지
+
 
   useEffect(() => {
+    if (didInit.current) return; // Strict Mode 중복 방지
+    didInit.current = true;
+    console.log('ChatUI mounted');
     async function init() {
       const newSessionId = await openNewSession();
       if (newSessionId) setCurrentSessionId(newSessionId);
