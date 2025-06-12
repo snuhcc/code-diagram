@@ -183,7 +183,7 @@ export default function ChatUI() {
               session.id === currentSessionId ? 'bg-white border-t border-x border-slate-300' : ''
             }`}
           >
-            <span>Session {index + 1}</span>
+            <span style={{ fontWeight: 'bold' }}>💬 Chat # {index + 1}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
