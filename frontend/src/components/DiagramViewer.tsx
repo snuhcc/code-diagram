@@ -562,6 +562,9 @@ export default function DiagramViewer() {
     const allNodes = [...groupNodes, ...laidOutFunctionNodes];
     setNodes(allNodes);
     setEdges(allEdges);
+
+    // ▼ 모든 그룹을 collapse 상태로 초기화
+    setCollapsedGroups(new Set(groupNodes.map(g => g.id)));
   };
 
   if (!diagramReady) {
