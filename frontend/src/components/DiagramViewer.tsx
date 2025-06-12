@@ -56,6 +56,19 @@ export default function DiagramViewer() {
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
+  const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set()); // 빈 Set으로 시작
+
+  // 전역에서 하이라이트 노드를 업데이트할 수 있도록 함수 노출
+  useEffect(() => {
+    (window as any).updateHighlightedNodes = (nodeIds: string[]) => {
+      console.log('[DV] Updating highlighted nodes:', nodeIds);
+      setHighlightedNodeIds(new Set(nodeIds));
+    };
+    
+    return () => {
+      delete (window as any).updateHighlightedNodes;
+    };
+  }, []);
 
   const editorState = useEditor.getState();
   const fsState = useFS.getState();
@@ -630,6 +643,7 @@ export default function DiagramViewer() {
       const isActive = cleanPath === activePath;
       const isHover = hoverId === n.id;
       const isSelected = selectedNodeId === n.id;
+      const isHighlighted = highlightedNodeIds.has(n.id); // 하이라이트 체크 추가
       const isGroup = n.type === 'group';
       const isCollapsed = isGroup && collapsedGroups.has(n.id);
       const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
@@ -650,13 +664,15 @@ export default function DiagramViewer() {
                   : isActive
                     ? STYLES.COLORS.NODE.ACTIVE
                     : STYLES.COLORS.GROUP.DEFAULT
-            : isHover
-              ? STYLES.COLORS.NODE.HOVER
-              : isSelected
-                ? STYLES.COLORS.NODE.SELECTED
-                : isActive
-                  ? STYLES.COLORS.NODE.ACTIVE
-                  : STYLES.COLORS.NODE.DEFAULT,
+            : isHighlighted // 하이라이트 우선순위를 높게 설정
+              ? STYLES.COLORS.NODE.HIGHLIGHTED
+              : isHover
+                ? STYLES.COLORS.NODE.HOVER
+                : isSelected
+                  ? STYLES.COLORS.NODE.SELECTED
+                  : isActive
+                    ? STYLES.COLORS.NODE.ACTIVE
+                    : STYLES.COLORS.NODE.DEFAULT,
           border: isGroup
             ? isCollapsed
               ? `2px solid ${STYLES.COLORS.GROUP.BORDER_COLLAPSED}`
@@ -665,13 +681,15 @@ export default function DiagramViewer() {
                 : isActive
                   ? `1px solid ${STYLES.COLORS.GROUP.BORDER_ACTIVE}`
                   : `1px solid ${STYLES.COLORS.GROUP.BORDER}`
-            : isHover
-              ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
-              : isSelected
-                ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
-                : isActive
-                  ? `1px solid ${STYLES.COLORS.NODE.BORDER_ACTIVE}`
-                  : `1px solid ${STYLES.COLORS.NODE.BORDER}`,
+            : isHighlighted // 하이라이트 테두리 적용
+              ? `3px solid ${STYLES.COLORS.NODE.BORDER_HIGHLIGHTED}`
+              : isHover
+                ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
+                : isSelected
+                  ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
+                  : isActive
+                    ? `1px solid ${STYLES.COLORS.NODE.BORDER_ACTIVE}`
+                    : `1px solid ${STYLES.COLORS.NODE.BORDER}`,
           transition: 'all 0.1s ease-in-out',
           minWidth: isGroup ? (isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : undefined) : (n.style?.width as number),
           width: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : n.style?.width,
@@ -687,7 +705,7 @@ export default function DiagramViewer() {
           : n.data,
       };
     });
-  }, [nodes, activePath, hoverId, selectedNodeId, collapsedGroups, toggleCollapse]);
+  }, [nodes, activePath, hoverId, selectedNodeId, collapsedGroups, toggleCollapse, highlightedNodeIds]);
 
   if (!diagramReady) {
     return (

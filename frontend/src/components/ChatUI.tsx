@@ -206,8 +206,17 @@ export default function ChatUI() {
       const randomExample = examples[Math.floor(Math.random() * examples.length)];
       setInput(randomExample);
     } else {
-      // 비활성화 시 입력창 비우기
+      // 비활성화 시 입력창 비우기 및 하이라이트 해제
       setInput('');
+      clearHighlights();
+    }
+  };
+
+  // 하이라이트 해제 함수
+  const clearHighlights = () => {
+    console.log('[ChatUI] Clearing highlights');
+    if ((window as any).updateHighlightedNodes) {
+      (window as any).updateHighlightedNodes([]);
     }
   };
 
@@ -246,6 +255,16 @@ export default function ChatUI() {
       if (!res.ok) throw new Error(`Failed to send message: ${res.status}`);
       const data = await res.json();
       const text = data.answer;
+      const highlightNodes = data.highlight || [];
+      // 그래프 검색 모드에서 하이라이트할 노드 ID들이 있는지 확인
+      if (isGraphSearch && highlightNodes.length > 0) {
+        // DiagramViewer에 하이라이트 노드들 전달
+        console.log('[ChatUI] Highlight nodes:', highlightNodes);
+        if ((window as any).updateHighlightedNodes) {
+          (window as any).updateHighlightedNodes(highlightNodes);
+        }
+      }
+      
       setSessions((prev) =>
         prev.map((s) =>
           s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'bot', t: text }] } : s
@@ -334,8 +353,8 @@ export default function ChatUI() {
 
       {currentSessionId && (
         <div className="relative p-4 border-t border-slate-300 bg-white">
-          {/* Call Graph Search 버튼 */}
-          <div className="mb-3">
+          {/* Call Graph Search 버튼 및 하이라이트 해제 버튼 */}
+          <div className="mb-3 flex items-center gap-2">
             <button
               onClick={toggleGraphSearch}
               className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
@@ -346,6 +365,16 @@ export default function ChatUI() {
             >
               🔍 Call Graph Search
             </button>
+            
+            {/* 하이라이트 해제 버튼 - 그래프 검색 모드일 때만 표시 */}
+            {isGraphSearch && (
+              <button
+                onClick={clearHighlights}
+                className="px-3 py-1.5 rounded text-xs font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+              >
+                ✨ Highlight 해제
+              </button>
+            )}
           </div>
           
           <form onSubmit={send}>

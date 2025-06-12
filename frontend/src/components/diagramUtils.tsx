@@ -25,17 +25,18 @@ export const STYLES = {
     PADDING: 20, // Reduced from 40 to 20
     COLLAPSED_WIDTH: 200,
     COLLAPSED_HEIGHT: 50,
-  },
-  COLORS: {
+  },    COLORS: {
     NODE: {
       DEFAULT: '#ffffff',
       HOVER: '#fef9c3',
       SELECTED: '#fca5a5',
       ACTIVE: '#dbeafe',
+      HIGHLIGHTED: '#e9d5ff', // 새로운 하이라이트 색상 (연한 보라색)
       BORDER: '#4A90E2',
       BORDER_HOVER: '#eab308',
       BORDER_SELECTED: '#b91c1c',
       BORDER_ACTIVE: '#0284c7',
+      BORDER_HIGHLIGHTED: '#7c3aed', // 하이라이트 테두리 색상 (진한 보라색)
     },
     GROUP: {
       DEFAULT: '#FAFAFA',
