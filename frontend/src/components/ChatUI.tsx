@@ -236,6 +236,7 @@ export default function ChatUI() {
         body: JSON.stringify({
           session_id: currentSessionId,
           graph_mode: isGraphSearch,
+          target_path: targetFolder,
           query: input,
           code: '',
           diagram: '',

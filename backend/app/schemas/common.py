@@ -33,6 +33,7 @@ class SessionResponse(BaseModel):
 class ChatbotQueryRequest(BaseModel):
     session_id: str # 세션 ID
     graph_mode: bool = False # 그래프 모드 여부
+    target_path: str
     query: str  # 사용자의 자연어 질문
     code: Optional[str] = None # 사용자가 탐색하고자 하는 코드 블락 
     diagram: Optional[str] = None # 관련 다이어그램 정보 (json string 등)

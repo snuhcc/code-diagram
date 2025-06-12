@@ -109,13 +109,14 @@ async def api_session_chat(req: ChatbotQueryRequest):
 
         print(f"Session ID: {req.session_id}")
         print(f"Graph Mode: {req.graph_mode}")
+        print(f"Target Path: {req.target_path}")
         print(f"Query: {req.query}")
         print(f"Code: {req.code}")
         print(f"Diagram: {req.diagram}")
         print(f"Context Files: {req.context_files}")
         print(f"Context: {context}")
         answer, highlight = await generate_chatbot_answer_with_session(
-            req.session_id, req.graph_mode,req.query + context, req.code, req.diagram
+            req.session_id, req.graph_mode, req.target_path, req.query + context, req.code, req.diagram
         )
         print(f"Answer: {answer}")
         print(f"Highlight: {highlight}")

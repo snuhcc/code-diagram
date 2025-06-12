@@ -25,6 +25,28 @@ def get_all_source_files(directory: str, file_type: str = "py"):
     files = [f for f in files if os.path.basename(f) != "__init__.py"]
     return files
 
+def get_all_source_files_with_line_numbers(directory: str, file_type: str = "py"):
+    """
+    Recursively collect all source files in the directory with line numbers.
+    If file_type is specified, filter by extension (e.g., 'py').
+    Returns a dictionary mapping file paths to their content with line numbers.
+    """
+    files = get_all_source_files(directory, file_type)
+    file_contents = {}
+    
+    for file_path in files:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                numbered_lines = [
+                    f"{i+1:4}: {line.rstrip()}" for i, line in enumerate(lines)
+                ]
+                file_contents[file_path] = "\n".join(numbered_lines)
+        except Exception as e:
+            file_contents[file_path] = f"(Error reading file: {str(e)})"
+    
+    return file_contents
+
 def get_source_file_with_line_number(file_path: str):
     """
     Get the source file content with line numbers.
