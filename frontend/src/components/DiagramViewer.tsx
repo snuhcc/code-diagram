@@ -508,6 +508,30 @@ export default function DiagramViewer() {
     setCollapsedGroups(new Set(groupNodes.map(g => g.id)));
   }, []);
 
+  // --- Add: Expand/Collapse All Groups ---
+  // Helper to get all group node ids
+  const getAllGroupIds = () => nodes.filter(n => n.type === 'group').map(n => n.id);
+  // Determine if all groups are collapsed
+  const allGroupsCollapsed = (() => {
+    const groupIds = getAllGroupIds();
+    return groupIds.length > 0 && groupIds.every(id => collapsedGroups.has(id));
+  })();
+  // Handler for toggle all
+  const handleToggleAllGroups = () => {
+    const groupIds = getAllGroupIds();
+    setCollapsedGroups(prev => {
+      if (allGroupsCollapsed) {
+        // Expand all
+        const newSet = new Set(prev);
+        groupIds.forEach(id => newSet.delete(id));
+        return newSet;
+      } else {
+        // Collapse all
+        return new Set(groupIds);
+      }
+    });
+  };
+
   // Load diagram
   useEffect(() => {
     if (!diagramReady) return;
@@ -745,6 +769,39 @@ export default function DiagramViewer() {
           }}
         />
         <Controls>
+          <button
+            type="button"
+            title={allGroupsCollapsed ? "Expand all groups" : "Collapse all groups"}
+            onClick={handleToggleAllGroups}
+            style={{
+              width: 20,
+              height: 20,
+              background: '#fff',
+              padding: 0,
+              margin: 4,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 1px 2px #0001',
+              transition: 'border 0.15s',
+              position: 'relative',
+              border: '1px solid #e5e7eb',
+              borderRadius: 4,
+            }}
+          >
+            {allGroupsCollapsed ? (
+              // Expand icon: Down arrow (like VSCode "chevron-down")
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <polyline points="7.5,4.5 12,9 7.5,13.5" stroke="#222" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              // Collapse icon: Right arrow (like VSCode "chevron-right")
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <polyline points="4.5,7.5 9,12 13.5,7.5" stroke="#222" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
           <button
             type="button"
             title="Re-layout"
