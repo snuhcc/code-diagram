@@ -23,6 +23,9 @@ export default function ChatUI() {
   const [error, setError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownItems, setDropdownItems] = useState<string[]>([]);
+  const [dropdownSelectedIndex, setDropdownSelectedIndex] = useState<number>(-1);
+  const dropdownRef = useRef<HTMLDivElement>(null); // 추가: 드롭다운 컨테이너 ref
+  const dropdownItemRefs = useRef<(HTMLDivElement | null)[]>([]); // 추가: 각 아이템 ref
   const [isBotTyping, setIsBotTyping] = useState(false);
   const { tree } = useFS();
   const allFiles = getAllFilePaths(tree);
@@ -97,14 +100,57 @@ export default function ChatUI() {
         );
         setDropdownItems(filtered);
         setShowDropdown(true);
+        setDropdownSelectedIndex(filtered.length > 0 ? 0 : -1);
       } else {
         setDropdownItems(allFiles); // Show all files when just "@" is typed
         setShowDropdown(true);
+        setDropdownSelectedIndex(allFiles.length > 0 ? 0 : -1);
       }
     } else {
       setShowDropdown(false); // Hide dropdown if no "@" present
+      setDropdownSelectedIndex(-1);
     }
   };
+
+  // Keyboard navigation for dropdown
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown || dropdownItems.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setDropdownSelectedIndex((prev) => {
+        const next = prev < dropdownItems.length - 1 ? prev + 1 : 0;
+        return next;
+      });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setDropdownSelectedIndex((prev) => {
+        const next = prev > 0 ? prev - 1 : dropdownItems.length - 1;
+        return next;
+      });
+    } else if (e.key === 'Enter') {
+      if (dropdownSelectedIndex >= 0 && dropdownSelectedIndex < dropdownItems.length) {
+        e.preventDefault();
+        handleSelectItem(dropdownItems[dropdownSelectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setShowDropdown(false);
+    }
+  };
+
+  // 선택된 드롭다운 항목이 보이도록 스크롤 조정
+  useEffect(() => {
+    if (
+      showDropdown &&
+      dropdownSelectedIndex >= 0 &&
+      dropdownItemRefs.current[dropdownSelectedIndex]
+    ) {
+      dropdownItemRefs.current[dropdownSelectedIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [dropdownSelectedIndex, showDropdown, dropdownItems]);
 
   const handleSelectItem = (selected: string) => {
     const atIndex = input.lastIndexOf('@');
@@ -113,10 +159,12 @@ export default function ChatUI() {
       const afterAt = input.slice(atIndex + 1);
       const spaceIndex = afterAt.indexOf(' ');
       const endIndex = spaceIndex >= 0 ? atIndex + 1 + spaceIndex : input.length;
-      const newInput = beforeAt + selected + input.slice(endIndex);
-      setInput(newInput); // Update input with selected file
+      // Insert @filename and a space after
+      const newInput = beforeAt + selected + ' ' + input.slice(endIndex);
+      setInput(newInput);
     }
-    setShowDropdown(false); // Hide dropdown after selection
+    setShowDropdown(false);
+    setDropdownSelectedIndex(-1);
   };
 
   const send = async (e: FormEvent) => {
@@ -245,6 +293,7 @@ export default function ChatUI() {
               type="text"
               value={input}
               onChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
               className="w-full p-2 border rounded"
               placeholder="Type your message..."
             />
@@ -254,14 +303,19 @@ export default function ChatUI() {
           </form>
           {showDropdown && (
             <div
+              ref={dropdownRef}
               className="absolute z-10 bg-white border border-slate-300 rounded shadow-md max-h-60 overflow-y-auto"
-              style={{ bottom: '100%', left: 0 }}
+              style={{ bottom: '100%', left: 0, width: '100%', maxHeight: '12rem' }} // maxHeight: 5*2.4rem=12rem
             >
               {dropdownItems.map((item, i) => (
                 <div
                   key={i}
+                  ref={el => (dropdownItemRefs.current[i] = el)}
                   onClick={() => handleSelectItem(item)}
-                  className="px-3 py-1 hover:bg-slate-100 cursor-pointer"
+                  className={`px-3 py-1 hover:bg-slate-100 cursor-pointer ${
+                    i === dropdownSelectedIndex ? 'bg-blue-100' : ''
+                  }`}
+                  style={{ minHeight: '2.4rem' }}
                 >
                   {item}
                 </div>
