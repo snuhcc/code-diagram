@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -22,34 +22,33 @@ import {
   RawEdge,
   CFGPanel,
   snippetCache,
-  getTextWidth,
-  extractFunctionSnippetWithLine,
-  addLineNumbersAndHighlight,
+  extractFunctionSnippet,
+  highlightWithLineNumbers,
   isNodeHidden,
-  findRepresentativeGroup,
-  getRedirectedEdge,
-  layoutWithCluster,
+  findRepresentativeNode,
+  calculateLayout,
   CustomGroupNode,
+  parseApiResponse,
+  cleanFilePath,
+  calculateNodeWidth,
+  ENDPOINTS,
+  STYLES,
 } from './diagramUtils';
 
 // Constants
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
-const ENDPOINT_CG = '/api/generate_call_graph';
-const ENDPOINT_CFG = '/api/generate_control_flow_graph';
-const ENDPOINT_INLINE_CODE_EXPLANATION = '/api/inline_code_explanation';
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
 
 export default function DiagramViewer() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [loading, setLoad] = useState(true);
-  const [error, setErr] = useState<string>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [cgPanelMessage, setCgPanelMessage] = useState<string | null>(null);
-  const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
+  const [cfgMessage, setCfgMessage] = useState<string | null>(null);
   const [cfgPanels, setCfgPanels] = useState<
     { id: string; functionName: string; file: string; result: any; expanded: boolean; pos: { x: number; y: number }; dragging: boolean; dragOffset: { x: number; y: number } }[]
   >([]);
@@ -57,293 +56,153 @@ export default function DiagramViewer() {
   const [diagramReady, setDiagramReady] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
 
   const editorState = useEditor.getState();
   const fsState = useFS.getState();
 
-  const activePath =
-    editorState.tabs.find((t) => t.id === editorState.activeId)?.path ??
-    editorState.tabs.at(-1)?.path ??
-    '';
+  const activePath = editorState.tabs.find(t => t.id === editorState.activeId)?.path ?? '';
 
-  const onToggleCollapse = useCallback((groupId: string) => {
-    setCollapsedGroups((prev) => {
+  // Handlers
+  const toggleCollapse = useCallback((groupId: string) => {
+    setCollapsedGroups(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(groupId)) {
-        newSet.delete(groupId);
-      } else {
-        newSet.add(groupId);
-      }
+      newSet.has(groupId) ? newSet.delete(groupId) : newSet.add(groupId);
       return newSet;
     });
   }, []);
 
-  const onNodeClick: NodeMouseHandler = (_, node) => {
+  const openFile = useCallback((filePath: string, line?: number, highlight?: { from: number; to: number }) => {
+    const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
+    editorState.open({
+      id: nanoid(),
+      path: cleanPath,
+      name: cleanPath.split(/[\\/]/).pop() ?? cleanPath,
+      line,
+      highlight,
+    });
+    const target = findByPath(fsState.tree, cleanPath);
+    if (target) fsState.setCurrent(target.id);
+  }, [editorState, fsState]);
+
+  const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
     if (node.type === 'group') {
       const childNode = nodes.find(n => n.parentId === node.id && !isNodeHidden(n.id, collapsedGroups, nodes));
-      const filePath = childNode ? (childNode.data as any)?.file : (node.data as any)?.file;
-      if (!filePath) return;
-      const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-      const clean = filePath.replace(regex, '');
-      editorState.open({
-        id: nanoid(),
-        path: clean,
-        name: clean.split(/[\\/]/).pop() ?? clean,
-        line: 1,
-      });
-      const target = findByPath(fsState.tree, clean);
-      if (target) fsState.setCurrent(target.id);
+      const filePath = (childNode?.data as any)?.file || (node.data as any)?.file;
+      if (filePath) openFile(filePath, 1);
       return;
     }
     setSelectedNodeId(prev => prev === node.id ? null : node.id);
-    const raw = (node.data as any)?.file as string | undefined;
-    if (!raw) return;
-    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-    const clean = raw.replace(regex, '');
-    editorState.open({
-      id: nanoid(),
-      path: clean,
-      name: clean.split(/[\\/]/).pop() ?? clean,
-    });
-    const target = findByPath(fsState.tree, clean);
-    if (target) fsState.setCurrent(target.id);
-  };
+    const filePath = (node.data as any)?.file;
+    if (filePath) openFile(filePath);
+  }, [nodes, collapsedGroups, openFile]);
 
-  const onEnter: NodeMouseHandler = async (_, node) => {
+  const onNodeMouseEnter: NodeMouseHandler = useCallback(async (_, node) => {
     if (node.type === 'group') return;
     
     setHoverId(node.id);
-    const raw = (node.data as any)?.file as string | undefined;
-    const functionName = (node.data as any)?.label as string | undefined;
-    if (!raw || !functionName) {
+    const filePath = (node.data as any)?.file;
+    const functionName = (node.data as any)?.label;
+    if (!filePath || !functionName) {
       setSnippet('');
       return;
     }
-    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-    const clean = raw.replace(regex, '');
-    const cacheKey = `${clean}_${functionName}`;
-    if (snippetCache.has(cacheKey)) {
-      try {
-        const txt = await fetch(`/api/file?path=${encodeURIComponent(clean)}`).then((r) => r.text());
-        const result = extractFunctionSnippetWithLine(txt, functionName);
-        if (result) {
-          setSnippet(addLineNumbersAndHighlight(result.snippet, result.startLine));
-        } else {
-          setSnippet('(function not found)');
-        }
-      } catch {
-        setSnippet('(preview unavailable)');
-      }
-      return;
-    }
+
+    const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
+    const cacheKey = `${cleanPath}_${functionName}`;
+    
     try {
-      const txt = await fetch(`/api/file?path=${encodeURIComponent(clean)}`).then((r) => r.text());
-      const result = extractFunctionSnippetWithLine(txt, functionName);
+      let code = snippetCache.get(cacheKey);
+      if (!code) {
+        const response = await fetch(`/api/file?path=${encodeURIComponent(cleanPath)}`);
+        code = await response.text();
+      }
+      
+      const result = extractFunctionSnippet(code, functionName);
       if (result) {
         snippetCache.set(cacheKey, result.snippet);
-        setSnippet(addLineNumbersAndHighlight(result.snippet, result.startLine));
+        setSnippet(highlightWithLineNumbers(result.snippet, result.startLine));
       } else {
         setSnippet('(function not found)');
       }
     } catch {
       setSnippet('(preview unavailable)');
     }
-  };
+  }, []);
 
-  const onLeave: NodeMouseHandler = () => {
+  const onNodeMouseLeave = useCallback(() => {
     setHoverId(null);
     setSnippet('');
-  };
-
-  const onEdgeMouseEnter = useCallback((event: React.MouseEvent, edge: Edge) => {
-    setHoveredEdgeId(edge.id);
-  }, []);
-  const onEdgeMouseLeave = useCallback(() => {
-    setHoveredEdgeId(null);
   }, []);
 
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds));
-    },
-    [setNodes]
-  );
-
-  useEffect(() => {
-    if (!diagramReady) return;
-    (async () => {
-      if (diagramCache) {
-        hydrate(diagramCache);
-        setLoad(false);
-        return;
-      }
-      setLoad(true);
-      setErr(undefined);
-      try {
-        const res = await fetch(`${apiUrl}${ENDPOINT_CG}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: `../../${TARGET_FOLDER}`, file_type: 'py' }),
-        });
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        const raw = await res.json();
-        const json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> =
-          typeof raw?.data === 'string' ? JSON.parse(raw.data) : raw.data;
-        diagramCache = json;
-        hydrate(json);
-      } catch (e: any) {
-        setErr(String(e));
-        setNodes([]);
-        setEdges([]);
-      } finally {
-        setLoad(false);
-      }
-    })();
-  }, [diagramReady]);
-
-  // Process edges to handle collapsed groups
-  const processedEdges = edges.map((e) => {
-    const sourceRepresentative = findRepresentativeGroup(e.source, collapsedGroups, nodes);
-    const targetRepresentative = findRepresentativeGroup(e.target, collapsedGroups, nodes);
-    
-    const isRedirected = sourceRepresentative !== e.source || targetRepresentative !== e.target;
-    
-    if (sourceRepresentative === targetRepresentative && collapsedGroups.has(sourceRepresentative)) {
-      return {
-        ...e,
-        hidden: true,
-      };
-    }
-    
-    const finalEdge = isRedirected ? {
-      ...e,
-      id: `${e.id}_redirected_${sourceRepresentative}_${targetRepresentative}`,
-      source: sourceRepresentative,
-      target: targetRepresentative,
-      data: {
-        ...e.data,
-        originalSource: e.source,
-        originalTarget: e.target,
-        isRedirected: true,
-      },
-    } : e;
-    
-    const isHover = hoveredEdgeId === finalEdge.id;
-    
-    return {
-      ...finalEdge,
-      hidden: false,
-      style: {
-        ...(finalEdge.style || {}),
-        stroke: isHover ? '#f59e42' : '#34A853',
-        strokeWidth: isHover ? 4 : (isRedirected ? 3 : (finalEdge.style?.strokeWidth ?? 2)),
-        strokeDasharray: isRedirected ? '5 5' : undefined,
-        transition: 'all 0.13s',
-        cursor: 'pointer',
-      },
-      markerEnd: {
-        ...(finalEdge.markerEnd || {}),
-        color: isHover ? '#f59e42' : '#34A853',
-      },
-      zIndex: isRedirected ? 10001 : 10000,
-    };
-  });
-
-  // Remove duplicate edges and ensure unique keys
-  const seenEdges = new Map<string, Edge>();
-  processedEdges.forEach((edge) => {
-    const key = `${edge.source}-${edge.target}`;
-    const existingEdge = seenEdges.get(key);
-    
-    if (!existingEdge || edge.data?.isRedirected) {
-      seenEdges.set(key, edge);
-    }
-  });
-  
-  const finalEdges = Array.from(seenEdges.values());
-
-  // Create finalNodes
-  const finalNodes = nodes.map((n) => {
-    const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-    const clean = ((n.data as any)?.file || '').replace(regex, '');
-    const isActive = clean === activePath;
-    const isHover = hoverId === n.id;
-    const isSelected = selectedNodeId === n.id;
-    const isGroup = n.type === 'group';
-    const isCollapsed = isGroup && collapsedGroups.has(n.id);
-    const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
-
-    return {
-      ...n,
-      type: isGroup ? 'group' : (n.type || 'default'),
-      hidden: isHidden,
-      style: {
-        ...n.style,
-        background: isGroup
-          ? isCollapsed 
-            ? '#f3f4f6'
-            : isHover
-              ? '#fef9c3'
-              : isSelected
-                ? '#fca5a5'
-                : isActive
-                  ? '#dbeafe'
-                  : '#FAFAFA'
-          : isHover
-            ? '#fef9c3'
-            : isSelected
-              ? '#fca5a5'
-              : isActive
-                ? '#dbeafe'
-                : '#ffffff',
-        border: isGroup
-          ? isCollapsed
-            ? '2px solid #6b7280'
-            : isHover
-              ? '4px solid #eab308'
-              : isActive
-                ? '1px solid #fb923c'
-                : '1px solid #b9bfc9'
-          : isHover
-            ? '4px solid #eab308'
-            : isSelected
-              ? '4px solid #b91c1c'
-              : isActive
-                ? '1px solid #0284c7'
-                : '1px solid #4A90E2',
-        transition: 'all 0.1s ease-in-out',
-        minWidth: isGroup ? (isCollapsed ? 200 : undefined) : (n.style?.width as number | undefined),
-        width: isGroup && isCollapsed ? 200 : n.style?.width,
-        height: isGroup && isCollapsed ? 50 : n.style?.height,
-        cursor: isGroup && isCollapsed ? 'pointer' : 'default',
-      },
-      data: isGroup
-        ? {
-            ...n.data,
-            isCollapsed,
-            onToggleCollapse: () => onToggleCollapse(n.id),
-          }
-        : n.data,
-    };
-  });
-
-  const reLayout = useCallback(() => {
-    if (diagramCache) {
-      hydrate(diagramCache);
-    }
+  const handleCFGPanelUpdate = useCallback((id: string, updates: Partial<CFGPanel>) => {
+    setCfgPanels(panels => panels.map(p => p.id === id ? { ...p, ...updates } : p));
   }, []);
+
+  const handleCFGPanelClose = useCallback((id: string) => {
+    setCfgPanels(panels => panels.filter(p => p.id !== id));
+  }, []);
+
+  const handleCFGNodeHover = useCallback(async (node: Node | null, panel: CFGPanel) => {
+    if (!node) {
+      setCfgPanelMessage(null);
+      return;
+    }
+
+    const { line_start, line_end } = node.data as any;
+    
+    setCfgPanelMessage(
+      `<div style="display:flex;align-items:flex-start;gap:8px;">
+        <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
+        <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
+          설명을 불러오는 중입니다...
+        </span>
+      </div>`
+    );
+
+    try {
+      const res = await fetch(`${apiUrl}${ENDPOINTS.INLINE_CODE_EXPLANATION}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_path: panel.file, line_start, line_end }),
+      });
+      const data = await res.json();
+      const explanation = data.explanation || data.data?.explanation || '설명을 가져올 수 없습니다.';
+      
+      setCfgPanelMessage(
+        `<div style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
+          <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;">
+            ${explanation}
+          </span>
+        </div>`
+      );
+    } catch {
+      setCfgPanelMessage(
+        `<div style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
+          <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
+            설명을 가져오는 중 오류가 발생했습니다.
+          </span>
+        </div>`
+      );
+    }
+
+    openFile(node.data.file || panel.file, line_start, { from: line_start, to: line_end });
+  }, [apiUrl, openFile]);
 
   const handleGenerateCFG = async () => {
-    setCgPanelMessage(null);
+    setCfgMessage(null);
     setCfgLoading(true);
+    
     const selectedNode = nodes.find(n => n.id === selectedNodeId && n.type !== 'group');
     if (!selectedNode) {
       setCgPanelMessage('선택된 노드가 없습니다.');
       setCfgLoading(false);
       return;
     }
-    const file = (selectedNode.data as any)?.file;
-    const functionName = (selectedNode.data as any)?.label;
+    
+    const { file, label: functionName } = selectedNode.data as any;
     if (!file || !functionName) {
       setCgPanelMessage('노드 정보가 올바르지 않습니다.');
       setCfgLoading(false);
@@ -355,23 +214,21 @@ export default function DiagramViewer() {
       p => p.file === file && p.functionName === functionName
     );
     if (alreadyExists) {
-      setCgPanelMessage('이미 해당 함수의 CFG 패널이 열려 있습니다.');
+      setCfgMessage('이미 해당 함수의 CFG 패널이 열려 있습니다.');
       setCfgLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`${apiUrl}${ENDPOINT_CFG}`, {
+      const res = await fetch(`${apiUrl}${ENDPOINTS.CFG}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file_path: file,
-          function_name: functionName,
-        }),
+        body: JSON.stringify({ file_path: file, function_name: functionName }),
       });
+      
       const data = await res.json();
       if (data.status && data.status !== 200) {
-        setCgPanelMessage('API 호출 실패: ' + (data.data || ''));
+        setCfgMessage('API 호출 실패: ' + (data.data || ''));
       } else {
         const cfgRaw = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
         // 레이아웃이 필요한 경우 RawNode/RawEdge로 넘기고, 결과 좌표를 cfgNodes에 반영
@@ -403,16 +260,13 @@ export default function DiagramViewer() {
           style: { stroke: '#0284c7', strokeWidth: 2 },
         }));
 
-        if (
-          cfgRaw.nodes?.length > 0 &&
-          cfgRaw.nodes.every((n: any) => (!n.x && !n.y))
-        ) {
-          const posMap = layoutWithCluster({ [file]: { nodes: cfgRaw.nodes, edges: cfgRaw.edges } }, {});
-          cfgNodes = cfgNodes.map(n => ({
-            ...n,
-            position: posMap[n.id] ?? { x: 0, y: 0 }
-          }));
-        }
+      if (cfgData.nodes?.length > 0 && cfgData.nodes.every((n: any) => !n.x && !n.y)) {
+        const posMap = calculateLayout({ [file]: { nodes: cfgData.nodes, edges: cfgData.edges } }, {});
+        cfgNodes = cfgNodes.map((n: any) => ({
+          ...n,
+          position: posMap[n.id] ?? { x: 0, y: 0 }
+        }));
+      }
 
         console.log('CFG Panel nodes:', cfgNodes);
         console.log('CFG Panel edges:', cfgEdges);
@@ -433,91 +287,83 @@ export default function DiagramViewer() {
             height: 600, // 초기 height 증가
           },
         ]);
-        setCgPanelMessage(null);
+        setCfgMessage(null);
       }
     } catch (e: any) {
       setCgPanelMessage('API 호출 중 오류가 발생했습니다. error: ' + e.message);
     } finally {
       setCfgLoading(false);
     }
-  };
+  }, [nodes, selectedNodeId, cfgPanels, apiUrl]);
 
-  const hydrate = (json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) => {
-    const nodeSpecificWidths: Record<string, number> = {};
-    const textHorizontalPaddingTotal = 16;
-    const minNodeWidth = 60;
-    const nodeFontSize = '12px';
-    const nodeFontFamily = 'Arial, sans-serif';
-    const nodeFont = `${nodeFontSize} ${nodeFontFamily}`;
+  const hydrate = useCallback((json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) => {
+    const nodeWidths: Record<string, number> = {};
+    const nodeFont = `${STYLES.NODE.FONT_SIZE} ${STYLES.NODE.FONT_FAMILY}`;
 
-    // Pre-calculate widths for all function nodes
+    // Calculate node widths
     Object.values(json).forEach(data => {
-      data.nodes.forEach(rawNode => {
-        const label = rawNode.label || rawNode.function_name || rawNode.id;
-        const estimatedTextWidth = getTextWidth(label, nodeFont);
-        const calculatedWidth = Math.max(minNodeWidth, estimatedTextWidth + textHorizontalPaddingTotal);
-        nodeSpecificWidths[rawNode.id] = calculatedWidth;
+      data.nodes.forEach(node => {
+        const label = node.label || node.function_name || node.id;
+        nodeWidths[node.id] = calculateNodeWidth(label);
       });
     });
 
+    // Create nodes
     let allFunctionNodes: Node[] = [];
     let allRawEdges: RawEdge[] = [];
+    
     Object.entries(json).forEach(([file, data]) => {
-      const { nodes: rawNodes, edges: rawEdges } = data;
-      const fileFunctionNodes: Node[] = rawNodes.map((r) => {
-        const label = r.label || r.function_name || r.id;
-        const nodeWidth = nodeSpecificWidths[r.id];
-        return {
-          id: r.id,
-          data: { label: label, file: r.file },
-          position: { x: 0, y: 0 },
-          style: {
-            padding: '6px 8px',
-            borderRadius: 4,
-            border: '1px solid #3b82f6',
-            background: '#fff',
-            width: nodeWidth,
-            fontSize: nodeFontSize,
-            fontFamily: nodeFontFamily,
-          },
-          zIndex: 1,
-        };
-      });
-      allFunctionNodes = allFunctionNodes.concat(fileFunctionNodes);
-      allRawEdges = allRawEdges.concat(rawEdges);
+      const functionNodes = data.nodes.map(n => ({
+        id: n.id,
+        data: { label: n.label || n.function_name || n.id, file: n.file },
+        position: { x: 0, y: 0 },
+        style: {
+          padding: '6px 8px',
+          borderRadius: 4,
+          border: '1px solid #3b82f6',
+          background: '#fff',
+          width: nodeWidths[n.id],
+          fontSize: STYLES.NODE.FONT_SIZE,
+          fontFamily: STYLES.NODE.FONT_FAMILY,
+        },
+        zIndex: 1,
+      }));
+      allFunctionNodes = allFunctionNodes.concat(functionNodes);
+      allRawEdges = allRawEdges.concat(data.edges);
     });
-    const allNodeIds = new Set(allFunctionNodes.map((n) => n.id));
+
+    // Create edges
+    const nodeIds = new Set(allFunctionNodes.map(n => n.id));
     const allEdges: Edge[] = allRawEdges
-      .filter((e) => allNodeIds.has(e.source) && allNodeIds.has(e.target))
-      .map((r) => ({
-        id: r.id,
-        source: r.source,
-        target: r.target,
+      .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
+      .map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 15,
           height: 15,
-          color: '#34A853',
+          color: STYLES.COLORS.EDGE.DEFAULT,
         },
         animated: true,
-        style: { stroke: '#34A853', strokeWidth: 2 },
+        style: { stroke: STYLES.COLORS.EDGE.DEFAULT, strokeWidth: 2 },
         zIndex: 10000,
         type: 'step',
       }));
 
-    const posMap = layoutWithCluster(json, nodeSpecificWidths);
-
-    const laidOutFunctionNodes = allFunctionNodes.map((n) => ({
+    // Calculate layout
+    const posMap = calculateLayout(json, nodeWidths);
+    const laidOutNodes = allFunctionNodes.map(n => ({
       ...n,
       position: posMap[n.id] ?? { x: 0, y: 0 },
     }));
 
+    // Create groups
     const groupNodes: Node[] = [];
-    const groupPadding = 20;
-    const defaultNodeHeight = 30;
-
     const fileToNodes: Record<string, Node[]> = {};
-    laidOutFunctionNodes.forEach((node) => {
+    
+    laidOutNodes.forEach(node => {
       const file = (node.data as any).file;
       if (!fileToNodes[file]) fileToNodes[file] = [];
       fileToNodes[file].push(node);
@@ -525,13 +371,13 @@ export default function DiagramViewer() {
 
     Object.entries(fileToNodes).forEach(([file, nodesInGroup]) => {
       if (nodesInGroup.length === 0) return;
-      const xs = nodesInGroup.map((n) => n.position.x);
-      const ys = nodesInGroup.map((n) => n.position.y);
+      
+      const xs = nodesInGroup.map(n => n.position.x);
+      const ys = nodesInGroup.map(n => n.position.y);
       const minX = Math.min(...xs);
       const minY = Math.min(...ys);
-      
-      const maxX = Math.max(...nodesInGroup.map(n => n.position.x + ((n.style?.width as number) || minNodeWidth)));
-      const maxY = Math.max(...nodesInGroup.map(n => n.position.y + ((n.style?.height as number) || defaultNodeHeight)));
+      const maxX = Math.max(...nodesInGroup.map(n => n.position.x + ((n.style?.width as number) || STYLES.NODE.MIN_WIDTH)));
+      const maxY = Math.max(...nodesInGroup.map(n => n.position.y + ((n.style?.height as number) || STYLES.NODE.HEIGHT.DEFAULT)));
       
       const groupId = `group-${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
       groupNodes.push({
@@ -541,55 +387,29 @@ export default function DiagramViewer() {
           label: file.split('/').pop() || file,
           file: file
         },
-        position: { x: minX - groupPadding, y: minY - groupPadding },
+        position: { x: minX - STYLES.GROUP.PADDING, y: minY - STYLES.GROUP.PADDING },
         style: {
-          width: maxX - minX + 2 * groupPadding,
-          height: maxY - minY + 2 * groupPadding,
+          width: maxX - minX + 2 * STYLES.GROUP.PADDING,
+          height: maxY - minY + 2 * STYLES.GROUP.PADDING,
           background: 'rgba(0, 0, 0, 0.05)',
           border: '1px dashed #fb923c',
           borderRadius: 8,
         },
         zIndex: 0,
       });
-      nodesInGroup.forEach((node) => {
+      
+      nodesInGroup.forEach(node => {
         node.position = {
-          x: node.position.x - (minX - groupPadding),
-          y: node.position.y - (minY - groupPadding),
+          x: node.position.x - (minX - STYLES.GROUP.PADDING),
+          y: node.position.y - (minY - STYLES.GROUP.PADDING),
         };
         node.parentId = groupId;
         node.extent = 'parent';
       });
     });
-    const allNodes = [...groupNodes, ...laidOutFunctionNodes];
-    setNodes(allNodes);
+
+    setNodes([...groupNodes, ...laidOutNodes]);
     setEdges(allEdges);
-
-    // ▼ 모든 그룹을 collapse 상태로 초기화
-    setCollapsedGroups(new Set(groupNodes.map(g => g.id)));
-  };
-
-  // --- Add: Expand/Collapse All Groups ---
-  // Helper to get all group node ids
-  const getAllGroupIds = () => nodes.filter(n => n.type === 'group').map(n => n.id);
-  // Determine if all groups are collapsed
-  const allGroupsCollapsed = (() => {
-    const groupIds = getAllGroupIds();
-    return groupIds.length > 0 && groupIds.every(id => collapsedGroups.has(id));
-  })();
-  // Handler for toggle all
-  const handleToggleAllGroups = () => {
-    const groupIds = getAllGroupIds();
-    setCollapsedGroups(prev => {
-      if (allGroupsCollapsed) {
-        // Expand all
-        const newSet = new Set(prev);
-        groupIds.forEach(id => newSet.delete(id));
-        return newSet;
-      } else {
-        // Collapse all
-        return new Set(groupIds);
-      }
-    });
   };
 
   if (!diagramReady) {
@@ -597,88 +417,42 @@ export default function DiagramViewer() {
       <div className="flex items-center justify-center h-full w-full">
         <button
           onClick={() => setDiagramReady(true)}
-          style={{
-            minWidth: 180,
-            padding: '12px 32px',
-            borderRadius: 8,
-            background: '#fff',
-            color: '#3b3b4f',
-            fontWeight: 600,
-            fontSize: 18,
-            border: '1.5px solid #d1d5db',
-            boxShadow: '0 2px 8px #0001',
-            outline: 'none',
-            cursor: 'pointer',
-            transition: 'background 0.13s, box-shadow 0.13s, border 0.13s, color 0.13s',
-            letterSpacing: 0.5,
-          }}
-          onMouseOver={e => {
-            e.currentTarget.style.background = '#f3f4f6';
-            e.currentTarget.style.border = '1.5px solid #6366f1';
-            e.currentTarget.style.color = '#4338ca';
-          }}
-          onMouseOut={e => {
-            e.currentTarget.style.background = '#fff';
-            e.currentTarget.style.border = '1.5px solid #d1d5db';
-            e.currentTarget.style.color = '#3b3b4f';
-          }}
+          className="min-w-[180px] px-8 py-3 rounded-lg bg-white text-gray-700 font-semibold text-lg border border-gray-300 shadow-sm hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 transition-all"
         >
-          <span style={{
-            display: 'inline-block',
-            marginRight: 8,
-            verticalAlign: 'middle',
-            fontSize: 18,
-            color: '#6366f1',
-            transition: 'color 0.13s',
-          }}>▶</span>
+          <span className="inline-block mr-2 text-indigo-500">▶</span>
           Generate Diagram
         </button>
       </div>
     );
   }
 
-  if (loading)
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-full w-full">
-        <svg
-          className="animate-spin h-8 w-8 text-blue-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-          />
+        <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
         <span className="ml-3 text-sm text-slate-500">diagram loading…</span>
       </div>
     );
-  if (error)
-    return (
-      <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>
-    );
+  }
+
+  if (error) {
+    return <div className="p-4 text-sm text-red-600 whitespace-pre-wrap">{error}</div>;
+  }
 
   return (
     <div className="relative h-full w-full border-l border-slate-300">
       <ReactFlow
         nodes={finalNodes}
-        edges={finalEdges}
-        onNodesChange={onNodesChange}
+        edges={processedEdges}
+        onNodesChange={(changes) => setNodes(nds => applyNodeChanges(changes, nds))}
         onNodeClick={onNodeClick}
-        onNodeMouseEnter={onEnter}
-        onNodeMouseLeave={onLeave}
-        onEdgeMouseEnter={onEdgeMouseEnter}
-        onEdgeMouseLeave={onEdgeMouseLeave}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
+        onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+        onEdgeMouseLeave={() => setHoveredEdgeId(null)}
         fitView
         minZoom={0.2}
         maxZoom={2}
@@ -686,31 +460,25 @@ export default function DiagramViewer() {
         nodeTypes={{ group: CustomGroupNode }}
         onPaneClick={() => {
           setSelectedNodeId(null);
-          setCgPanelMessage(null); // 빈 공간 클릭 시 메시지 clear
+          setCfgMessage(null); // 빈 공간 클릭 시 메시지 clear
         }}
       >
         <Background variant="dots" gap={16} size={1} />
         <MiniMap
           pannable
           zoomable
-          nodeColor={n =>
-            n.type === 'group'
-              ? collapsedGroups.has(n.id) ? '#6b7280' : '#bdbdbd'
-              : n.style?.background === '#fef9c3'
-                ? '#facc15'
-                : n.style?.background === '#dbeafe'
-                  ? '#0284c7'
-                  : '#2563eb'
-          }
-          nodeStrokeColor={n =>
-            n.type === 'group'
-              ? collapsedGroups.has(n.id) ? '#374151' : '#757575'
-              : n.style?.border?.includes('#eab308')
-                ? '#eab308'
-                : n.style?.border?.includes('#0284c7')
-                  ? '#0284c7'
-                  : '#1e40af'
-          }
+          nodeColor={n => {
+            if (n.type === 'group') return collapsedGroups.has(n.id) ? '#6b7280' : '#bdbdbd';
+            const bg = n.style?.background;
+            return bg === STYLES.COLORS.NODE.HOVER ? '#facc15' :
+                   bg === STYLES.COLORS.NODE.ACTIVE ? '#0284c7' : '#2563eb';
+          }}
+          nodeStrokeColor={n => {
+            if (n.type === 'group') return collapsedGroups.has(n.id) ? '#374151' : '#757575';
+            const border = n.style?.border;
+            return border?.includes(STYLES.COLORS.NODE.BORDER_HOVER) ? STYLES.COLORS.NODE.BORDER_HOVER :
+                   border?.includes(STYLES.COLORS.NODE.BORDER_ACTIVE) ? STYLES.COLORS.NODE.BORDER_ACTIVE : '#1e40af';
+          }}
           nodeStrokeWidth={2}
           maskColor="rgba(255,255,255,0.7)"
           style={{
@@ -759,20 +527,8 @@ export default function DiagramViewer() {
           <button
             type="button"
             title="Re-layout"
-            onClick={reLayout}
-            style={{
-              width: 20,
-              height: 20,
-              background: '#fff',
-              padding: 0,
-              margin: 4,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 2px #0001',
-              transition: 'border 0.15s',
-            }}
+            onClick={() => diagramCache && hydrate(diagramCache)}
+            className="w-5 h-5 bg-white p-0 m-1 cursor-pointer flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <rect x="2" y="2" width="4" height="4" rx="1" fill="#222" />
@@ -787,20 +543,7 @@ export default function DiagramViewer() {
             title="Generate Control Flow Graph"
             onClick={handleGenerateCFG}
             disabled={cfgLoading}
-            style={{
-              width: 20,
-              height: 20,
-              background: '#fff',
-              padding: 0,
-              margin: 4,
-              cursor: cfgLoading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 2px #0001',
-              transition: 'border 0.15s',
-              position: 'relative',
-            }}
+            className="w-5 h-5 bg-white p-0 m-1 cursor-pointer flex items-center justify-center shadow-sm hover:shadow-md transition-shadow relative disabled:cursor-not-allowed"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: cfgLoading ? 0.3 : 1 }}>
               <circle cx="6" cy="6" r="2.2" fill="#000" fillOpacity="0.12" stroke="#222" strokeWidth="1.2" />
@@ -816,31 +559,16 @@ export default function DiagramViewer() {
               </g>
             </svg>
             {cfgLoading && (
-              <span
-                style={{
-                  position: 'absolute',
-                  left: 0, top: 0, width: '100%', height: '100%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.7)',
-                  borderRadius: 4,
-                }}
-              >
+              <span className="absolute inset-0 flex items-center justify-center bg-white/70 rounded">
                 <svg className="animate-spin" width="16" height="16" viewBox="0 0 16 16">
-                  <circle
-                    cx="8" cy="8" r="6"
-                    stroke="#0284c7"
-                    strokeWidth="2"
-                    fill="none"
-                    strokeDasharray="28"
-                    strokeDashoffset="10"
-                  />
+                  <circle cx="8" cy="8" r="6" stroke="#0284c7" strokeWidth="2" fill="none" strokeDasharray="28" strokeDashoffset="10" />
                 </svg>
               </span>
             )}
           </button>
         </Controls>
       </ReactFlow>
-      {cgPanelMessage && (
+      {cfgMessage && (
         <div
           style={{
             position: 'absolute',
@@ -855,11 +583,12 @@ export default function DiagramViewer() {
             boxShadow: '0 2px 8px #0002',
           }}
         >
-          {cgPanelMessage}
+          {cfgMessage}
         </div>
       )}
+      
       {cfgPanels.map((panel, idx) => (
-        <div
+        <CFGPanelComponent
           key={panel.id}
           style={{
             position: 'fixed',
@@ -1100,26 +829,6 @@ export default function DiagramViewer() {
                         </div>`
                       );
 
-                      // 기존 코드: 파일 열기/탭 활성화
-                      if (file) {
-                        const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
-                        const clean = file.replace(regex, '');
-                        const tab = editorState.tabs.find(t => t.path === clean);
-                        if (tab) {
-                          editorState.setActive(tab.id, { from: line_start, to: line_end });
-                        } else {
-                          editorState.open({
-                            id: nanoid(),
-                            path: clean,
-                            name: clean.split(/[\\/]/).pop() ?? clean,
-                            line: line_start,
-                            highlight: {from: line_start, to: line_end},
-                          });
-                        }
-                        const target = findByPath(fsState.tree, clean);
-                        if (target) fsState.setCurrent(target.id);
-                      }
-
                       try {
                         // 2. API 호출
                         const res = await fetch(`${apiUrl}${ENDPOINT_INLINE_CODE_EXPLANATION}`, {
@@ -1157,6 +866,25 @@ export default function DiagramViewer() {
                         );
                       }
 
+                      // 기존 코드: 파일 열기/탭 활성화
+                      if (file) {
+                        const regex = new RegExp(`^${TARGET_FOLDER}[\\\\/]`);
+                        const clean = file.replace(regex, '');
+                        const tab = editorState.tabs.find(t => t.path === clean);
+                        if (tab) {
+                          editorState.setActive(tab.id, { from: line_start, to: line_end });
+                        } else {
+                          editorState.open({
+                            id: nanoid(),
+                            path: clean,
+                            name: clean.split(/[\\/]/).pop() ?? clean,
+                            line: line_start,
+                            highlight: {from: line_start, to: line_end},
+                          });
+                        }
+                        const target = findByPath(fsState.tree, clean);
+                        if (target) fsState.setCurrent(target.id);
+                      }
                     }}
                     onNodeMouseLeave={() => {
                       setCfgPanelMessage(null);
@@ -1234,12 +962,7 @@ export default function DiagramViewer() {
   );
 }
 
-/**
- * 파일 트리에서 경로로 노드 찾기
- * @param nodes 파일 노드 배열
- * @param p 찾을 경로
- * @returns 찾은 파일 노드
- */
+// Helper function
 function findByPath(nodes: FileNode[] = [], p: string): FileNode | undefined {
   const regex = new RegExp(`^${process.env.NEXT_PUBLIC_TARGET_FOLDER}[\\\\/]`);
   for (const n of nodes) {
