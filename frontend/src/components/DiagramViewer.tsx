@@ -97,7 +97,7 @@ export default function DiagramViewer() {
 
   const onNodeMouseEnter: NodeMouseHandler = useCallback(async (_, node) => {
     if (node.type === 'group') return;
-    
+
     setHoverId(node.id);
     const filePath = (node.data as any)?.file;
     const functionName = (node.data as any)?.label;
@@ -108,14 +108,14 @@ export default function DiagramViewer() {
 
     const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
     const cacheKey = `${cleanPath}_${functionName}`;
-    
+
     try {
       let code = snippetCache.get(cacheKey);
       if (!code) {
         const response = await fetch(`/api/file?path=${encodeURIComponent(cleanPath)}`);
         code = await response.text();
       }
-      
+
       const result = extractFunctionSnippet(code, functionName);
       if (result) {
         snippetCache.set(cacheKey, result.snippet);
@@ -148,7 +148,7 @@ export default function DiagramViewer() {
     }
 
     const { line_start, line_end } = node.data as any;
-    
+
     setCfgPanelMessage(
       `<div style="display:flex;align-items:flex-start;gap:8px;">
         <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
@@ -166,7 +166,7 @@ export default function DiagramViewer() {
       });
       const data = await res.json();
       const explanation = data.explanation || data.data?.explanation || '설명을 가져올 수 없습니다.';
-      
+
       setCfgPanelMessage(
         `<div style="display:flex;align-items:flex-start;gap:8px;">
           <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
@@ -192,14 +192,14 @@ export default function DiagramViewer() {
   const handleGenerateCFG = useCallback(async () => {
     setCfgMessage(null);
     setCfgLoading(true);
-    
+
     const selectedNode = nodes.find(n => n.id === selectedNodeId && n.type !== 'group');
     if (!selectedNode) {
       setCfgMessage('선택된 노드가 없습니다.');
       setCfgLoading(false);
       return;
     }
-    
+
     const { file, label: functionName } = selectedNode.data as any;
     if (!file || !functionName) {
       setCfgMessage('노드 정보가 올바르지 않습니다.');
@@ -219,17 +219,17 @@ export default function DiagramViewer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_path: file, function_name: functionName }),
       });
-      
+
       const data = await res.json();
       if (data.status && data.status !== 200) {
         setCfgMessage('API 호출 실패: ' + (data.data || ''));
         return;
       }
-      
+
       const cfgData = parseApiResponse(data);
       let cfgNodes = (cfgData.nodes || []).map((n: any) => ({
         id: n.id,
-        data: { 
+        data: {
           label: n.label || n.id,
           file: n.file || file,
           line_start: n.line_start || 1,
@@ -246,7 +246,7 @@ export default function DiagramViewer() {
           minHeight: 24,
         },
       }));
-      
+
       const cfgEdges = (cfgData.edges || []).map((e: any) => ({
         id: e.id || `${e.source}-${e.target}`,
         source: e.source,
@@ -302,7 +302,7 @@ export default function DiagramViewer() {
     // Create nodes
     let allFunctionNodes: Node[] = [];
     let allRawEdges: RawEdge[] = [];
-    
+
     Object.entries(json).forEach(([file, data]) => {
       const functionNodes = data.nodes.map(n => ({
         id: n.id,
@@ -353,7 +353,7 @@ export default function DiagramViewer() {
     // Create groups
     const groupNodes: Node[] = [];
     const fileToNodes: Record<string, Node[]> = {};
-    
+
     laidOutNodes.forEach(node => {
       const file = (node.data as any).file;
       if (!fileToNodes[file]) fileToNodes[file] = [];
@@ -362,19 +362,19 @@ export default function DiagramViewer() {
 
     Object.entries(fileToNodes).forEach(([file, nodesInGroup]) => {
       if (nodesInGroup.length === 0) return;
-      
+
       const xs = nodesInGroup.map(n => n.position.x);
       const ys = nodesInGroup.map(n => n.position.y);
       const minX = Math.min(...xs);
       const minY = Math.min(...ys);
       const maxX = Math.max(...nodesInGroup.map(n => n.position.x + ((n.style?.width as number) || STYLES.NODE.MIN_WIDTH)));
       const maxY = Math.max(...nodesInGroup.map(n => n.position.y + ((n.style?.height as number) || STYLES.NODE.HEIGHT.DEFAULT)));
-      
+
       const groupId = `group-${file.replace(/[^a-zA-Z0-9]/g, '_')}`;
       groupNodes.push({
         id: groupId,
         type: 'group',
-        data: { 
+        data: {
           label: file.split('/').pop() || file,
           file: file
         },
@@ -388,7 +388,7 @@ export default function DiagramViewer() {
         },
         zIndex: 0,
       });
-      
+
       nodesInGroup.forEach(node => {
         node.position = {
           x: node.position.x - (minX - STYLES.GROUP.PADDING),
@@ -406,26 +406,26 @@ export default function DiagramViewer() {
   // Load diagram
   useEffect(() => {
     if (!diagramReady) return;
-    
+
     (async () => {
       if (diagramCache) {
         hydrate(diagramCache);
         setLoading(false);
         return;
       }
-      
+
       setLoading(true);
       setError(undefined);
-      
+
       try {
         const res = await fetch(`${apiUrl}${ENDPOINTS.CG}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: `../../${TARGET_FOLDER}`, file_type: 'py' }),
         });
-        
+
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        
+
         const data = await res.json();
         const json = parseApiResponse(data);
         diagramCache = json;
@@ -445,11 +445,11 @@ export default function DiagramViewer() {
     const processed = edges.map(e => {
       const sourceRep = findRepresentativeNode(e.source, collapsedGroups, nodes);
       const targetRep = findRepresentativeNode(e.target, collapsedGroups, nodes);
-      
+
       if (sourceRep === targetRep && collapsedGroups.has(sourceRep)) {
         return { ...e, hidden: true };
       }
-      
+
       const isRedirected = sourceRep !== e.source || targetRep !== e.target;
       const finalEdge = isRedirected ? {
         ...e,
@@ -463,9 +463,9 @@ export default function DiagramViewer() {
           isRedirected: true,
         },
       } : e;
-      
+
       const isHover = hoveredEdgeId === finalEdge.id;
-      
+
       return {
         ...finalEdge,
         hidden: false,
@@ -493,7 +493,7 @@ export default function DiagramViewer() {
         seen.set(key, edge);
       }
     });
-    
+
     return Array.from(seen.values());
   }, [edges, collapsedGroups, nodes, hoveredEdgeId]);
 
@@ -515,7 +515,7 @@ export default function DiagramViewer() {
         style: {
           ...n.style,
           background: isGroup
-            ? isCollapsed 
+            ? isCollapsed
               ? STYLES.COLORS.GROUP.COLLAPSED
               : isHover
                 ? STYLES.COLORS.NODE.HOVER
@@ -554,10 +554,10 @@ export default function DiagramViewer() {
         },
         data: isGroup
           ? {
-              ...n.data,
-              isCollapsed,
-              onToggleCollapse: () => toggleCollapse(n.id),
-            }
+            ...n.data,
+            isCollapsed,
+            onToggleCollapse: () => toggleCollapse(n.id),
+          }
           : n.data,
       };
     });
@@ -622,13 +622,13 @@ export default function DiagramViewer() {
             if (n.type === 'group') return collapsedGroups.has(n.id) ? '#6b7280' : '#bdbdbd';
             const bg = n.style?.background;
             return bg === STYLES.COLORS.NODE.HOVER ? '#facc15' :
-                   bg === STYLES.COLORS.NODE.ACTIVE ? '#0284c7' : '#2563eb';
+              bg === STYLES.COLORS.NODE.ACTIVE ? '#0284c7' : '#2563eb';
           }}
           nodeStrokeColor={n => {
             if (n.type === 'group') return collapsedGroups.has(n.id) ? '#374151' : '#757575';
             const border = n.style?.border;
             return border?.includes(STYLES.COLORS.NODE.BORDER_HOVER) ? STYLES.COLORS.NODE.BORDER_HOVER :
-                   border?.includes(STYLES.COLORS.NODE.BORDER_ACTIVE) ? STYLES.COLORS.NODE.BORDER_ACTIVE : '#1e40af';
+              border?.includes(STYLES.COLORS.NODE.BORDER_ACTIVE) ? STYLES.COLORS.NODE.BORDER_ACTIVE : '#1e40af';
           }}
           nodeStrokeWidth={2}
           maskColor="rgba(255,255,255,0.7)"
@@ -684,13 +684,13 @@ export default function DiagramViewer() {
           </button>
         </Controls>
       </ReactFlow>
-      
+
       {cfgMessage && (
         <div className="absolute top-[60px] right-6 bg-red-100 text-red-800 px-4 py-2 rounded-md z-[100] text-sm shadow-md">
           {cfgMessage}
         </div>
       )}
-      
+
       {cfgPanels.map((panel, idx) => (
         <CFGPanelComponent
           key={panel.id}
@@ -702,10 +702,10 @@ export default function DiagramViewer() {
           message={cfgPanelMessage}
         />
       ))}
-      
+
       {hoverId && snippet && (
         <div
-          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-auto font-mono"
+          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-auto font-mono pointer-events-none"
           dangerouslySetInnerHTML={{ __html: `<pre class="hljs">${snippet}</pre>` }}
         />
       )}
@@ -738,23 +738,23 @@ function CFGPanelComponent({
     const startY = e.clientY;
     const origX = panel.pos.x;
     const origY = panel.pos.y;
-    
+
     setIsDragging(true);
     onUpdate(panel.id, { dragging: true });
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
-      
+
       const newX = origX - dx;
       const newY = origY + dy;
-      
+
       const panelWidth = panel.width ?? STYLES.CFG_PANEL.WIDTH;
       const panelHeight = panel.expanded ? (panel.height ?? STYLES.CFG_PANEL.HEIGHT) : 44;
-      
+
       const boundedX = Math.max(20, Math.min(newX, window.innerWidth - panelWidth - 20));
       const boundedY = Math.max(20, Math.min(newY, window.innerHeight - panelHeight - 20));
-      
+
       onUpdate(panel.id, { pos: { x: boundedX, y: boundedY } });
     };
 
@@ -782,10 +782,10 @@ function CFGPanelComponent({
     const onMouseMove = (moveEvent: MouseEvent) => {
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
-      
+
       const newWidth = Math.max(300, Math.min(1600, startWidth + dx));
       const newHeight = Math.max(200, Math.min(1200, startHeight + dy));
-      
+
       onUpdate(panel.id, { width: newWidth, height: newHeight });
     };
 
@@ -840,7 +840,7 @@ function CFGPanelComponent({
           dangerouslySetInnerHTML={{ __html: message }}
         />
       )}
-      
+
       <div
         style={{
           width: '100%',
@@ -908,7 +908,7 @@ function CFGPanelComponent({
           ×
         </button>
       </div>
-      
+
       {panel.expanded && (
         <div style={{ width: '100%', height: panel.height ?? STYLES.CFG_PANEL.HEIGHT, overflow: 'auto', position: 'relative' }}>
           {panel.result?.nodes && panel.result?.edges ? (
@@ -943,7 +943,7 @@ function CFGPanelComponent({
               {typeof panel.result === 'string' ? panel.result : JSON.stringify(panel.result, null, 2)}
             </pre>
           )}
-          
+
           <div
             style={{
               position: 'absolute',
