@@ -47,6 +47,7 @@ def remove_session(session_id: str):
         del session_store[session_id]
 
 class ChatbotState(TypedDict, total=False):
+    graph_mode: bool
     code: str
     query: str
     diagram: str | None
@@ -60,6 +61,9 @@ def llm_node(state: ChatbotState, llm):
     """
     LLM을 호출해 답변을 생성하는 LangGraph 노드 함수.
     """
+    graph_mode = state.get('graph_mode')
+    if graph_mode:
+        pass
     human_prompt = """아래 INPUT 정보를 참고해서 충분히 고민한 후 사용자의 질문에 정확하고 간결하게 답변하세요.
     INPUT: 질문, 채팅 히스토리, 코드[Optional], 다이어그램[Optional]"""
     human_prompt += f"\n[질문]: {state['query']}"
@@ -99,25 +103,26 @@ class LangGraphChatbotEngine:
         self.graph.add_edge("llm", END)
         self.app = self.graph.compile()
 
-    async def ask(self, query: str, code: str = None, diagram: str = None, history: list = None):
+    async def ask(self, query: str, graph_mode: bool, code: str = None, diagram: str = None, history: list = None):
         state: ChatbotState = {
+            "graph_mode": graph_mode,
             "code": code,
             "query": query,
             "diagram": diagram,
             "history": history if history is not None else [],
             "answer": None,
-            "highlight": [],
+            "highlight": []
         }
         result = await self.app.ainvoke(state)
         return result['answer'], result['highlight'], result['history']
 
-async def generate_chatbot_answer_with_session(session_id: str, query: str, code: str = None, diagram: str = None):
+async def generate_chatbot_answer_with_session(session_id: str, graph_mode: bool, query: str, code: str = None, diagram: str = None):
     """
     세션 기반 챗봇 답변 생성. 세션별 history를 서버에서 관리.
     """
     session = get_session(session_id)
     engine = session["engine"]
     history = session["history"]
-    answer, highlight, updated_history = await engine.ask(query, code, diagram, history)
+    answer, highlight, updated_history = await engine.ask(query, graph_mode, code, diagram, history)
     session["history"] = updated_history  # 서버에 최신 history 저장
     return answer, highlight

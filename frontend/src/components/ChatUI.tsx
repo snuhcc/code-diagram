@@ -235,6 +235,7 @@ export default function ChatUI() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_id: currentSessionId,
+          graph_mode: isGraphSearch,
           query: input,
           code: '',
           diagram: '',
