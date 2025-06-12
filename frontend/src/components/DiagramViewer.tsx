@@ -63,12 +63,32 @@ export default function DiagramViewer() {
     (window as any).updateHighlightedNodes = (nodeIds: string[]) => {
       console.log('[DV] Updating highlighted nodes:', nodeIds);
       setHighlightedNodeIds(new Set(nodeIds));
+      
+      // 하이라이트된 노드들의 부모 그룹이 collapsed 상태면 expand
+      if (nodeIds.length > 0) {
+        const groupsToExpand = new Set<string>();
+        
+        nodeIds.forEach(nodeId => {
+          const node = nodes.find(n => n.id === nodeId);
+          if (node && node.parentId) {
+            groupsToExpand.add(node.parentId);
+          }
+        });
+        
+        if (groupsToExpand.size > 0) {
+          setCollapsedGroups(prev => {
+            const newSet = new Set(prev);
+            groupsToExpand.forEach(groupId => newSet.delete(groupId));
+            return newSet;
+          });
+        }
+      }
     };
     
     return () => {
       delete (window as any).updateHighlightedNodes;
     };
-  }, []);
+  }, [nodes]);
 
   const editorState = useEditor.getState();
   const fsState = useFS.getState();
@@ -604,21 +624,33 @@ export default function DiagramViewer() {
       } : e;
       
       const isHover = hoveredEdgeId === finalEdge.id;
+      const isHighlighted = highlightedNodeIds.has(finalEdge.source) && highlightedNodeIds.has(finalEdge.target);
       
       return {
         ...finalEdge,
         hidden: false,
         style: {
           ...(finalEdge.style || {}),
-          stroke: isHover ? STYLES.COLORS.EDGE.HOVER : STYLES.COLORS.EDGE.DEFAULT,
-          strokeWidth: isHover ? 4 : (isRedirected ? 3 : 2),
+          stroke: isHover 
+            ? STYLES.COLORS.EDGE.HOVER 
+            : isHighlighted
+              ? STYLES.COLORS.EDGE.HIGHLIGHTED
+              : STYLES.COLORS.EDGE.DEFAULT,
+          strokeWidth: isHover ? 4 : isHighlighted ? 3 : (isRedirected ? 3 : 2),
           strokeDasharray: isRedirected ? '5 5' : undefined,
           transition: 'all 0.13s',
           cursor: 'pointer',
         },
         markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 15,
+          height: 15,
+          color: isHover 
+            ? STYLES.COLORS.EDGE.HOVER 
+            : isHighlighted
+              ? STYLES.COLORS.EDGE.HIGHLIGHTED
+              : STYLES.COLORS.EDGE.DEFAULT,
           ...(finalEdge.markerEnd || {}),
-          color: isHover ? STYLES.COLORS.EDGE.HOVER : STYLES.COLORS.EDGE.DEFAULT,
         },
         zIndex: isRedirected ? 10001 : 10000,
       };
@@ -634,7 +666,7 @@ export default function DiagramViewer() {
     });
     
     return Array.from(seen.values());
-  }, [edges, collapsedGroups, nodes, hoveredEdgeId]);
+  }, [edges, collapsedGroups, nodes, hoveredEdgeId, highlightedNodeIds]);
 
   // Process nodes for styling
   const finalNodes = useMemo(() => {
@@ -664,12 +696,12 @@ export default function DiagramViewer() {
                   : isActive
                     ? STYLES.COLORS.NODE.ACTIVE
                     : STYLES.COLORS.GROUP.DEFAULT
-            : isHighlighted // 하이라이트 우선순위를 높게 설정
-              ? STYLES.COLORS.NODE.HIGHLIGHTED
+            : isSelected // 선택이 최우선
+              ? STYLES.COLORS.NODE.SELECTED
               : isHover
                 ? STYLES.COLORS.NODE.HOVER
-                : isSelected
-                  ? STYLES.COLORS.NODE.SELECTED
+                : isHighlighted // 하이라이트는 선택/호버 다음 우선순위
+                  ? STYLES.COLORS.NODE.HIGHLIGHTED
                   : isActive
                     ? STYLES.COLORS.NODE.ACTIVE
                     : STYLES.COLORS.NODE.DEFAULT,
@@ -681,12 +713,12 @@ export default function DiagramViewer() {
                 : isActive
                   ? `1px solid ${STYLES.COLORS.GROUP.BORDER_ACTIVE}`
                   : `1px solid ${STYLES.COLORS.GROUP.BORDER}`
-            : isHighlighted // 하이라이트 테두리 적용
-              ? `3px solid ${STYLES.COLORS.NODE.BORDER_HIGHLIGHTED}`
+            : isSelected // 선택이 최우선
+              ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
               : isHover
                 ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
-                : isSelected
-                  ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
+                : isHighlighted // 하이라이트는 선택/호버 다음 우선순위
+                  ? `3px solid ${STYLES.COLORS.NODE.BORDER_HIGHLIGHTED}`
                   : isActive
                     ? `1px solid ${STYLES.COLORS.NODE.BORDER_ACTIVE}`
                     : `1px solid ${STYLES.COLORS.NODE.BORDER}`,

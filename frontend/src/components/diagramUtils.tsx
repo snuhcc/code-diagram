@@ -48,6 +48,7 @@ export const STYLES = {
     EDGE: {
       DEFAULT: '#34A853',
       HOVER: '#f59e42',
+      HIGHLIGHTED: '#7c3aed', // 하이라이트된 엣지 색상 (진한 보라색)
     },
   },
   CFG_PANEL: {
