@@ -451,8 +451,8 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
                 total_lines = len(content.split('\n'))
                 
                 nodes.append({
-                    "id": f"{file_name}.script",
-                    "function_name": "script",
+                    "id": f"{file_name}.main",
+                    "function_name": f"{file_name}.main",
                     "file": rel_path,
                     "line_start": 1,
                     "line_end": total_lines,
@@ -493,7 +493,7 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
             
             # Edges for module-level calls (from dummy 'main' node)
             if module_level_calls:
-                source_id = f"{file_name}.script"
+                source_id = f"{file_name}.main"
                 for callee in module_level_calls:
                     target_id = _resolve_function_call(
                         callee, 

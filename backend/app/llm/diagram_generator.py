@@ -148,7 +148,7 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
     try:
         # Use helper function to extract function code
         file_path = os.path.join(WORKSPACE_ROOT_DIR, file_path)
-        if function_name == "script":
+        if ".main" in function_name:
             function_code = get_codes_from_file(file_path)
         else:
             function_code = extract_function_code_from_file_with_line_numbers(file_path, function_name)
