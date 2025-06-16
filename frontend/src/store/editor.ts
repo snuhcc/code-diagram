@@ -18,6 +18,7 @@ interface State {
   activePath?: string;
   searchHighlights?: { line: number; query: string };
   highlight?: { from: number; to: number }; // 추가: highlight 범위
+  line?: number; // 추가: 특정 라인으로 스크롤
   open: (file: TabMeta & { line?: number; highlight?: { from: number; to: number } }) => void;
   close: (id: string) => void;
   setActive: (id: string, highlight?: { from: number; to: number }) => void; // highlight 인자 추가
@@ -31,6 +32,7 @@ export const useEditor = create<State>()(
     activePath: undefined,
     searchHighlights: undefined,
     highlight: undefined,
+    line: undefined,
     open: (file) =>
       set((s) => {
         if (!s.tabs.find((t) => t.path === file.path)) s.tabs.push(file);
@@ -41,6 +43,11 @@ export const useEditor = create<State>()(
           s.highlight = file.highlight;
         } else {
           s.highlight = undefined;
+        }
+        if (file.line) {
+          s.line = file.line;
+        } else {
+          s.line = undefined;
         }
       }),
     close: (id) =>
@@ -53,6 +60,7 @@ export const useEditor = create<State>()(
         }
         s.searchHighlights = undefined;
         s.highlight = undefined;
+        s.line = undefined;
       }),
     setActive: (id, highlight) =>
       set((s) => {
@@ -68,6 +76,7 @@ export const useEditor = create<State>()(
         } else {
           s.highlight = undefined;
         }
+        s.line = undefined;
       }),
     setSearchHighlights: (line, query) =>
       set((s) => {

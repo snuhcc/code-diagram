@@ -8,10 +8,12 @@ function CodePane({
   path,
   highlights,
   highlight,
+  line,
 }: {
   path: string;
   highlights?: { line: number; query: string };
   highlight?: { from: number; to: number };
+  line?: number;
 }) {
   const [code, setCode] = useState('// loading…');
   const [err, setErr] = useState<string>();
@@ -48,7 +50,7 @@ function CodePane({
     // Highlight search results
     if (highlights) {
       const { line, query } = highlights;
-      editor.revealLineInCenter(line);
+      editor.revealLineAtTop(line);
       decorations.push({
         range: new monaco.Range(line, 1, line, 1),
         options: { isWholeLine: true, className: 'highlight-line' },
@@ -61,6 +63,14 @@ function CodePane({
         }))
       );
     }
+    
+    // Scroll to specific line (for function start) - position at 30% from top
+    if (line && line > 0 && !highlights && !highlight) {
+      const position = { lineNumber: line, column: 1 };
+      editor.setPosition(position);
+      editor.revealPositionNearTop(position);
+    }
+    
     console.log('highlight', highlight);
     // Highlight range
     if (highlight && highlight.from !== undefined && highlight.to !== undefined) {
@@ -68,6 +78,12 @@ function CodePane({
       if (model) {
         const line_start = highlight.from;
         const line_end = highlight.to;
+        
+        // Scroll to the highlight position - position at 30% from top
+        const position = { lineNumber: line_start, column: 1 };
+        editor.setPosition(position);
+        editor.revealPositionNearTop(position);
+        
         decorations.push({
           range: new monaco.Range(
             line_start,
@@ -84,7 +100,7 @@ function CodePane({
       editor.__currentDecorations || [],
       decorations
     );
-  }, [editor, highlights, highlight]);
+  }, [editor, highlights, highlight, line]);
 
   const lang = (() => {
     if (path.endsWith('.py')) return 'python';
@@ -118,7 +134,7 @@ function CodePane({
 }
 
 export default function EditorTabs() {
-  const { tabs, activeId, setActive, close, searchHighlights, highlight } = useEditor();
+  const { tabs, activeId, setActive, close, searchHighlights, highlight, line } = useEditor();
 
   if (!tabs.length) {
     return (
@@ -168,7 +184,7 @@ export default function EditorTabs() {
         </div>
       </div>
       <div className="flex-1">
-        <CodePane path={active.path} highlights={searchHighlights} highlight={highlight} />
+        <CodePane path={active.path} highlights={searchHighlights} highlight={highlight} line={line} />
       </div>
     </div>
   );

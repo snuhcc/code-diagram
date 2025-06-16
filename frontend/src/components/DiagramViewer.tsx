@@ -127,7 +127,15 @@ export default function DiagramViewer() {
     }
     setSelectedNodeId(prev => prev === node.id ? null : node.id);
     const filePath = (node.data as any)?.file;
-    if (filePath) openFile(filePath);
+    const lineStart = (node.data as any)?.line_start;
+    if (filePath) {
+      // If we have line_start information, scroll to that line
+      if (lineStart && lineStart > 0) {
+        openFile(filePath, lineStart);
+      } else {
+        openFile(filePath);
+      }
+    }
   }, [nodes, collapsedGroups, openFile]);
 
   const onNodeMouseEnter: NodeMouseHandler = useCallback(async (_, node) => {
