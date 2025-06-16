@@ -106,6 +106,7 @@ export default function DiagramViewer() {
 
   const openFile = useCallback((filePath: string, line?: number, highlight?: { from: number; to: number }) => {
     const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
+    console.log('[DV] Opening file:', cleanPath, 'at line:', line, 'with highlight:', highlight);
     editorState.open({
       id: nanoid(),
       path: cleanPath,
@@ -192,13 +193,13 @@ export default function DiagramViewer() {
       </div>`
     );
 
-    openFile(node.data.file || panel.file, line_start, { from: line_start, to: line_end });
+    openFile(TARGET_FOLDER + '/' + panel.file, line_start, { from: line_start, to: line_end });
 
     try {
       const res = await fetch(`${apiUrl}${ENDPOINTS.INLINE_CODE_EXPLANATION}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_path: panel.file, line_start, line_end }),
+        body: JSON.stringify({ file_path: TARGET_FOLDER + '/' + panel.file, line_start, line_end }),
       });
       const data = await res.json();
       const explanation = data.explanation || data.data?.explanation || '설명을 가져올 수 없습니다.';
@@ -252,7 +253,7 @@ export default function DiagramViewer() {
       const res = await fetch(`${apiUrl}${ENDPOINTS.CFG}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_path: process.env.NEXT_PUBLIC_TARGET_FOLDER + "/" +file, function_name: functionName }),
+        body: JSON.stringify({ file_path: TARGET_FOLDER + "/" +file, function_name: functionName }),
       });
       
       const data = await res.json();
