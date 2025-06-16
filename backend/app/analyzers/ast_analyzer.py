@@ -18,6 +18,8 @@ class FunctionVisitor(ast.NodeVisitor):
         self.variables = []
         self.variable_dependencies = defaultdict(list)
         self.builtin_filter = BuiltinFilter()
+        # For tracking module-level function calls
+        self.module_level_calls = []
         
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         # Skip if this is a class method (handled separately)
@@ -65,6 +67,26 @@ class FunctionVisitor(ast.NodeVisitor):
         self.current_class = parent_class
         
     def visit_Call(self, node: ast.Call) -> None:
+        # Track function calls at module level (not inside any function or class)
+        if not self.current_function and not self.current_class:
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id
+                if not self.builtin_filter.should_exclude_call(func_name):
+                    self.module_level_calls.append(func_name)
+            elif isinstance(node.func, ast.Attribute):
+                method_name = node.func.attr
+                module_name = None
+                if isinstance(node.func.value, ast.Name):
+                    module_name = node.func.value.id
+                
+                if not self.builtin_filter.should_exclude_call(method_name, module_name):
+                    if module_name:
+                        full_call = f"{module_name}.{method_name}"
+                        self.module_level_calls.append(full_call)
+                    else:
+                        self.module_level_calls.append(method_name)
+        
+        # Original logic for function-level calls
         if not self.current_function:
             self.generic_visit(node)
             return
@@ -260,7 +282,8 @@ def analyze_python_ast(content: str) -> Dict[str, Any]:
             'classes': function_visitor.classes,
             'class_methods': function_visitor.class_methods,
             'variables': function_visitor.variables,
-            'variable_dependencies': function_visitor.variable_dependencies
+            'variable_dependencies': function_visitor.variable_dependencies,
+            'module_level_calls': function_visitor.module_level_calls
         }
     except SyntaxError as e:
         # Return partial information in case of syntax errors
@@ -400,6 +423,7 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
             nodes = []
             file_name = os.path.splitext(os.path.basename(file_path))[0]
             
+            # Create nodes for defined functions
             for func in ast_result.get('functions', []):
                 lines = ast_result.get('function_lines', {}).get(func, {})
                 node_id = f"{file_name}.{func}"
@@ -419,15 +443,58 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
                     "description": description
                 })
             
+            # Create a dummy 'main' node for scripts without function definitions
+            # but with module-level function calls
+            module_level_calls = ast_result.get('module_level_calls', [])
+            if not ast_result.get('functions', []) and module_level_calls:
+                # Get total line count for the script
+                total_lines = len(content.split('\n'))
+                
+                nodes.append({
+                    "id": f"{file_name}.script",
+                    "function_name": "script",
+                    "file": rel_path,
+                    "line_start": 1,
+                    "line_end": total_lines,
+                    "description": f"Script {file_name} ({total_lines} lines)"
+                })
+            
             # Generate edges (with deduplication)
             edges = []
             edge_idx = 0
             seen_edges = set()  # Track unique source-target pairs
             
+            # Edges for function-to-function calls
             for caller, callees in ast_result.get('function_calls', {}).items():
                 source_id = f"{file_name}.{caller}"
                 
                 for callee in callees:
+                    target_id = _resolve_function_call(
+                        callee, 
+                        file_name, 
+                        all_functions, 
+                        all_imports[file_name]['detailed_dependencies']
+                    )
+                    
+                    # Skip if target_id is None (built-in function)
+                    if target_id is not None:
+                        # Create a unique key for this edge
+                        edge_key = (source_id, target_id)
+                        
+                        # Only add if we haven't seen this edge before
+                        if edge_key not in seen_edges:
+                            seen_edges.add(edge_key)
+                            edges.append({
+                                "id": f"{file_name}.e{edge_idx}",
+                                "source": source_id,
+                                "target": target_id
+                            })
+                            edge_idx += 1
+            
+            # Edges for module-level calls (from dummy 'main' node)
+            if module_level_calls:
+                source_id = f"{file_name}.script"
+                for callee in module_level_calls:
                     target_id = _resolve_function_call(
                         callee, 
                         file_name, 
@@ -556,7 +623,7 @@ async def analyze_project_call_graph(project_path: str, exclude_patterns: List[s
     
     # Determine workspace root (go up directories to find backend folder)
     current_path = os.path.abspath(project_path)
-    workspace_root = os.path.join(current_path, "..")
+    workspace_root = os.path.join(current_path, "..", "..")
     
     # Save to artifacts directory
     artifacts_dir = os.path.join(workspace_root, 'backend', 'app', 'artifacts')

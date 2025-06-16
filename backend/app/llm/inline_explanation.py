@@ -24,6 +24,7 @@ async def generate_inline_code_explanation(file_path: str, line_start: int, line
         ]
     )
     file_path = os.path.join(WORKSPACE_ROOT_DIR, file_path)
+    print(f"Generating inline code explanation for file: {file_path}, lines: {line_start}-{line_end}, context: {context}")
     code_snippet = get_source_file_with_line_number(file_path)
 
     print(code_snippet)

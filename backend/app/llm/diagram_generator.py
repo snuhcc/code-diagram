@@ -148,7 +148,10 @@ async def generate_control_flow_graph(file_path: str, function_name: str):
     try:
         # Use helper function to extract function code
         file_path = os.path.join(WORKSPACE_ROOT_DIR, file_path)
-        function_code = extract_function_code_from_file_with_line_numbers(file_path, function_name)
+        if function_name == "script":
+            function_code = get_codes_from_file(file_path)
+        else:
+            function_code = extract_function_code_from_file_with_line_numbers(file_path, function_name)
         file_name = os.path.splitext(os.path.basename(file_path))[0]
         output_path = os.path.join(BACKEND_ROOT_DIR, "artifacts", f"cfg_{file_name}_{function_name}.json")
 
