@@ -1,0 +1,330 @@
+{
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/validator.py": {
+    "nodes": [
+      {
+        "id": "validator.validate_data",
+        "function_name": "validate_data",
+        "file": "validator.py",
+        "line_start": 1,
+        "line_end": 7,
+        "description": "Function validate_data (7 lines)"
+      },
+      {
+        "id": "validator.remove_negatives",
+        "function_name": "remove_negatives",
+        "file": "validator.py",
+        "line_start": 9,
+        "line_end": 11,
+        "description": "Function remove_negatives (3 lines)"
+      },
+      {
+        "id": "validator.check_range",
+        "function_name": "check_range",
+        "file": "validator.py",
+        "line_start": 13,
+        "line_end": 15,
+        "description": "Function check_range (3 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "validator.e0",
+        "source": "validator.validate_data",
+        "target": "validator.remove_negatives"
+      },
+      {
+        "id": "validator.e1",
+        "source": "validator.validate_data",
+        "target": "validator.check_range"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/aggregator.py": {
+    "nodes": [
+      {
+        "id": "aggregator.aggregate_data",
+        "function_name": "aggregate_data",
+        "file": "aggregator.py",
+        "line_start": 1,
+        "line_end": 11,
+        "description": "Function aggregate_data (11 lines)"
+      },
+      {
+        "id": "aggregator.compute_average",
+        "function_name": "compute_average",
+        "file": "aggregator.py",
+        "line_start": 13,
+        "line_end": 15,
+        "description": "Function compute_average (3 lines)"
+      },
+      {
+        "id": "aggregator.format_summary",
+        "function_name": "format_summary",
+        "file": "aggregator.py",
+        "line_start": 17,
+        "line_end": 19,
+        "description": "Function format_summary (3 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "aggregator.e0",
+        "source": "aggregator.aggregate_data",
+        "target": "aggregator.compute_average"
+      },
+      {
+        "id": "aggregator.e1",
+        "source": "aggregator.aggregate_data",
+        "target": "aggregator.format_summary"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/reporter.py": {
+    "nodes": [
+      {
+        "id": "reporter.generate_report",
+        "function_name": "generate_report",
+        "file": "reporter.py",
+        "line_start": 2,
+        "line_end": 21,
+        "description": "Function generate_report (20 lines)"
+      }
+    ],
+    "edges": []
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/analyzer.py": {
+    "nodes": [
+      {
+        "id": "analyzer.analyze_data",
+        "function_name": "analyze_data",
+        "file": "analyzer.py",
+        "line_start": 4,
+        "line_end": 15,
+        "description": "Function analyze_data (12 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "analyzer.e0",
+        "source": "analyzer.analyze_data",
+        "target": "statistics.mean"
+      },
+      {
+        "id": "analyzer.e1",
+        "source": "analyzer.analyze_data",
+        "target": "statistics.median"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/processor.py": {
+    "nodes": [
+      {
+        "id": "processor.process_data",
+        "function_name": "process_data",
+        "file": "processor.py",
+        "line_start": 3,
+        "line_end": 15,
+        "description": "Function process_data (13 lines)"
+      },
+      {
+        "id": "processor.handle_div3",
+        "function_name": "handle_div3",
+        "file": "processor.py",
+        "line_start": 17,
+        "line_end": 19,
+        "description": "Function handle_div3 (3 lines)"
+      },
+      {
+        "id": "processor.handle_even",
+        "function_name": "handle_even",
+        "file": "processor.py",
+        "line_start": 21,
+        "line_end": 23,
+        "description": "Function handle_even (3 lines)"
+      },
+      {
+        "id": "processor.handle_other",
+        "function_name": "handle_other",
+        "file": "processor.py",
+        "line_start": 25,
+        "line_end": 27,
+        "description": "Function handle_other (3 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "processor.e0",
+        "source": "processor.process_data",
+        "target": "processor.handle_div3"
+      },
+      {
+        "id": "processor.e1",
+        "source": "processor.process_data",
+        "target": "processor.handle_even"
+      },
+      {
+        "id": "processor.e2",
+        "source": "processor.process_data",
+        "target": "processor.handle_other"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/filterer.py": {
+    "nodes": [
+      {
+        "id": "filterer.filter_even",
+        "function_name": "filter_even",
+        "file": "filterer.py",
+        "line_start": 1,
+        "line_end": 4,
+        "description": "Function filter_even (4 lines)"
+      },
+      {
+        "id": "filterer.remove_odd",
+        "function_name": "remove_odd",
+        "file": "filterer.py",
+        "line_start": 6,
+        "line_end": 8,
+        "description": "Function remove_odd (3 lines)"
+      },
+      {
+        "id": "filterer.filter_gt",
+        "function_name": "filter_gt",
+        "file": "filterer.py",
+        "line_start": 10,
+        "line_end": 12,
+        "description": "Function filter_gt (3 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "filterer.e0",
+        "source": "filterer.filter_even",
+        "target": "filterer.remove_odd"
+      },
+      {
+        "id": "filterer.e1",
+        "source": "filterer.filter_even",
+        "target": "filterer.filter_gt"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/transformer.py": {
+    "nodes": [
+      {
+        "id": "transformer.transform_special",
+        "function_name": "transform_special",
+        "file": "transformer.py",
+        "line_start": 3,
+        "line_end": 8,
+        "description": "Function transform_special (6 lines)"
+      },
+      {
+        "id": "transformer.normalize",
+        "function_name": "normalize",
+        "file": "transformer.py",
+        "line_start": 10,
+        "line_end": 13,
+        "description": "Function normalize (4 lines)"
+      },
+      {
+        "id": "transformer.scale",
+        "function_name": "scale",
+        "file": "transformer.py",
+        "line_start": 15,
+        "line_end": 17,
+        "description": "Function scale (3 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "transformer.e0",
+        "source": "transformer.transform_special",
+        "target": "transformer.normalize"
+      },
+      {
+        "id": "transformer.e1",
+        "source": "transformer.transform_special",
+        "target": "processor.process_data"
+      },
+      {
+        "id": "transformer.e2",
+        "source": "transformer.transform_special",
+        "target": "transformer.scale"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/main.py": {
+    "nodes": [
+      {
+        "id": "main.main",
+        "function_name": "main",
+        "file": "main.py",
+        "line_start": 11,
+        "line_end": 47,
+        "description": "Function main (37 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "main.e0",
+        "source": "main.main",
+        "target": "fetcher.fetch_data"
+      },
+      {
+        "id": "main.e1",
+        "source": "main.main",
+        "target": "processor.process_data"
+      },
+      {
+        "id": "main.e2",
+        "source": "main.main",
+        "target": "analyzer.analyze_data"
+      },
+      {
+        "id": "main.e3",
+        "source": "main.main",
+        "target": "reporter.generate_report"
+      },
+      {
+        "id": "main.e4",
+        "source": "main.main",
+        "target": "validator.validate_data"
+      },
+      {
+        "id": "main.e5",
+        "source": "main.main",
+        "target": "aggregator.aggregate_data"
+      },
+      {
+        "id": "main.e6",
+        "source": "main.main",
+        "target": "filterer.filter_even"
+      },
+      {
+        "id": "main.e7",
+        "source": "main.main",
+        "target": "transformer.transform_special"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/poc/fetcher.py": {
+    "nodes": [
+      {
+        "id": "fetcher.fetch_data",
+        "function_name": "fetch_data",
+        "file": "fetcher.py",
+        "line_start": 4,
+        "line_end": 13,
+        "description": "Function fetch_data (10 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "fetcher.e0",
+        "source": "fetcher.fetch_data",
+        "target": "ConnectionError"
+      }
+    ]
+  }
+}
