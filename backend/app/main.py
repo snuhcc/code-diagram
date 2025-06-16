@@ -8,6 +8,7 @@ from llm.diagram_generator import generate_call_graph, generate_control_flow_gra
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
 from llm.utils import get_source_file_with_line_number
 from llm.inline_explanation import generate_inline_code_explanation
+from analyzers.ast_analyzer import analyze_project_call_graph
 from fastapi.responses import JSONResponse
 from llm.constants import SAMPLE_CFG_JSON
 
@@ -46,12 +47,24 @@ async def api_generate_call_graph(request: CGDiagramRequest):
     Generate a call graph for the given code.
     """
     try:
-
         json_data = await generate_call_graph(request.path, request.file_type)
         result = {
             "data": json_data
         }
-        print(f'result in main.py: \\{result}')
+        return CGDiagramResponse(**result)
+    except Exception as e:
+        return CGDiagramResponse(status=500, data=str(e))
+
+@app.post("/api/generate_call_graph_ast", response_model=CGDiagramResponse)
+async def api_generate_call_graph_ast(request: CGDiagramRequest):
+    """
+    Generate a call graph for the given code using AST.
+    """
+    try:
+        json_data = await analyze_project_call_graph(request.path)
+        result = {
+            "data": json_data
+        }
         return CGDiagramResponse(**result)
     except Exception as e:
         return CGDiagramResponse(status=500, data=str(e))

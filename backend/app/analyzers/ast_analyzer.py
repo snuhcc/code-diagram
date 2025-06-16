@@ -236,67 +236,13 @@ class FunctionVisitor(ast.NodeVisitor):
         return last_line
 
 
-class ImportVisitor(ast.NodeVisitor):
-    """Extract import information from Python files."""
-    
-    def __init__(self):
-        self.imports = []
-        self.detailed_dependencies = []
-        
-    def visit_Import(self, node: ast.Import) -> None:
-        """Process simple imports: import x, y, z"""
-        for name in node.names:
-            alias = name.asname or name.name
-            module = name.name
-            self.imports.append(module)
-            
-            detailed = {
-                "module": module,
-                "imports": [alias]
-            }
-            
-            # Check if this module is already in detailed_dependencies
-            existing = next((d for d in self.detailed_dependencies if d["module"] == module), None)
-            if existing:
-                existing["imports"].append(alias)
-            else:
-                self.detailed_dependencies.append(detailed)
-    
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        """Process from x import y, z imports"""
-        if node.module is None:  # relative import like "from . import x"
-            return
-            
-        module = node.module
-        if node.level > 0:  # Handle relative imports
-            module = '.' * node.level + module
-            
-        self.imports.append(module)
-        
-        imports = []
-        for name in node.names:
-            alias = name.asname or name.name
-            imports.append(name.name)
-            
-        detailed = {
-            "module": module,
-            "imports": imports
-        }
-        
-        # Check if this module is already in detailed_dependencies
-        existing = next((d for d in self.detailed_dependencies if d["module"] == module), None)
-        if existing:
-            existing["imports"].extend(imports)
-        else:
-            self.detailed_dependencies.append(detailed)
-
-
 def analyze_python_ast(content: str) -> Dict[str, Any]:
     """Analyze a Python file's AST to extract code structure."""
     try:
         tree = ast.parse(content)
         
-        # Extract imports
+        # Extract imports using the import_analyzer module
+        from .import_analyzer import ImportVisitor
         import_visitor = ImportVisitor()
         import_visitor.visit(tree)
         
@@ -574,7 +520,7 @@ def _resolve_function_call(callee: str, current_file: str, all_functions: Dict[s
     return callee
 
 
-def analyze_project_call_graph(project_path: str, exclude_patterns: List[str] = None) -> Dict[str, Dict[str, Any]]:
+async def analyze_project_call_graph(project_path: str, exclude_patterns: List[str] = None) -> Dict[str, Dict[str, Any]]:
     """
     Analyze call graph for an entire Python project.
     
@@ -586,6 +532,7 @@ def analyze_project_call_graph(project_path: str, exclude_patterns: List[str] = 
         Complete call graph in cg_json_output_all.json format
     """
     import glob
+    import json
     
     if exclude_patterns is None:
         exclude_patterns = ['test_*', '__pycache__', '.*', 'venv', 'env', 'build', 'dist']
@@ -600,7 +547,28 @@ def analyze_project_call_graph(project_path: str, exclude_patterns: List[str] = 
             if file.endswith('.py') and not any(file.startswith(pattern.rstrip('*')) for pattern in exclude_patterns):
                 python_files.append(os.path.join(root, file))
     
-    return generate_call_graph(python_files, project_path)
+    # Generate call graph
+    call_graph = generate_call_graph(python_files, project_path)
+    
+    # Determine workspace root (go up directories to find backend folder)
+    current_path = os.path.abspath(project_path)
+    workspace_root = os.path.join(current_path, "..")
+    
+    # Save to artifacts directory
+    artifacts_dir = os.path.join(workspace_root, 'backend', 'app', 'artifacts')
+    os.makedirs(artifacts_dir, exist_ok=True)
+    
+    output_file = os.path.join(artifacts_dir, 'cg_json_output_all.json')
+    call_graph_json_str = ""
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(call_graph, f, indent=2, ensure_ascii=False)
+            call_graph_json_str = json.dumps(call_graph, indent=4, ensure_ascii=False)
+        print(f"Call graph saved to: {output_file}")
+    except Exception as e:
+        print(f"Error saving call graph to {output_file}: {e}")
+    
+    return call_graph_json_str
 
 
 def extract_function_description(node: ast.FunctionDef, content_lines: List[str]) -> str:

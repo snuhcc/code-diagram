@@ -139,7 +139,7 @@ async def generate_call_graph(root_path: str, file_type: Optional[str]):
     except Exception as e:
         log_exception(e, inspect.currentframe().f_code.co_name)
         raise HTTPException(status_code=500, detail=f"Error in {inspect.currentframe().f_code.co_name}: {str(e)}")
-    
+
 async def generate_control_flow_graph(file_path: str, function_name: str):
     """
     Generate a control flow graph for the given code.
