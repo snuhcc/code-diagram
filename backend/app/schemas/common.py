@@ -51,3 +51,4 @@ class InlineCodeExplanationRequest(BaseModel):
     line_start: int  # 시작 라인 번호
     line_end: int  # 끝 라인 번호
     context: Optional[str] = None  # 추가적인 컨텍스트 정보 (예: 함수 설명, 변수 설명 등)
+    explanation_level: int = 5  # 설명 레벨 (1: 아주 간단히, 10: 아주 자세히)

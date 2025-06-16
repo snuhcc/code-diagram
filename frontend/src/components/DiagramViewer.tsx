@@ -185,9 +185,9 @@ export default function DiagramViewer() {
   }, []);
 
   const handleCFGNodeHover = useCallback(async (node: Node | null, panel: CFGPanel) => {
+    // Only clear message when hovering over a different node, not when leaving current node
     if (!node) {
-      setCfgPanelMessage(null);
-      return;
+      return; // Don't clear message when just leaving a node
     }
 
     const { line_start, line_end } = node.data as any;
@@ -207,7 +207,12 @@ export default function DiagramViewer() {
       const res = await fetch(`${apiUrl}${ENDPOINTS.INLINE_CODE_EXPLANATION}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_path: TARGET_FOLDER + '/' + panel.file, line_start, line_end }),
+        body: JSON.stringify({ 
+          file_path: TARGET_FOLDER + '/' + panel.file, 
+          line_start, 
+          line_end,
+          explanation_level: panel.explanationLevel || 5  // Use panel's explanation level
+        }),
       });
       const data = await res.json();
       const explanation = data.explanation || data.data?.explanation || '설명을 가져올 수 없습니다.';
@@ -316,6 +321,7 @@ export default function DiagramViewer() {
           dragOffset: { x: 0, y: 0 },
           width: STYLES.CFG_PANEL.WIDTH,
           height: STYLES.CFG_PANEL.HEIGHT,
+          explanationLevel: 5, // Default explanation level
         },
       ]);
       setCfgMessage(null);
@@ -917,6 +923,7 @@ export default function DiagramViewer() {
           onUpdate={handleCFGPanelUpdate}
           onClose={handleCFGPanelClose}
           onNodeHover={handleCFGNodeHover}
+          onClearMessage={() => setCfgPanelMessage(null)}
           message={cfgPanelMessage}
         />
       ))}
@@ -938,6 +945,7 @@ function CFGPanelComponent({
   onUpdate,
   onClose,
   onNodeHover,
+  onClearMessage,
   message,
 }: {
   panel: CFGPanel;
@@ -945,6 +953,7 @@ function CFGPanelComponent({
   onUpdate: (id: string, updates: Partial<CFGPanel>) => void;
   onClose: (id: string) => void;
   onNodeHover: (node: Node | null, panel: CFGPanel) => void;
+  onClearMessage: () => void;
   message?: string | null;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -1047,13 +1056,13 @@ function CFGPanelComponent({
         <div
           style={{
             position: 'absolute',
-            top: 8,
+            top: panel.expanded ? 48 : 38, // Position below the header
             right: 12,
             zIndex: 300,
             fontSize: 13,
             fontWeight: 500,
             pointerEvents: 'none',
-            maxWidth: 340,
+            maxWidth: panel.expanded ? 340 : 280, // Adjust width based on panel state
           }}
           dangerouslySetInnerHTML={{ __html: message }}
         />
@@ -1079,6 +1088,45 @@ function CFGPanelComponent({
           CFG ({panel.functionName}
           {panel.file && <> @ {panel.file.split(/[\\/]/).pop()}</>})
         </span>
+        
+        {/* Explanation Level Slider */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '2px 6px',
+            background: '#e2e8f0',
+            borderRadius: 4,
+            fontSize: 11,
+            color: '#64748b',
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <span>Level:</span>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={panel.explanationLevel || 5}
+            onChange={(e) => {
+              e.stopPropagation();
+              onUpdate(panel.id, { explanationLevel: parseInt(e.target.value, 10) });
+            }}
+            style={{
+              width: 60,
+              height: 12,
+              cursor: 'pointer',
+              background: 'transparent',
+            }}
+            title={`Explanation Level: ${panel.explanationLevel || 5}/10`}
+          />
+          <span style={{ minWidth: 14, textAlign: 'center', fontWeight: 600 }}>
+            {panel.explanationLevel || 5}
+          </span>
+        </div>
+        
         <button
           onClick={e => {
             e.stopPropagation();
@@ -1142,6 +1190,10 @@ function CFGPanelComponent({
                 defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
                 onNodeMouseEnter={(_, node) => onNodeHover(node, panel)}
                 onNodeMouseLeave={() => onNodeHover(null, panel)}
+                onPaneClick={() => {
+                  // Clear explanation message when clicking on empty space
+                  onClearMessage();
+                }}
               >
                 <Background variant="dots" gap={16} size={1} />
                 <Controls showInteractive={false} />

@@ -84,6 +84,7 @@ export interface CFGPanel {
   width?: number;
   height?: number;
   resizing?: boolean;
+  explanationLevel?: number; // 1-10 scale for explanation detail level
 }
 
 // Cache

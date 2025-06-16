@@ -153,12 +153,12 @@ async def api_inline_code_explanation(req: InlineCodeExplanationRequest):
     Generate an inline explanation for the given code.
     """
     try:
-        print(f"Inline Code: {req.file_path}, {req.line_start}, {req.line_end}, {req.context}")
+        print(f"Inline Code: {req.file_path}, {req.line_start}, {req.line_end}, {req.context}, level: {req.explanation_level}")
         if not req.file_path:
             raise HTTPException(status_code=400, detail="File path is required")
         if not req.line_start or not req.line_end:
             raise HTTPException(status_code=400, detail="Line start and end are required")
-        explanation = await generate_inline_code_explanation(req.file_path, req.line_start, req.line_end, req.context)
+        explanation = await generate_inline_code_explanation(req.file_path, req.line_start, req.line_end, req.context, req.explanation_level)
         print(f"Explanation: {explanation}")
         return {"explanation": explanation}
     except Exception as e:

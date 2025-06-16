@@ -6,7 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplat
 from llm.prompt_util import *
 from llm.utils import get_source_file_with_line_number
 
-async def generate_inline_code_explanation(file_path: str, line_start: int, line_end: int, context: Optional[str] = None
+async def generate_inline_code_explanation(file_path: str, line_start: int, line_end: int, context: Optional[str] = None, explanation_level: int = 5
 ):
     """
     Generate inline code explanation for a given file and line range."""
@@ -24,7 +24,7 @@ async def generate_inline_code_explanation(file_path: str, line_start: int, line
         ]
     )
     file_path = os.path.join(WORKSPACE_ROOT_DIR, file_path)
-    print(f"Generating inline code explanation for file: {file_path}, lines: {line_start}-{line_end}, context: {context}")
+    print(f"Generating inline code explanation for file: {file_path}, lines: {line_start}-{line_end}, context: {context}, level: {explanation_level}")
     code_snippet = get_source_file_with_line_number(file_path)
 
     print(code_snippet)
@@ -33,6 +33,7 @@ async def generate_inline_code_explanation(file_path: str, line_start: int, line
         code_snippet=code_snippet,
         line_start=line_start,
         line_end=line_end,
+        explanation_level=explanation_level,
     )
     
 

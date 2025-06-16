@@ -142,10 +142,17 @@ PROMPT_INLINE_CODE_EXPLANATION = """
     {code_snippet}
     - Line numbers that need explanation (from ~ to):
     {line_start} ~ {line_end}
+    - Explanation level (1-10): {explanation_level}
 
     OUTPUT:
     - The output must be korean.
-    - The output must be a clear and concise explanation of the code.
+    - Adjust the explanation depth based on the explanation level:
+      * Level 1-2: Very brief, single sentence explanation
+      * Level 3-4: Brief explanation with key points
+      * Level 5-6: Moderate explanation with context
+      * Level 7-8: Detailed explanation with examples
+      * Level 9-10: Very detailed explanation with implementation details, edge cases, and best practices
+    - The output must be a clear explanation appropriate for the given level.
 """
 
 def build_repo_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:
