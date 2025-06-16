@@ -167,7 +167,7 @@ export function findRepresentativeNode(nodeId: string, collapsedGroups: Set<stri
   return nodeId;
 }
 
-// 클래스와 메소드를 고려한 특별한 레이아웃 함수
+// 클래스와 메소드를 고려한 하이브리드 레이아웃 함수 (파일은 마인드맵, 클래스/메소드는 그리드)
 export function calculateLayoutWithClasses(
   files: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>,
   nodeWidths: Record<string, number>
@@ -175,17 +175,20 @@ export function calculateLayoutWithClasses(
   const positions: Record<string, { x: number; y: number; width?: number; height?: number }> = {};
   
   const LAYOUT_CONFIG = {
-    FILE_SPACING_X: 600,    // 클래스가 더 커지므로 파일 간격도 증가
-    FILE_SPACING_Y: 500,    // 수직 간격도 증가
-    CLASS_SPACING: 80,      // 클래스 간격 증가
+    CENTER_X: 400,          // 중심점 X 좌표
+    CENTER_Y: 400,          // 중심점 Y 좌표
+    FILE_RADIUS: 350,       // 파일들이 중심에서 떨어진 거리
+    FILE_AREA_WIDTH: 600,   // 각 파일 영역의 너비
+    FILE_AREA_HEIGHT: 500,  // 각 파일 영역의 높이
+    CLASS_SPACING: 80,      // 클래스 간격
     METHOD_SPACING_X: 20,   // 메소드 좌우 간격
     METHOD_SPACING_Y: 35,   // 메소드 상하 간격
     FUNCTION_SPACING: 70,   // 일반 함수 간격
     CLASS_PADDING: {        // 클래스 내부 패딩
-      TOP: 50,    // 클래스 제목을 위한 공간 증가
-      BOTTOM: 25, // 아래쪽 여백 증가
-      LEFT: 25,   // 왼쪽 여백 증가
-      RIGHT: 25,  // 오른쪽 여백 증가
+      TOP: 50,    
+      BOTTOM: 25, 
+      LEFT: 25,   
+      RIGHT: 25,  
     },
     METHOD_WIDTH: 140,      // 메소드 노드 너비
     METHOD_HEIGHT: 30,      // 메소드 노드 높이
@@ -193,14 +196,19 @@ export function calculateLayoutWithClasses(
     CLASS_MIN_HEIGHT: 100,  // 클래스 최소 높이
   };
 
-  let fileIndex = 0;
-  const filePositions: Record<string, { x: number; y: number }> = {};
+  const fileEntries = Object.entries(files);
+  const fileCount = fileEntries.length;
 
-  // 파일별로 배치
-  Object.entries(files).forEach(([file, data]) => {
-    const fileX = (fileIndex % 2) * LAYOUT_CONFIG.FILE_SPACING_X;
-    const fileY = Math.floor(fileIndex / 2) * LAYOUT_CONFIG.FILE_SPACING_Y;
-    filePositions[file] = { x: fileX, y: fileY };
+  // 파일별로 중심에서 방사형으로 배치
+  fileEntries.forEach(([file, data], fileIndex) => {
+    // 파일들을 중심점 주위에 원형으로 배치 (마인드맵 스타일)
+    const fileAngle = fileCount > 1 ? (2 * Math.PI * fileIndex) / fileCount : 0;
+    const fileX = LAYOUT_CONFIG.CENTER_X + Math.cos(fileAngle) * LAYOUT_CONFIG.FILE_RADIUS;
+    const fileY = LAYOUT_CONFIG.CENTER_Y + Math.sin(fileAngle) * LAYOUT_CONFIG.FILE_RADIUS;
+    
+    // 파일 영역의 시작점 (왼쪽 위 모서리)
+    const fileAreaStartX = fileX - LAYOUT_CONFIG.FILE_AREA_WIDTH / 2;
+    const fileAreaStartY = fileY - LAYOUT_CONFIG.FILE_AREA_HEIGHT / 2;
     
     // 파일 내 노드들을 클래스, 메소드, 일반 함수로 분류
     const classNodes: any[] = [];
@@ -231,9 +239,9 @@ export function calculateLayoutWithClasses(
       }
     });
 
-    let currentY = fileY + 50; // 파일 헤더를 위한 공간
+    let currentY = fileAreaStartY + 50; // 파일 헤더를 위한 공간
     
-    // 클래스들을 먼저 배치
+    // 클래스들을 그리드 방식으로 배치 (이전 방식)
     classNodes.forEach((classNode, classIndex) => {
       const methods = classMethods[classNode.id] || [];
       const methodCount = methods.length;
@@ -242,12 +250,12 @@ export function calculateLayoutWithClasses(
       const methodsPerRow = Math.min(3, Math.max(1, Math.ceil(Math.sqrt(methodCount))));
       const methodRows = Math.ceil(methodCount / methodsPerRow);
       
-      // 클래스 크기 계산 (메소드 개수에 따라 동적으로, 여백 증가)
+      // 클래스 크기 계산
       const classWidth = Math.max(
         LAYOUT_CONFIG.CLASS_MIN_WIDTH,
         methodsPerRow * LAYOUT_CONFIG.METHOD_WIDTH + 
         (methodsPerRow - 1) * LAYOUT_CONFIG.METHOD_SPACING_X + 
-        LAYOUT_CONFIG.CLASS_PADDING.LEFT + LAYOUT_CONFIG.CLASS_PADDING.RIGHT + 40 // 추가 여백
+        LAYOUT_CONFIG.CLASS_PADDING.LEFT + LAYOUT_CONFIG.CLASS_PADDING.RIGHT + 40
       );
       
       const classHeight = Math.max(
@@ -255,15 +263,15 @@ export function calculateLayoutWithClasses(
         LAYOUT_CONFIG.CLASS_PADDING.TOP + 
         methodRows * LAYOUT_CONFIG.METHOD_HEIGHT + 
         (methodRows - 1) * LAYOUT_CONFIG.METHOD_SPACING_Y + 
-        LAYOUT_CONFIG.CLASS_PADDING.BOTTOM + 30 // 추가 여백
+        LAYOUT_CONFIG.CLASS_PADDING.BOTTOM + 30
       );
       
       // 클래스 위치 계산 (수평으로 배치, 필요시 다음 줄로)
-      const classesPerRow = Math.floor((LAYOUT_CONFIG.FILE_SPACING_X - 100) / (classWidth + 50));
+      const classesPerRow = Math.floor((LAYOUT_CONFIG.FILE_AREA_WIDTH - 100) / (classWidth + 50));
       const classCol = classIndex % Math.max(1, classesPerRow);
       const classRow = Math.floor(classIndex / Math.max(1, classesPerRow));
       
-      const classX = fileX + classCol * (classWidth + 50);
+      const classX = fileAreaStartX + classCol * (classWidth + 50);
       const classY = currentY + classRow * (classHeight + LAYOUT_CONFIG.CLASS_SPACING);
       
       // 클래스 노드 위치와 크기 설정
@@ -274,12 +282,11 @@ export function calculateLayoutWithClasses(
         height: classHeight
       };
       
-      // 해당 클래스의 메소드들을 클래스 내부에 배치 (더 왼쪽 위로)
+      // 해당 클래스의 메소드들을 클래스 내부에 그리드로 배치 (이전 방식)
       methods.forEach((method, methodIndex) => {
         const row = Math.floor(methodIndex / methodsPerRow);
         const col = methodIndex % methodsPerRow;
         
-        // 메소드들을 클래스 내부의 왼쪽 위에 더 가깝게 배치
         const methodX = classX + LAYOUT_CONFIG.CLASS_PADDING.LEFT + 10 + 
                        col * (LAYOUT_CONFIG.METHOD_WIDTH + LAYOUT_CONFIG.METHOD_SPACING_X);
         const methodY = classY + LAYOUT_CONFIG.CLASS_PADDING.TOP + 10 + 
@@ -293,13 +300,13 @@ export function calculateLayoutWithClasses(
         };
       });
       
-      // 다음 클래스들을 위한 currentY 업데이트 (한 행의 클래스들이 모두 배치된 후)
+      // 다음 클래스들을 위한 currentY 업데이트
       if (classCol === Math.max(1, classesPerRow) - 1 || classIndex === classNodes.length - 1) {
         currentY = classY + classHeight + LAYOUT_CONFIG.CLASS_SPACING;
       }
     });
     
-    // 일반 함수들 배치 (클래스들 아래에)
+    // 일반 함수들을 그리드 방식으로 배치 (클래스들 아래에)
     if (functionNodes.length > 0) {
       currentY += 30; // 클래스와 함수 사이 추가 간격
       
@@ -309,7 +316,7 @@ export function calculateLayoutWithClasses(
         const funcRow = Math.floor(funcIndex / functionsPerRow);
         
         const funcWidth = nodeWidths[funcNode.id] || 150;
-        const funcX = fileX + funcCol * (funcWidth + 30);
+        const funcX = fileAreaStartX + funcCol * (funcWidth + 30);
         const funcY = currentY + funcRow * LAYOUT_CONFIG.FUNCTION_SPACING;
         
         positions[funcNode.id] = { 
@@ -320,9 +327,25 @@ export function calculateLayoutWithClasses(
         };
       });
     }
-    
-    fileIndex++;
   });
+
+  // 전체 다이어그램을 중앙 정렬
+  const allPositions = Object.values(positions);
+  if (allPositions.length > 0) {
+    const minX = Math.min(...allPositions.map(p => p.x));
+    const maxX = Math.max(...allPositions.map(p => p.x + (p.width || 0)));
+    const minY = Math.min(...allPositions.map(p => p.y));
+    const maxY = Math.max(...allPositions.map(p => p.y + (p.height || 0)));
+    
+    const centerOffsetX = (minX + maxX) / 2 - LAYOUT_CONFIG.CENTER_X;
+    const centerOffsetY = (minY + maxY) / 2 - LAYOUT_CONFIG.CENTER_Y;
+    
+    // 모든 위치를 중앙으로 이동
+    Object.keys(positions).forEach(id => {
+      positions[id].x -= centerOffsetX;
+      positions[id].y -= centerOffsetY;
+    });
+  }
 
   return positions;
 }
