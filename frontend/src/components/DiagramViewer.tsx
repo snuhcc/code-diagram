@@ -252,7 +252,7 @@ export default function DiagramViewer() {
       const res = await fetch(`${apiUrl}${ENDPOINTS.CFG}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_path: file, function_name: functionName }),
+        body: JSON.stringify({ file_path: process.env.NEXT_PUBLIC_TARGET_FOLDER + "/" +file, function_name: functionName }),
       });
       
       const data = await res.json();

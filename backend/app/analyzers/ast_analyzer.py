@@ -279,13 +279,15 @@ def ast_to_diagram_json(ast_result: dict, file_path: str) -> dict:
     """
     nodes = []
     edges = []
-    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    # Use basename for node IDs, but normalize the full path for consistency
+    base_file_name = os.path.splitext(os.path.basename(file_path))[0]
+    normalized_file_path = os.path.abspath(file_path)
     rel_file = file_path  # You may want to make this relative to project root
 
     # 1. Nodes for functions and classes
     for func in ast_result.get('functions', []):
         lines = ast_result.get('function_lines', {}).get(func, {})
-        node_id = f"{file_name}.{func}"
+        node_id = f"{base_file_name}.{func}"
         nodes.append({
             "id": node_id,
             "function_name": func,
@@ -296,7 +298,7 @@ def ast_to_diagram_json(ast_result: dict, file_path: str) -> dict:
         })
     for cls in ast_result.get('classes', []):
         # You may want to add class line numbers if available
-        node_id = f"{file_name}.{cls}"
+        node_id = f"{base_file_name}.{cls}"
         nodes.append({
             "id": node_id,
             "function_name": cls,
@@ -311,11 +313,11 @@ def ast_to_diagram_json(ast_result: dict, file_path: str) -> dict:
     seen_edges = set()  # Track unique source-target pairs
     
     for caller, callees in ast_result.get('function_calls', {}).items():
-        source_id = f"{file_name}.{caller}"
+        source_id = f"{base_file_name}.{caller}"
         for callee in callees:
             # If callee is declared in this file, use local node id
             if callee in ast_result.get('functions', []) or callee in ast_result.get('classes', []):
-                target_id = f"{file_name}.{callee}"
+                target_id = f"{base_file_name}.{callee}"
             else:
                 # Imported or external: use import notation if possible
                 target_id = callee  # You may want to resolve to 'A.B.C' if imported
@@ -327,7 +329,7 @@ def ast_to_diagram_json(ast_result: dict, file_path: str) -> dict:
             if edge_key not in seen_edges:
                 seen_edges.add(edge_key)
                 edges.append({
-                    "id": f"{file_name}.e{edge_idx}",
+                    "id": f"{base_file_name}.e{edge_idx}",
                     "source": source_id,
                     "target": target_id,
                 })
@@ -448,7 +450,9 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
                             })
                             edge_idx += 1
             
-            call_graph[file_path] = {
+            # Normalize the file path to avoid .. in the JSON keys
+            normalized_file_path = os.path.abspath(file_path)
+            call_graph[normalized_file_path] = {
                 "nodes": nodes,
                 "edges": edges
             }
