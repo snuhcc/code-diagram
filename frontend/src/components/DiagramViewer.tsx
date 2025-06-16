@@ -27,6 +27,7 @@ import {
   isNodeHidden,
   findRepresentativeNode,
   calculateLayout,
+  calculateLayoutWithClasses,
   CustomGroupNode,
   parseApiResponse,
   cleanFilePath,
@@ -339,8 +340,17 @@ export default function DiagramViewer() {
     // Calculate node widths
     Object.values(json).forEach(data => {
       data.nodes.forEach(node => {
-        const label = node.label || node.function_name || node.id;
-        nodeWidths[node.id] = calculateNodeWidth(label);
+        const originalLabel = node.label || node.function_name || node.id;
+        let displayLabel = originalLabel;
+        
+        // 메소드인 경우 클래스 이름 부분 제거
+        const nodeType = node.node_type || 'function';
+        if (nodeType === 'method' && originalLabel.includes('.')) {
+          const parts = originalLabel.split('.');
+          displayLabel = parts[parts.length - 1];
+        }
+        
+        nodeWidths[node.id] = calculateNodeWidth(displayLabel);
       });
     });
 
@@ -349,22 +359,128 @@ export default function DiagramViewer() {
     let allRawEdges: RawEdge[] = [];
     
     Object.entries(json).forEach(([file, data]) => {
-      const functionNodes = data.nodes.map(n => ({
-        id: n.id,
-        data: { label: n.label || n.function_name || n.id, file: n.file },
-        position: { x: 0, y: 0 },
-        style: {
+      // 파일별로 클래스와 메소드를 분류
+      const classNodes: any[] = [];
+      const methodNodes: any[] = [];
+      const functionNodes: any[] = [];
+      
+      data.nodes.forEach(n => {
+        const nodeType = n.node_type || 'function';
+        if (nodeType === 'class') {
+          classNodes.push(n);
+        } else if (nodeType === 'method') {
+          methodNodes.push(n);
+        } else {
+          functionNodes.push(n);
+        }
+      });
+
+      // 클래스별로 메소드들을 매핑
+      const classMethods: Record<string, any[]> = {};
+      methodNodes.forEach(method => {
+        // 메소드 ID에서 클래스 이름 추출 (예: "data_augmentation.ImageGenerator.method_name")
+        const parts = method.id.split('.');
+        if (parts.length >= 3) {
+          const className = parts[1]; // ImageGenerator
+          const classNodeId = `${parts[0]}.${className}`; // data_augmentation.ImageGenerator
+          if (!classMethods[classNodeId]) {
+            classMethods[classNodeId] = [];
+          }
+          classMethods[classNodeId].push(method);
+        }
+      });
+
+      // 모든 노드 생성
+      const allNodes = [...classNodes, ...methodNodes, ...functionNodes].map(n => {
+        const nodeType = n.node_type || 'function';
+        const isClass = nodeType === 'class';
+        const isMethod = nodeType === 'method';
+        
+        // 메소드인 경우 부모 클래스 찾기
+        let parentId = undefined;
+        if (isMethod) {
+          const parts = n.id.split('.');
+          if (parts.length >= 3) {
+            const className = parts[1];
+            const classNodeId = `${parts[0]}.${className}`;
+            parentId = classNodeId;
+          }
+        }
+        
+        // 노드 타입에 따른 스타일 설정
+        let nodeStyle = {
           padding: '6px 8px',
           borderRadius: 4,
-          border: '1px solid #3b82f6',
-          background: '#fff',
           width: nodeWidths[n.id],
           fontSize: STYLES.NODE.FONT_SIZE,
           fontFamily: STYLES.NODE.FONT_FAMILY,
-        },
-        zIndex: 1,
-      }));
-      allFunctionNodes = allFunctionNodes.concat(functionNodes);
+        };
+
+        if (isClass) {
+          // 클래스는 메소드들을 포함할 수 있도록 더 큰 크기로 설정
+          const methods = classMethods[n.id] || [];
+          const methodCount = methods.length;
+          
+          nodeStyle = {
+            ...nodeStyle,
+            border: `2px solid ${STYLES.COLORS.NODE.CLASS.BORDER}`,
+            background: STYLES.COLORS.NODE.CLASS.DEFAULT,
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'flex-start', // 클래스명을 상단에 배치
+            justifyContent: 'center',
+            textAlign: 'center',
+            // 크기는 calculateLayoutWithClasses에서 동적으로 계산됨
+          };
+        } else if (isMethod) {
+          nodeStyle = {
+            ...nodeStyle,
+            border: `1px solid ${STYLES.COLORS.NODE.METHOD.BORDER}`,
+            background: STYLES.COLORS.NODE.METHOD.DEFAULT,
+            fontSize: '11px', // 메소드는 조금 더 작은 폰트
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+          };
+        } else {
+          nodeStyle = {
+            ...nodeStyle,
+            border: '1px solid #3b82f6',
+            background: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+          };
+        }
+
+        return {
+          id: n.id,
+          data: { 
+            label: (() => {
+              const originalLabel = n.label || n.function_name || n.id;
+              // 메소드인 경우 클래스 이름 부분 제거
+              if (isMethod && originalLabel.includes('.')) {
+                const parts = originalLabel.split('.');
+                return parts[parts.length - 1]; // 마지막 부분(메소드 이름)만 반환
+              }
+              return originalLabel;
+            })(),
+            file: n.file,
+            nodeType,
+            line_start: n.line_start,
+            line_end: n.line_end,
+          },
+          position: { x: 0, y: 0 },
+          style: nodeStyle,
+          zIndex: isMethod ? 10 : isClass ? 1 : 5, // 메소드가 가장 위, 클래스가 가장 아래
+          parentId, // 메소드인 경우 클래스 ID 설정
+          extent: parentId ? 'parent' : undefined, // 부모 노드 내부로 제한
+        };
+      });
+      
+      allFunctionNodes = allFunctionNodes.concat(allNodes);
       allRawEdges = allRawEdges.concat(data.edges);
     });
 
@@ -372,28 +488,69 @@ export default function DiagramViewer() {
     const nodeIds = new Set(allFunctionNodes.map(n => n.id));
     const allEdges: Edge[] = allRawEdges
       .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
-      .map(e => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 15,
-          height: 15,
-          color: STYLES.COLORS.EDGE.DEFAULT,
-        },
-        animated: true,
-        style: { stroke: STYLES.COLORS.EDGE.DEFAULT, strokeWidth: 2 },
-        zIndex: 10000,
-        type: 'smoothstep', // 곡선 엣지로 변경
-      }));
+      .map(e => {
+        // 엣지 타입에 따른 색상 결정
+        const edgeType = e.edge_type || 'function_call';
+        let edgeColor = STYLES.COLORS.EDGE.DEFAULT;
+        let strokeDasharray = undefined;
+        
+        switch (edgeType) {
+          case 'instantiation':
+            edgeColor = STYLES.COLORS.EDGE.INSTANTIATION;
+            strokeDasharray = '8 4'; // 점선으로 구분
+            break;
+          case 'method_call':
+            edgeColor = STYLES.COLORS.EDGE.METHOD_CALL;
+            break;
+          case 'function_call':
+          default:
+            edgeColor = STYLES.COLORS.EDGE.FUNCTION_CALL;
+            break;
+        }
 
-    // Calculate layout
-    const posMap = calculateLayout(json, nodeWidths);
-    const laidOutNodes = allFunctionNodes.map(n => ({
-      ...n,
-      position: posMap[n.id] ?? { x: 0, y: 0 },
-    }));
+        return {
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          data: { edge_type: edgeType }, // 엣지 타입 정보 저장
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 15,
+            height: 15,
+            color: edgeColor,
+          },
+          animated: true,
+          style: { 
+            stroke: edgeColor, 
+            strokeWidth: 2,
+            strokeDasharray
+          },
+          zIndex: 10000,
+          type: 'smoothstep',
+        };
+      });
+
+    // 클래스와 메소드를 고려한 레이아웃 계산
+    const posMap = calculateLayoutWithClasses(json, nodeWidths);
+    const laidOutNodes = allFunctionNodes.map(n => {
+      const layoutInfo = posMap[n.id];
+      const nodeStyle = { ...n.style };
+      
+      // 레이아웃에서 계산된 크기 정보 적용
+      if (layoutInfo && layoutInfo.width !== undefined) {
+        nodeStyle.width = layoutInfo.width;
+      }
+      if (layoutInfo && layoutInfo.height !== undefined) {
+        nodeStyle.height = layoutInfo.height;
+        nodeStyle.minHeight = layoutInfo.height;
+      }
+      
+      return {
+        ...n,
+        position: layoutInfo ?? { x: 0, y: 0 },
+        style: nodeStyle,
+      };
+    });
 
     // Create groups with overlap prevention
     const groupNodes: Node[] = [];
@@ -541,8 +698,14 @@ export default function DiagramViewer() {
           x: node.position.x - (bounds.minX - groupPadding),
           y: node.position.y - (bounds.minY - groupPadding),
         };
-        node.parentId = groupId;
-        node.extent = 'parent';
+        
+        // 메소드 노드가 아닌 경우에만 파일 그룹의 자식으로 설정
+        // 메소드 노드는 이미 클래스 노드의 자식으로 설정되어 있음
+        const nodeType = (node.data as any)?.nodeType || 'function';
+        if (nodeType !== 'method' && !node.parentId) {
+          node.parentId = groupId;
+          node.extent = 'parent';
+        }
       });
     });
 
@@ -641,18 +804,38 @@ export default function DiagramViewer() {
       const isHover = hoveredEdgeId === finalEdge.id;
       const isHighlighted = highlightedNodeIds.has(finalEdge.source) && highlightedNodeIds.has(finalEdge.target);
       
+      // 엣지 타입에 따른 기본 색상 결정
+      const edgeType = finalEdge.data?.edge_type || 'function_call';
+      let baseColor = STYLES.COLORS.EDGE.DEFAULT;
+      
+      switch (edgeType) {
+        case 'instantiation':
+          baseColor = STYLES.COLORS.EDGE.INSTANTIATION;
+          break;
+        case 'method_call':
+          baseColor = STYLES.COLORS.EDGE.METHOD_CALL;
+          break;
+        case 'function_call':
+        default:
+          baseColor = STYLES.COLORS.EDGE.FUNCTION_CALL;
+          break;
+      }
+      
+      // 상태에 따른 최종 색상 결정
+      const finalColor = isHover 
+        ? STYLES.COLORS.EDGE.HOVER 
+        : isHighlighted
+          ? STYLES.COLORS.EDGE.HIGHLIGHTED
+          : baseColor;
+      
       return {
         ...finalEdge,
         hidden: false,
         style: {
           ...(finalEdge.style || {}),
-          stroke: isHover 
-            ? STYLES.COLORS.EDGE.HOVER 
-            : isHighlighted
-              ? STYLES.COLORS.EDGE.HIGHLIGHTED
-              : STYLES.COLORS.EDGE.DEFAULT,
+          stroke: finalColor,
           strokeWidth: isHover ? 4 : isHighlighted ? 3 : (isRedirected ? 3 : 2),
-          strokeDasharray: isRedirected ? '5 5' : undefined,
+          strokeDasharray: isRedirected ? '5 5' : finalEdge.style?.strokeDasharray,
           transition: 'all 0.13s',
           cursor: 'pointer',
         },
@@ -660,11 +843,7 @@ export default function DiagramViewer() {
           type: MarkerType.ArrowClosed,
           width: 15,
           height: 15,
-          color: isHover 
-            ? STYLES.COLORS.EDGE.HOVER 
-            : isHighlighted
-              ? STYLES.COLORS.EDGE.HIGHLIGHTED
-              : STYLES.COLORS.EDGE.DEFAULT,
+          color: finalColor,
           ...(finalEdge.markerEnd || {}),
         },
         zIndex: isRedirected ? 10001 : 10000,
@@ -690,10 +869,63 @@ export default function DiagramViewer() {
       const isActive = cleanPath === activePath;
       const isHover = hoverId === n.id;
       const isSelected = selectedNodeId === n.id;
-      const isHighlighted = highlightedNodeIds.has(n.id); // 하이라이트 체크 추가
+      const isHighlighted = highlightedNodeIds.has(n.id);
       const isGroup = n.type === 'group';
       const isCollapsed = isGroup && collapsedGroups.has(n.id);
       const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
+      
+      // 노드 타입 확인
+      const nodeType = (n.data as any)?.nodeType || 'function';
+      const isClass = nodeType === 'class';
+      const isMethod = nodeType === 'method';
+
+      // 노드 타입에 따른 배경색 및 테두리 색상 결정
+      let backgroundColor = STYLES.COLORS.NODE.DEFAULT;
+      let borderColor = STYLES.COLORS.NODE.BORDER;
+
+      if (isGroup) {
+        backgroundColor = isCollapsed 
+          ? STYLES.COLORS.GROUP.COLLAPSED
+          : isHover
+            ? STYLES.COLORS.NODE.HOVER
+            : isSelected
+              ? STYLES.COLORS.NODE.SELECTED
+              : isActive
+                ? STYLES.COLORS.NODE.ACTIVE
+                : STYLES.COLORS.GROUP.DEFAULT;
+      } else if (isClass) {
+        backgroundColor = isSelected
+          ? STYLES.COLORS.NODE.CLASS.SELECTED
+          : isHover
+            ? STYLES.COLORS.NODE.CLASS.HOVER
+            : isHighlighted
+              ? STYLES.COLORS.NODE.HIGHLIGHTED
+              : isActive
+                ? STYLES.COLORS.NODE.ACTIVE
+                : STYLES.COLORS.NODE.CLASS.DEFAULT;
+        borderColor = STYLES.COLORS.NODE.CLASS.BORDER;
+      } else if (isMethod) {
+        backgroundColor = isSelected
+          ? STYLES.COLORS.NODE.METHOD.SELECTED
+          : isHover
+            ? STYLES.COLORS.NODE.METHOD.HOVER
+            : isHighlighted
+              ? STYLES.COLORS.NODE.HIGHLIGHTED
+              : isActive
+                ? STYLES.COLORS.NODE.ACTIVE
+                : STYLES.COLORS.NODE.METHOD.DEFAULT;
+        borderColor = STYLES.COLORS.NODE.METHOD.BORDER;
+      } else {
+        backgroundColor = isSelected
+          ? STYLES.COLORS.NODE.SELECTED
+          : isHover
+            ? STYLES.COLORS.NODE.HOVER
+            : isHighlighted
+              ? STYLES.COLORS.NODE.HIGHLIGHTED
+              : isActive
+                ? STYLES.COLORS.NODE.ACTIVE
+                : STYLES.COLORS.NODE.DEFAULT;
+      }
 
       return {
         ...n,
@@ -701,25 +933,7 @@ export default function DiagramViewer() {
         hidden: isHidden,
         style: {
           ...n.style,
-          background: isGroup
-            ? isCollapsed 
-              ? STYLES.COLORS.GROUP.COLLAPSED
-              : isHover
-                ? STYLES.COLORS.NODE.HOVER
-                : isSelected
-                  ? STYLES.COLORS.NODE.SELECTED
-                  : isActive
-                    ? STYLES.COLORS.NODE.ACTIVE
-                    : STYLES.COLORS.GROUP.DEFAULT
-            : isSelected // 선택이 최우선
-              ? STYLES.COLORS.NODE.SELECTED
-              : isHover
-                ? STYLES.COLORS.NODE.HOVER
-                : isHighlighted // 하이라이트는 선택/호버 다음 우선순위
-                  ? STYLES.COLORS.NODE.HIGHLIGHTED
-                  : isActive
-                    ? STYLES.COLORS.NODE.ACTIVE
-                    : STYLES.COLORS.NODE.DEFAULT,
+          background: backgroundColor,
           border: isGroup
             ? isCollapsed
               ? `2px solid ${STYLES.COLORS.GROUP.BORDER_COLLAPSED}`
@@ -728,15 +942,17 @@ export default function DiagramViewer() {
                 : isActive
                   ? `1px solid ${STYLES.COLORS.GROUP.BORDER_ACTIVE}`
                   : `1px solid ${STYLES.COLORS.GROUP.BORDER}`
-            : isSelected // 선택이 최우선
+            : isSelected
               ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
               : isHover
                 ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
-                : isHighlighted // 하이라이트는 선택/호버 다음 우선순위
+                : isHighlighted
                   ? `3px solid ${STYLES.COLORS.NODE.BORDER_HIGHLIGHTED}`
                   : isActive
                     ? `1px solid ${STYLES.COLORS.NODE.BORDER_ACTIVE}`
-                    : `1px solid ${STYLES.COLORS.NODE.BORDER}`,
+                    : isClass
+                      ? `2px solid ${borderColor}`
+                      : `1px solid ${borderColor}`,
           transition: 'all 0.1s ease-in-out',
           minWidth: isGroup ? (isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : undefined) : (n.style?.width as number),
           width: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : n.style?.width,

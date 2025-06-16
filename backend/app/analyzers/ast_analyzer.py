@@ -14,25 +14,40 @@ class FunctionVisitor(ast.NodeVisitor):
         self.exports = []
         self.classes = []
         self.class_methods = defaultdict(list)
+        self.class_lines = {}  # Store line numbers for classes
+        self.method_lines = {}  # Store line numbers for methods
         self.current_class = None
         self.variables = []
         self.variable_dependencies = defaultdict(list)
         self.builtin_filter = BuiltinFilter()
         # For tracking module-level function calls
         self.module_level_calls = []
+        # For tracking class instantiations
+        self.class_instantiations = defaultdict(list)
+        # For tracking method calls on instances
+        self.method_calls = defaultdict(list)
         
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        # Skip if this is a class method (handled separately)
-        if self.current_class:
-            self.class_methods[self.current_class].append(node.name)
-            
-        # Record function info
         func_name = node.name
-        self.functions.append(func_name)
-        self.function_lines[func_name] = {
-            'start': node.lineno,
-            'end': self._find_last_line(node)
-        }
+        
+        # Handle class methods differently
+        if self.current_class:
+            method_key = f"{self.current_class}.{func_name}"
+            self.class_methods[self.current_class].append(func_name)
+            self.method_lines[method_key] = {
+                'start': node.lineno,
+                'end': self._find_last_line(node)
+            }
+            # Add method as a "function" with class prefix for graph generation
+            self.functions.append(method_key)
+            self.function_lines[method_key] = self.method_lines[method_key]
+        else:
+            # Regular function
+            self.functions.append(func_name)
+            self.function_lines[func_name] = {
+                'start': node.lineno,
+                'end': self._find_last_line(node)
+            }
         
         # Check if function is exported
         if func_name.startswith('__') and func_name.endswith('__'):
@@ -40,7 +55,10 @@ class FunctionVisitor(ast.NodeVisitor):
         elif node.decorator_list:
             for decorator in node.decorator_list:
                 if isinstance(decorator, ast.Name) and decorator.id == 'export':
-                    self.exports.append(func_name)
+                    if self.current_class:
+                        self.exports.append(f"{self.current_class}.{func_name}")
+                    else:
+                        self.exports.append(func_name)
         else:
             # Functions at module level are considered "exported"
             if not self.current_class and not self.current_function:
@@ -48,7 +66,10 @@ class FunctionVisitor(ast.NodeVisitor):
         
         # Visit the function body to find function calls
         parent_function = self.current_function
-        self.current_function = func_name
+        if self.current_class:
+            self.current_function = f"{self.current_class}.{func_name}"
+        else:
+            self.current_function = func_name
         self.generic_visit(node)
         self.current_function = parent_function
         
@@ -60,6 +81,12 @@ class FunctionVisitor(ast.NodeVisitor):
         class_name = node.name
         self.classes.append(class_name)
         self.exports.append(class_name)  # Classes at module level are exported
+        
+        # Store class line numbers
+        self.class_lines[class_name] = {
+            'start': node.lineno,
+            'end': self._find_last_line(node)
+        }
         
         parent_class = self.current_class
         self.current_class = class_name
@@ -92,8 +119,12 @@ class FunctionVisitor(ast.NodeVisitor):
             return
             
         if isinstance(node.func, ast.Name):
-            # Direct function call like func()
+            # Direct function call like func() or ClassName()
             func_name = node.func.id
+            
+            # Check if this is a class instantiation
+            if func_name in self.classes:
+                self.class_instantiations[self.current_function].append(func_name)
             
             # Skip built-in functions using the filter
             if not self.builtin_filter.should_exclude_call(func_name):
@@ -109,16 +140,25 @@ class FunctionVisitor(ast.NodeVisitor):
             # Method call like obj.method() or module.function()
             method_name = node.func.attr
             
-            # Try to get the module name for better filtering
-            module_name = None
+            # Try to get the object/module name for better filtering
+            obj_name = None
             if isinstance(node.func.value, ast.Name):
-                module_name = node.func.value.id
+                obj_name = node.func.value.id
+            
+            # Track method calls on instances
+            if obj_name and obj_name != 'self':
+                method_call = f"{obj_name}.{method_name}"
+                self.method_calls[self.current_function].append(method_call)
+            elif obj_name == 'self' and self.current_class:
+                # Method call on self - track as class method call
+                method_call = f"{self.current_class}.{method_name}"
+                self.function_calls[self.current_function].append(method_call)
             
             # Skip built-in methods using the filter
-            if not self.builtin_filter.should_exclude_call(method_name, module_name):
+            if not self.builtin_filter.should_exclude_call(method_name, obj_name):
                 # Store as module.function if module is available
-                if module_name:
-                    full_call = f"{module_name}.{method_name}"
+                if obj_name and obj_name != 'self':
+                    full_call = f"{obj_name}.{method_name}"
                     self.function_calls[self.current_function].append(full_call)
                 else:
                     self.function_calls[self.current_function].append(method_name)
@@ -281,6 +321,10 @@ def analyze_python_ast(content: str) -> Dict[str, Any]:
             'exports': function_visitor.exports,
             'classes': function_visitor.classes,
             'class_methods': function_visitor.class_methods,
+            'class_lines': function_visitor.class_lines,
+            'method_lines': function_visitor.method_lines,
+            'class_instantiations': function_visitor.class_instantiations,
+            'method_calls': function_visitor.method_calls,
             'variables': function_visitor.variables,
             'variable_dependencies': function_visitor.variable_dependencies,
             'module_level_calls': function_visitor.module_level_calls
@@ -381,6 +425,7 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
     
     # First pass: collect all functions and imports from all files
     all_functions = {}  # file_name -> functions
+    all_classes = {}    # file_name -> classes  
     all_imports = {}    # file_name -> imports
     
     for file_path in file_paths:
@@ -396,6 +441,7 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
             
             file_name = os.path.splitext(os.path.basename(file_path))[0]
             all_functions[file_name] = ast_result.get('functions', [])
+            all_classes[file_name] = ast_result.get('classes', [])
             all_imports[file_name] = {
                 'imports': import_result.get('imports', []),
                 'detailed_dependencies': import_result.get('detailed_dependencies', [])
@@ -423,16 +469,46 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
             nodes = []
             file_name = os.path.splitext(os.path.basename(file_path))[0]
             
-            # Create nodes for defined functions
+            # Create nodes for classes
+            for cls in ast_result.get('classes', []):
+                lines = ast_result.get('class_lines', {}).get(cls, {})
+                node_id = f"{file_name}.{cls}"
+                
+                # Generate description for class
+                description = f"Class {cls}"
+                if lines.get('start') and lines.get('end'):
+                    line_count = lines['end'] - lines['start'] + 1
+                    methods = ast_result.get('class_methods', {}).get(cls, [])
+                    method_count = len(methods)
+                    description = f"Class {cls} ({line_count} lines, {method_count} methods)"
+                
+                nodes.append({
+                    "id": node_id,
+                    "function_name": cls,
+                    "file": rel_path,
+                    "line_start": lines.get('start'),
+                    "line_end": lines.get('end'),
+                    "description": description,
+                    "node_type": "class"
+                })
+            
+            # Create nodes for defined functions (including methods)
             for func in ast_result.get('functions', []):
                 lines = ast_result.get('function_lines', {}).get(func, {})
                 node_id = f"{file_name}.{func}"
                 
-                # Generate description based on function content
-                description = f"Function {func}"
+                # Check if this is a method (contains class prefix)
+                if '.' in func:
+                    class_name, method_name = func.split('.', 1)
+                    description = f"Method {method_name}"
+                    node_type = "method"
+                else:
+                    description = f"Function {func}"
+                    node_type = "function"
+                
                 if lines.get('start') and lines.get('end'):
                     line_count = lines['end'] - lines['start'] + 1
-                    description = f"Function {func} ({line_count} lines)"
+                    description += f" ({line_count} lines)"
                 
                 nodes.append({
                     "id": node_id,
@@ -440,7 +516,8 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
                     "file": rel_path,
                     "line_start": lines.get('start'),
                     "line_end": lines.get('end'),
-                    "description": description
+                    "description": description,
+                    "node_type": node_type
                 })
             
             # Create a dummy 'main' node for scripts without function definitions
@@ -472,7 +549,8 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
                     target_id = _resolve_function_call(
                         callee, 
                         file_name, 
-                        all_functions, 
+                        all_functions,
+                        all_classes, 
                         all_imports[file_name]['detailed_dependencies']
                     )
                     
@@ -487,7 +565,67 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
                             edges.append({
                                 "id": f"{file_name}.e{edge_idx}",
                                 "source": source_id,
-                                "target": target_id
+                                "target": target_id,
+                                "edge_type": "function_call"
+                            })
+                            edge_idx += 1
+            
+            # Edges for class instantiations
+            for caller, classes in ast_result.get('class_instantiations', {}).items():
+                source_id = f"{file_name}.{caller}"
+                
+                for class_name in classes:
+                    # Check if class is defined in this file
+                    if class_name in ast_result.get('classes', []):
+                        target_id = f"{file_name}.{class_name}"
+                    else:
+                        # Try to resolve external class
+                        target_id = _resolve_function_call(
+                            class_name, 
+                            file_name, 
+                            all_functions,
+                            all_classes, 
+                            all_imports[file_name]['detailed_dependencies']
+                        )
+                    
+                    if target_id is not None:
+                        edge_key = (source_id, target_id)
+                        
+                        if edge_key not in seen_edges:
+                            seen_edges.add(edge_key)
+                            edges.append({
+                                "id": f"{file_name}.e{edge_idx}",
+                                "source": source_id,
+                                "target": target_id,
+                                "edge_type": "instantiation"
+                            })
+                            edge_idx += 1
+            
+            # Edges for method calls on instances
+            for caller, method_calls in ast_result.get('method_calls', {}).items():
+                source_id = f"{file_name}.{caller}"
+                
+                for method_call in method_calls:
+                    # For now, treat method calls as function calls
+                    # In future, we could track object types to be more precise
+                    target_id = _resolve_function_call(
+                        method_call, 
+                        file_name, 
+                        all_functions,
+                        all_classes, 
+                        all_imports[file_name]['detailed_dependencies']
+                    )
+                    
+                    if target_id is not None:
+                        edge_key = (source_id, target_id)
+                        
+                        if edge_key not in seen_edges:
+                            seen_edges.add(edge_key)
+                            edges.append({
+                                "id": f"{file_name}.e{edge_idx}",
+                                "source": source_id,
+                                "target": target_id,
+                                "edge_type": "method_call"
                             })
                             edge_idx += 1
             
@@ -499,6 +637,7 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
                         callee, 
                         file_name, 
                         all_functions, 
+                        all_classes,
                         all_imports[file_name]['detailed_dependencies']
                     )
                     
@@ -513,7 +652,8 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
                             edges.append({
                                 "id": f"{file_name}.e{edge_idx}",
                                 "source": source_id,
-                                "target": target_id
+                                "target": target_id,
+                                "edge_type": "function_call"
                             })
                             edge_idx += 1
             
@@ -532,14 +672,15 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
 
 
 def _resolve_function_call(callee: str, current_file: str, all_functions: Dict[str, List[str]], 
-                          imports: List[Dict[str, Any]]) -> str:
+                          all_classes: Dict[str, List[str]], imports: List[Dict[str, Any]]) -> str:
     """
     Resolve a function call to its proper module.function format.
     
     Args:
-        callee: Function name being called (can be 'func' or 'module.func')
+        callee: Function name being called (can be 'func', 'Class.method', or 'module.func')
         current_file: Current file name (without extension)
-        all_functions: All functions by file
+        all_functions: All functions by file (includes classes and methods)
+        all_classes: All classes by file
         imports: Import dependencies for current file
         
     Returns:
@@ -549,29 +690,39 @@ def _resolve_function_call(callee: str, current_file: str, all_functions: Dict[s
     
     # Check if callee is already in module.function format
     if '.' in callee:
-        module_name, func_name = callee.split('.', 1)
-        
-        # Skip built-in functions
-        if builtin_filter.should_exclude_call(func_name, module_name):
-            return None
-        
-        # Check if this is a local module
-        if module_name in all_functions and func_name in all_functions[module_name]:
-            return f"{module_name}.{func_name}"
-        
-        # Return as is for external modules
-        return callee
+        parts = callee.split('.')
+        if len(parts) == 2:
+            module_name, func_name = parts
+            
+            # Skip built-in functions
+            if builtin_filter.should_exclude_call(func_name, module_name):
+                return None
+            
+            # Check if this is a local module/class
+            if module_name in all_functions:
+                # Check if it's a method call (Class.method)
+                class_method = f"{module_name}.{func_name}"
+                if class_method in all_functions[current_file]:
+                    return f"{current_file}.{class_method}"
+                elif func_name in all_functions[module_name]:
+                    return f"{module_name}.{func_name}"
+            
+            # Return as is for external modules
+            return callee
+        else:
+            # Handle nested calls like obj.method.call
+            return callee
     
     # Handle single function name
     # Skip built-in functions
     if builtin_filter.should_exclude_call(callee):
         return None
     
-    # Check if it's a local function
+    # Check if it's a local function or class
     if callee in all_functions.get(current_file, []):
         return f"{current_file}.{callee}"
     
-    # Check if it's an imported function
+    # Check if it's an imported function or class
     for imp in imports:
         if callee in imp.get('imports', []):
             module = imp['module']
