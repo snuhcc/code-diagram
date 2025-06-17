@@ -126,9 +126,22 @@ export function getTextWidth(text: string, font: string = `${STYLES.NODE.FONT_SI
   return context.measureText(text).width;
 }
 
-export function extractFunctionSnippet(code: string, functionName: string): { snippet: string, startLine: number } | null {
+export function extractCodeSnippet(code: string, identifierName: string): { snippet: string, startLine: number } | null {
   const lines = code.split('\n');
-  const startIndex = lines.findIndex(line => line.trim().startsWith(`def ${functionName}(`));
+  
+  // Try to find function definition first
+  let startIndex = lines.findIndex(line => line.trim().startsWith(`def ${identifierName}(`));
+  
+  // If not found, try to find class definition
+  if (startIndex === -1) {
+    startIndex = lines.findIndex(line => line.trim().startsWith(`class ${identifierName}(`));
+  }
+  
+  // Also try without parentheses for classes that don't inherit
+  if (startIndex === -1) {
+    startIndex = lines.findIndex(line => line.trim() === `class ${identifierName}:` || line.trim().startsWith(`class ${identifierName}:`));
+  }
+  
   if (startIndex === -1) return null;
   
   for (let i = startIndex + 1; i < lines.length; i++) {

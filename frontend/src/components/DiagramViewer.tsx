@@ -22,7 +22,7 @@ import {
   RawEdge,
   CFGPanel,
   snippetCache,
-  extractFunctionSnippet,
+  extractCodeSnippet,
   highlightWithLineNumbers,
   isNodeHidden,
   findRepresentativeNode,
@@ -187,7 +187,7 @@ export default function DiagramViewer() {
     
     setHoverId(node.id);
     const filePath = (node.data as any)?.file;
-    const functionName = (node.data as any)?.label;
+    const functionName = (node.data as any)?.originalName || (node.data as any)?.label;
     if (!filePath || !functionName) {
       setSnippet('');
       return;
@@ -203,12 +203,12 @@ export default function DiagramViewer() {
         code = await response.text();
       }
       
-      const result = extractFunctionSnippet(code, functionName);
+      const result = extractCodeSnippet(code, functionName);
       if (result) {
         snippetCache.set(cacheKey, result.snippet);
         setSnippet(highlightWithLineNumbers(result.snippet, result.startLine));
       } else {
-        setSnippet('(function not found)');
+        setSnippet('(code definition not found)');
       }
     } catch {
       setSnippet('(preview unavailable)');
@@ -507,6 +507,24 @@ export default function DiagramViewer() {
               if (isMethod && originalLabel.includes('.')) {
                 const parts = originalLabel.split('.');
                 return parts[parts.length - 1]; // 마지막 부분(메소드 이름)만 반환
+              }
+              // 클래스인 경우도 파일 경로 부분 제거
+              if (isClass && originalLabel.includes('.')) {
+                const parts = originalLabel.split('.');
+                return parts[parts.length - 1]; // 마지막 부분(클래스 이름)만 반환
+              }
+              return originalLabel;
+            })(),
+            originalName: (() => {
+              // 코드에서 찾을 때 사용할 원래 이름 저장
+              const originalLabel = n.label || n.function_name || n.id;
+              if (isMethod && originalLabel.includes('.')) {
+                const parts = originalLabel.split('.');
+                return parts[parts.length - 1]; // 메소드 이름
+              }
+              if (isClass && originalLabel.includes('.')) {
+                const parts = originalLabel.split('.');
+                return parts[parts.length - 1]; // 클래스 이름
               }
               return originalLabel;
             })(),
