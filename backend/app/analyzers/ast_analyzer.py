@@ -145,22 +145,22 @@ class FunctionVisitor(ast.NodeVisitor):
             if isinstance(node.func.value, ast.Name):
                 obj_name = node.func.value.id
             
-            # Track method calls on instances
-            if obj_name and obj_name != 'self':
-                method_call = f"{obj_name}.{method_name}"
-                self.method_calls[self.current_function].append(method_call)
-            elif obj_name == 'self' and self.current_class:
+            # Handle self method calls differently
+            if obj_name == 'self' and self.current_class:
                 # Method call on self - track as class method call
                 method_call = f"{self.current_class}.{method_name}"
                 self.function_calls[self.current_function].append(method_call)
-            
-            # Skip built-in methods using the filter
-            if not self.builtin_filter.should_exclude_call(method_name, obj_name):
-                # Store as module.function if module is available
-                if obj_name and obj_name != 'self':
-                    full_call = f"{obj_name}.{method_name}"
-                    self.function_calls[self.current_function].append(full_call)
-                else:
+            elif obj_name and obj_name != 'self':
+                # Track method calls on other instances
+                method_call = f"{obj_name}.{method_name}"
+                self.method_calls[self.current_function].append(method_call)
+                
+                # Also add to function_calls if not filtered
+                if not self.builtin_filter.should_exclude_call(method_name, obj_name):
+                    self.function_calls[self.current_function].append(method_call)
+            else:
+                # Direct method call without object (shouldn't happen much in Python)
+                if not self.builtin_filter.should_exclude_call(method_name, obj_name):
                     self.function_calls[self.current_function].append(method_name)
         
         self.generic_visit(node)
@@ -694,7 +694,14 @@ def _resolve_function_call(callee: str, current_file: str, all_functions: Dict[s
         if len(parts) == 2:
             module_name, func_name = parts
             
-            # Skip built-in functions
+            # Check if this is a local class method call
+            if module_name in all_classes.get(current_file, []):
+                # This is a class method call - check if it exists in current file
+                class_method = f"{module_name}.{func_name}"
+                if class_method in all_functions.get(current_file, []):
+                    return f"{current_file}.{class_method}"
+            
+            # Skip built-in functions (but not for local class methods)
             if builtin_filter.should_exclude_call(func_name, module_name):
                 return None
             
@@ -985,8 +992,9 @@ class BuiltinFilter:
         if module_name and self.is_stdlib_module(module_name):
             return True
         
-        # Exclude private/magic methods
-        if func_name.startswith('_'):
+        # Exclude private/magic methods, but NOT when called on self
+        # (self method calls are handled separately in visit_Call)
+        if func_name.startswith('_') and module_name != 'self':
             return True
         
         return False
