@@ -121,7 +121,31 @@ export default function DiagramViewer() {
     if (target) fsState.setCurrent(target.id);
   }, [editorState, fsState]);
 
+  // 단일 클릭: 노드 선택만
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
+    if (node.type === 'group') {
+      // 그룹 노드의 경우: 하이라이트 체크만
+      const hasHighlightedChild = nodes.some(childNode => 
+        childNode.parentId === node.id && highlightedNodeIds.has(childNode.id)
+      );
+      const shouldFadeGroup = highlightedNodeIds.size > 0 && !hasHighlightedChild;
+      if (shouldFadeGroup) return;
+      
+      // 그룹 노드는 선택하지 않음
+      return;
+    }
+    
+    // 일반 노드의 경우: 음영 처리된 노드는 클릭 이벤트 무시
+    const isNodeHighlighted = highlightedNodeIds.has(node.id);
+    const shouldFadeNode = highlightedNodeIds.size > 0 && !isNodeHighlighted;
+    if (shouldFadeNode) return;
+    
+    // 선택만 처리
+    setSelectedNodeId(prev => prev === node.id ? null : node.id);
+  }, [nodes, highlightedNodeIds]);
+
+  // 더블 클릭: 파일 열기
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((_, node) => {
     if (node.type === 'group') {
       // 그룹 노드의 경우: 자식 노드 중 하이라이트된 노드가 있는지 확인
       const hasHighlightedChild = nodes.some(childNode => 
@@ -141,7 +165,6 @@ export default function DiagramViewer() {
     const shouldFadeNode = highlightedNodeIds.size > 0 && !isNodeHighlighted;
     if (shouldFadeNode) return;
     
-    setSelectedNodeId(prev => prev === node.id ? null : node.id);
     const filePath = (node.data as any)?.file;
     const lineStart = (node.data as any)?.line_start;
     if (filePath) {
@@ -1056,6 +1079,7 @@ export default function DiagramViewer() {
         edges={processedEdges}
         onNodesChange={(changes) => setNodes(nds => applyNodeChanges(changes, nds))}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
         onEdgeMouseEnter={(_, edge) => {
