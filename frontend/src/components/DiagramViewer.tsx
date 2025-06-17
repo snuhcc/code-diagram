@@ -61,11 +61,11 @@ export default function DiagramViewer() {
   const [streamingText, setStreamingText] = useState('');
   const [currentStreamController, setCurrentStreamController] = useState<AbortController | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set()); // 빈 Set으로 시작
-  const [fadeOpacity, setFadeOpacity] = useState(30); // 음영 처리 투명도 (0-100)
+  const [fadeOpacity, setFadeOpacity] = useState(60); // 음영 처리 투명도 (0-100)
 
   // 전역에서 하이라이트 노드를 업데이트할 수 있도록 함수 노출
   useEffect(() => {
-    (window as any).updateHighlightedNodes = (nodeIds: string[], opacity: number = 30) => {
+    (window as any).updateHighlightedNodes = (nodeIds: string[], opacity: number = 60) => {
       console.log('[DV] Updating highlighted nodes:', nodeIds, 'Opacity:', opacity);
       setHighlightedNodeIds(new Set(nodeIds));
       setFadeOpacity(opacity);

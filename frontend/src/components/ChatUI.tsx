@@ -30,7 +30,7 @@ export default function ChatUI() {
   const [isGraphSearch, setIsGraphSearch] = useState(false); // Call Graph Search 활성화 상태
   const [lastHighlightedNodes, setLastHighlightedNodes] = useState<string[]>([]); // 최근 하이라이트 노드들
   const [isHighlightOn, setIsHighlightOn] = useState(false); // 하이라이트 On/Off 상태
-  const [fadeOpacity, setFadeOpacity] = useState(30); // 음영 처리 투명도 (0-100)
+  const [fadeOpacity, setFadeOpacity] = useState(60); // 음영 처리 투명도 (0-100)
   const { tree } = useFS();
   const allFiles = getAllFilePaths(tree);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -472,7 +472,7 @@ export default function ChatUI() {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              🔍 Call Graph Search
+              🔍 Search Call Graph 
             </button>
             
             {/* 하이라이트 On/Off 토글 버튼 - 그래프 검색 모드이고 하이라이트할 노드가 있을 때만 표시 */}

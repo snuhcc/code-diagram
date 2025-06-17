@@ -26,6 +26,8 @@ class FunctionVisitor(ast.NodeVisitor):
         self.class_instantiations = defaultdict(list)
         # For tracking method calls on instances
         self.method_calls = defaultdict(list)
+        # For tracking import aliases
+        self.import_aliases = {}  # alias -> original_module_name
         
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         func_name = node.name
@@ -106,12 +108,18 @@ class FunctionVisitor(ast.NodeVisitor):
                 if isinstance(node.func.value, ast.Name):
                     module_name = node.func.value.id
                 
+                # Check if module_name is an import alias
+                resolved_call = None
+                if module_name and module_name in self.import_aliases:
+                    original_module = self.import_aliases[module_name]
+                    resolved_call = f"{original_module}.{method_name}"
+                elif module_name:
+                    resolved_call = f"{module_name}.{method_name}"
+                else:
+                    resolved_call = method_name
+                
                 if not self.builtin_filter.should_exclude_call(method_name, module_name):
-                    if module_name:
-                        full_call = f"{module_name}.{method_name}"
-                        self.module_level_calls.append(full_call)
-                    else:
-                        self.module_level_calls.append(method_name)
+                    self.module_level_calls.append(resolved_call)
         
         # Original logic for function-level calls
         if not self.current_function:
@@ -145,6 +153,17 @@ class FunctionVisitor(ast.NodeVisitor):
             if isinstance(node.func.value, ast.Name):
                 obj_name = node.func.value.id
             
+            # Check if obj_name is an import alias
+            resolved_call = None
+            if obj_name and obj_name in self.import_aliases:
+                # Resolve the alias to get the actual module.function
+                original_module = self.import_aliases[obj_name]
+                resolved_call = f"{original_module}.{method_name}"
+            elif obj_name:
+                resolved_call = f"{obj_name}.{method_name}"
+            else:
+                resolved_call = method_name
+            
             # Handle self method calls differently
             if obj_name == 'self' and self.current_class:
                 # Method call on self - track as class method call
@@ -155,13 +174,13 @@ class FunctionVisitor(ast.NodeVisitor):
                 method_call = f"{obj_name}.{method_name}"
                 self.method_calls[self.current_function].append(method_call)
                 
-                # Also add to function_calls if not filtered
+                # Use resolved_call for function_calls if not filtered
                 if not self.builtin_filter.should_exclude_call(method_name, obj_name):
-                    self.function_calls[self.current_function].append(method_call)
+                    self.function_calls[self.current_function].append(resolved_call)
             else:
                 # Direct method call without object (shouldn't happen much in Python)
                 if not self.builtin_filter.should_exclude_call(method_name, obj_name):
-                    self.function_calls[self.current_function].append(method_name)
+                    self.function_calls[self.current_function].append(resolved_call or method_name)
         
         self.generic_visit(node)
         
@@ -266,6 +285,37 @@ class FunctionVisitor(ast.NodeVisitor):
                                 "type": "StateSetter",
                                 "dependencies": [state_var.id]
                             })
+        
+        self.generic_visit(node)
+        
+    def visit_Import(self, node: ast.Import) -> None:
+        """Process simple imports: import x, y, z"""
+        for name in node.names:
+            module = name.name
+            alias = name.asname or name.name
+            if alias != module:
+                self.import_aliases[alias] = module
+        self.generic_visit(node)
+        
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Process from x import y, z imports"""
+        if node.module is None:  # relative import like "from . import x"
+            self.generic_visit(node)
+            return
+            
+        module = node.module
+        if node.level > 0:  # Handle relative imports
+            module = '.' * node.level + module
+            
+        for name in node.names:
+            alias = name.asname or name.name
+            original_name = name.name
+            if alias != original_name:
+                # Store the mapping: alias -> module.original_name
+                self.import_aliases[alias] = f"{module}.{original_name}"
+            else:
+                # Store direct import: name -> module.name
+                self.import_aliases[alias] = f"{module}.{original_name}"
         
         self.generic_visit(node)
         
@@ -672,7 +722,8 @@ def generate_call_graph(file_paths: List[str], project_root: str = None) -> Dict
 
 
 def _resolve_function_call(callee: str, current_file: str, all_functions: Dict[str, List[str]], 
-                          all_classes: Dict[str, List[str]], imports: List[Dict[str, Any]]) -> str:
+                          all_classes: Dict[str, List[str]], imports: List[Dict[str, Any]], 
+                          import_aliases: Dict[str, str] = None) -> str:
     """
     Resolve a function call to its proper module.function format.
     

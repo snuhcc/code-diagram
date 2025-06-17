@@ -165,9 +165,10 @@ def process_graph_mode(state: ChatbotState, llm):
 
     # Call Graph 데이터를 프롬프트에 포함
     human_prompt = """아래 Call Graph 데이터를 분석하여 사용자의 질문에 답변해주세요.
-사용자가 특정 함수에 대해 질문하면, 해당 함수와 관련된 모든 함수들을 찾아서 설명해주세요.
+사용자가 특정 함수에 대해 찾아달라고 요청하면, 해당 함수와 연결 된 모든 함수들을 찾아주세요.
 관련된 함수의 ID들을 정확히 식별해서 답변에 포함해주세요.
 
+INPUT:
 <call_graph_data>
 {call_graph_json}
 </call_graph_data>
@@ -181,6 +182,11 @@ def process_graph_mode(state: ChatbotState, llm):
 </code>
 
 [사용자 질문]: {query}
+
+OUTPUT:
+- 답변은 Markdown 형식으로 간결하고 명확하게 작성해주세요.
+- 사용자의 질문에 대한 답변은 한국어로 작성해주세요.
+- 사용자가 이유를 묻거나 설명을 요청하지 않는다면, 관련된 함수들의 ID들만 정확하게 나열해주세요.
 """.format(
         call_graph_json=json.dumps(call_graph_data, ensure_ascii=False, indent=2),
         repo_tree=repo_tree,
