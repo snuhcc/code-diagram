@@ -50,6 +50,7 @@ export default function DiagramViewer() {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedSnippet, setSelectedSnippet] = useState<string>(''); // 선택된 노드의 snippet
   const [cfgMessage, setCfgMessage] = useState<string | null>(null);
   const [cfgPanels, setCfgPanels] = useState<CFGPanel[]>([]);
   const [cfgLoading, setCfgLoading] = useState(false);
@@ -134,7 +135,7 @@ export default function DiagramViewer() {
   }, [editorState, fsState]);
 
   // 단일 클릭: 노드 선택만
-  const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
+  const onNodeClick: NodeMouseHandler = useCallback(async (_, node) => {
     if (node.type === 'group') {
       // 그룹 노드의 경우: 하이라이트 체크만
       const hasHighlightedChild = nodes.some(childNode => 
@@ -152,9 +153,46 @@ export default function DiagramViewer() {
     const shouldFadeNode = highlightedNodeIds.size > 0 && !isNodeHighlighted;
     if (shouldFadeNode) return;
     
-    // 선택만 처리
-    setSelectedNodeId(prev => prev === node.id ? null : node.id);
-  }, [nodes, highlightedNodeIds]);
+    // 선택 처리
+    const newSelectedId = selectedNodeId === node.id ? null : node.id;
+    setSelectedNodeId(newSelectedId);
+    
+    // 선택된 노드의 snippet 가져오기
+    if (newSelectedId) {
+      const filePath = (node.data as any)?.file;
+      const functionName = (node.data as any)?.originalName || (node.data as any)?.label;
+      
+      if (filePath && functionName) {
+        const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
+        const cacheKey = `${cleanPath}_${functionName}`;
+        
+        try {
+          let code = snippetCache.get(cacheKey);
+          if (!code) {
+            const response = await fetch(`/api/file?path=${encodeURIComponent(cleanPath)}`);
+            code = await response.text();
+          }
+          
+          const result = extractCodeSnippet(code, functionName);
+          if (result) {
+            snippetCache.set(cacheKey, result.snippet);
+            setSelectedSnippet(highlightWithLineNumbers(result.snippet, result.startLine));
+          } else if (functionName.includes('.main')) {
+            // script파일의 'main' 함수의 경우 특별 처리
+            setSelectedSnippet(highlightWithLineNumbers(code, 1));
+          } else {
+            setSelectedSnippet('(code definition not found)');
+          }
+        } catch {
+          setSelectedSnippet('(preview unavailable)');
+        }
+      } else {
+        setSelectedSnippet('');
+      }
+    } else {
+      setSelectedSnippet('');
+    }
+  }, [nodes, highlightedNodeIds, selectedNodeId]);
 
   // 더블 클릭: 파일 열기
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_, node) => {
@@ -232,9 +270,16 @@ export default function DiagramViewer() {
   }, [highlightedNodeIds]);
 
   const onNodeMouseLeave = useCallback(() => {
-    setHoverId(null);
-    setSnippet('');
-  }, []);
+    // 선택된 노드가 없을 때만 snippet을 지움
+    if (!selectedNodeId) {
+      setHoverId(null);
+      setSnippet('');
+    } else {
+      setHoverId(null);
+      // 선택된 노드가 있으면 hover snippet은 지우되 selected snippet은 유지
+      setSnippet('');
+    }
+  }, [selectedNodeId]);
 
   const handleCFGPanelUpdate = useCallback((id: string, updates: Partial<CFGPanel>) => {
     setCfgPanels(panels => panels.map(p => p.id === id ? { ...p, ...updates } : p));
@@ -1254,6 +1299,7 @@ export default function DiagramViewer() {
         nodeTypes={{ group: CustomGroupNode }}
         onPaneClick={() => {
           setSelectedNodeId(null);
+          setSelectedSnippet(''); // 선택 해제 시 snippet도 제거
           setCfgMessage(null);
         }}
       >
@@ -1409,12 +1455,20 @@ export default function DiagramViewer() {
         />
       ))}
       
-      {hoverId && snippet && (
+      {(hoverId && snippet) || (selectedNodeId && selectedSnippet) ? (
         <div
-          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-auto font-mono pointer-events-none"
-          dangerouslySetInnerHTML={{ __html: `<pre class="hljs">${snippet}</pre>` }}
-        />
-      )}
+          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-y-auto overflow-x-auto font-mono pointer-events-auto"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f1f5f9'
+          }}
+        >
+          <pre 
+            className="hljs m-0 p-0 bg-transparent overflow-visible whitespace-pre-wrap break-words"
+            dangerouslySetInnerHTML={{ __html: selectedNodeId && selectedSnippet ? selectedSnippet : snippet }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
