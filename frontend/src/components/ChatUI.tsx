@@ -28,6 +28,8 @@ export default function ChatUI() {
   const dropdownItemRefs = useRef<(HTMLDivElement | null)[]>([]); // 추가: 각 아이템 ref
   const [isBotTyping, setIsBotTyping] = useState(false);
   const [isGraphSearch, setIsGraphSearch] = useState(false); // Call Graph Search 활성화 상태
+  const [lastHighlightedNodes, setLastHighlightedNodes] = useState<string[]>([]); // 최근 하이라이트 노드들
+  const [isHighlightOn, setIsHighlightOn] = useState(false); // 하이라이트 On/Off 상태
   const { tree } = useFS();
   const allFiles = getAllFilePaths(tree);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -206,15 +208,35 @@ export default function ChatUI() {
       const randomExample = examples[Math.floor(Math.random() * examples.length)];
       setInput(randomExample);
     } else {
-      // 비활성화 시 입력창 비우기 및 하이라이트 해제
+      // 비활성화 시 입력창 비우기 및 하이라이트 관련 상태 리셋
       setInput('');
+      setLastHighlightedNodes([]);
+      setIsHighlightOn(false);
       clearHighlights();
     }
   };
 
-  // 하이라이트 해제 함수
+  // 하이라이트 토글 함수
+  const toggleHighlight = () => {
+    const newHighlightState = !isHighlightOn;
+    setIsHighlightOn(newHighlightState);
+    
+    console.log('[ChatUI] Toggling highlights:', newHighlightState ? 'ON' : 'OFF');
+    if ((window as any).updateHighlightedNodes) {
+      if (newHighlightState && lastHighlightedNodes.length > 0) {
+        // ON: 최근 하이라이트 노드들 복원
+        (window as any).updateHighlightedNodes(lastHighlightedNodes);
+      } else {
+        // OFF: 하이라이트 해제
+        (window as any).updateHighlightedNodes([]);
+      }
+    }
+  };
+
+  // 하이라이트 해제 함수 (기존 로직 유지 - 내부적으로 사용)
   const clearHighlights = () => {
     console.log('[ChatUI] Clearing highlights');
+    setIsHighlightOn(false);
     if ((window as any).updateHighlightedNodes) {
       (window as any).updateHighlightedNodes([]);
     }
@@ -258,6 +280,10 @@ export default function ChatUI() {
       const highlightNodes = data.highlight || [];
       // 그래프 검색 모드에서 하이라이트할 노드 ID들이 있는지 확인
       if (isGraphSearch && highlightNodes.length > 0) {
+        // 최근 하이라이트 노드들 저장
+        setLastHighlightedNodes(highlightNodes);
+        setIsHighlightOn(true);
+        
         // DiagramViewer에 하이라이트 노드들 전달
         console.log('[ChatUI] Highlight nodes:', highlightNodes);
         if ((window as any).updateHighlightedNodes) {
@@ -366,13 +392,17 @@ export default function ChatUI() {
               🔍 Call Graph Search
             </button>
             
-            {/* 하이라이트 해제 버튼 - 그래프 검색 모드일 때만 표시 */}
-            {isGraphSearch && (
+            {/* 하이라이트 On/Off 토글 버튼 - 그래프 검색 모드이고 하이라이트할 노드가 있을 때만 표시 */}
+            {isGraphSearch && lastHighlightedNodes.length > 0 && (
               <button
-                onClick={clearHighlights}
-                className="px-3 py-1.5 rounded text-xs font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                onClick={toggleHighlight}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                  isHighlightOn
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
               >
-                ✨ Highlight 해제
+                {isHighlightOn ? '✨ Highlight ON' : '⭕ Highlight OFF'}
               </button>
             )}
           </div>

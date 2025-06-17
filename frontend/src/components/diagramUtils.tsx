@@ -35,12 +35,12 @@ export const STYLES = {
       HOVER: '#fef3c7',
       ACTIVE: '#dbeafe',
       SELECTED: '#fbbf24',
-      HIGHLIGHTED: '#e0f2fe',
+      HIGHLIGHTED: '#f3e8ff',
       BORDER: '#e5e7eb',
       BORDER_HOVER: '#f59e0b',
       BORDER_ACTIVE: '#3b82f6',
       BORDER_SELECTED: '#d97706',
-      BORDER_HIGHLIGHTED: '#0ea5e9',
+      BORDER_HIGHLIGHTED: '#8b5cf6',
       // 클래스 전용 색상
       CLASS: {
         DEFAULT: '#f0f9ff',
@@ -66,7 +66,7 @@ export const STYLES = {
     EDGE: {
       DEFAULT: '#64748b',
       HOVER: '#f59e0b',
-      HIGHLIGHTED: '#0ea5e9',
+      HIGHLIGHTED: '#8b5cf6',
       // 엣지 타입별 색상
       FUNCTION_CALL: '#64748b',
       INSTANTIATION: '#dc2626', // 클래스 인스턴스화는 빨간색
