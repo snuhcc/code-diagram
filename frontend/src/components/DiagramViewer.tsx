@@ -219,6 +219,10 @@ export default function DiagramViewer() {
       if (result) {
         snippetCache.set(cacheKey, result.snippet);
         setSnippet(highlightWithLineNumbers(result.snippet, result.startLine));
+      } else if (functionName.includes('.main')) {
+        // script파일의 'main' 함수의 경우 특별 처리
+        const mainSnippet = code.split('\n').slice(0, 50).join('\n'); // 첫 50줄만 가져오기
+        setSnippet(highlightWithLineNumbers(mainSnippet, 1));
       } else {
         setSnippet('(code definition not found)');
       }
