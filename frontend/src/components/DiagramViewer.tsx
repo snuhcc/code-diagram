@@ -1164,8 +1164,8 @@ export default function DiagramViewer() {
                       ? `2px solid ${borderColor}`
                       : `1px solid ${borderColor}`,
           transition: 'all 0.1s ease-in-out',
-          minWidth: isGroup ? (isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : undefined) : (n.style?.width as number),
-          width: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : n.style?.width,
+          minWidth: isGroup ? (isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : undefined) : (n.style?.width as number),
+          width: isGroup && isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : n.style?.width,
           height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : n.style?.height,
           cursor: isGroup && isCollapsed ? 'pointer' : shouldFadeNode ? 'default' : 'default',
           opacity,

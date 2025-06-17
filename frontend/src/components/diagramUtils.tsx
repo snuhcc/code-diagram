@@ -668,6 +668,10 @@ export function CustomGroupNode({ data }: NodeProps) {
     </svg>
   );
 
+  // 파일 노드 width를 label 크기에 맞게 동적으로 계산
+  // 아이콘과 패딩을 고려하여 추가 공간 확보
+  const dynamicWidth = calculateNodeWidth(label) + 60; // 아이콘과 추가 패딩 공간
+
   if (isCollapsed) {
     return (
       <>
@@ -675,7 +679,7 @@ export function CustomGroupNode({ data }: NodeProps) {
         <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
         <div
           style={{
-            width: '100%',
+            width: dynamicWidth,
             height: '100%',
             display: 'flex',
             alignItems: 'center',
@@ -707,7 +711,7 @@ export function CustomGroupNode({ data }: NodeProps) {
           position: 'absolute',
           top: -32,
           left: 0,
-          width: '100%',
+          width: dynamicWidth,
           fontWeight: 600,
           fontSize: 13,
           color: '#444',
