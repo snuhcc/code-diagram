@@ -58,12 +58,14 @@ export default function DiagramViewer() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set()); // 빈 Set으로 시작
+  const [fadeOpacity, setFadeOpacity] = useState(30); // 음영 처리 투명도 (0-100)
 
   // 전역에서 하이라이트 노드를 업데이트할 수 있도록 함수 노출
   useEffect(() => {
-    (window as any).updateHighlightedNodes = (nodeIds: string[]) => {
-      console.log('[DV] Updating highlighted nodes:', nodeIds);
+    (window as any).updateHighlightedNodes = (nodeIds: string[], opacity: number = 30) => {
+      console.log('[DV] Updating highlighted nodes:', nodeIds, 'Opacity:', opacity);
       setHighlightedNodeIds(new Set(nodeIds));
+      setFadeOpacity(opacity);
       
       // 하이라이트된 노드들의 부모 그룹이 collapsed 상태면 expand
       if (nodeIds.length > 0) {
@@ -121,11 +123,24 @@ export default function DiagramViewer() {
 
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
     if (node.type === 'group') {
+      // 그룹 노드의 경우: 자식 노드 중 하이라이트된 노드가 있는지 확인
+      const hasHighlightedChild = nodes.some(childNode => 
+        childNode.parentId === node.id && highlightedNodeIds.has(childNode.id)
+      );
+      const shouldFadeGroup = highlightedNodeIds.size > 0 && !hasHighlightedChild;
+      if (shouldFadeGroup) return;
+      
       const childNode = nodes.find(n => n.parentId === node.id && !isNodeHidden(n.id, collapsedGroups, nodes));
       const filePath = (childNode?.data as any)?.file || (node.data as any)?.file;
       if (filePath) openFile(filePath, 1);
       return;
     }
+    
+    // 일반 노드의 경우: 음영 처리된 노드는 클릭 이벤트 무시
+    const isNodeHighlighted = highlightedNodeIds.has(node.id);
+    const shouldFadeNode = highlightedNodeIds.size > 0 && !isNodeHighlighted;
+    if (shouldFadeNode) return;
+    
     setSelectedNodeId(prev => prev === node.id ? null : node.id);
     const filePath = (node.data as any)?.file;
     const lineStart = (node.data as any)?.line_start;
@@ -137,10 +152,15 @@ export default function DiagramViewer() {
         openFile(filePath);
       }
     }
-  }, [nodes, collapsedGroups, openFile]);
+  }, [nodes, collapsedGroups, openFile, highlightedNodeIds]);
 
   const onNodeMouseEnter: NodeMouseHandler = useCallback(async (_, node) => {
     if (node.type === 'group') return;
+    
+    // 음영 처리된 노드는 호버 이벤트 무시
+    const isNodeHighlighted = highlightedNodeIds.has(node.id);
+    const shouldFadeNode = highlightedNodeIds.size > 0 && !isNodeHighlighted;
+    if (shouldFadeNode) return;
     
     setHoverId(node.id);
     const filePath = (node.data as any)?.file;
@@ -170,7 +190,7 @@ export default function DiagramViewer() {
     } catch {
       setSnippet('(preview unavailable)');
     }
-  }, []);
+  }, [highlightedNodeIds]);
 
   const onNodeMouseLeave = useCallback(() => {
     setHoverId(null);
@@ -802,7 +822,11 @@ export default function DiagramViewer() {
       } : e;
       
       const isHover = hoveredEdgeId === finalEdge.id;
-      const isHighlighted = highlightedNodeIds.has(finalEdge.source) && highlightedNodeIds.has(finalEdge.target);
+      const isEdgeHighlighted = highlightedNodeIds.has(finalEdge.source) && highlightedNodeIds.has(finalEdge.target);
+      
+      // 하이라이트 모드에서 음영 처리 여부 결정
+      const shouldFadeEdge = highlightedNodeIds.size > 0 && !isEdgeHighlighted;
+      const opacity = shouldFadeEdge ? (100 - fadeOpacity) / 100 : 1;
       
       // 엣지 타입에 따른 기본 색상 결정
       const edgeType = finalEdge.data?.edge_type || 'function_call';
@@ -824,7 +848,7 @@ export default function DiagramViewer() {
       // 상태에 따른 최종 색상 결정
       const finalColor = isHover 
         ? STYLES.COLORS.EDGE.HOVER 
-        : isHighlighted
+        : isEdgeHighlighted
           ? STYLES.COLORS.EDGE.HIGHLIGHTED
           : baseColor;
       
@@ -834,10 +858,11 @@ export default function DiagramViewer() {
         style: {
           ...(finalEdge.style || {}),
           stroke: finalColor,
-          strokeWidth: isHover ? 4 : isHighlighted ? 3 : (isRedirected ? 3 : 2),
+          strokeWidth: isHover ? 4 : isEdgeHighlighted ? 3 : (isRedirected ? 3 : 2),
           strokeDasharray: isRedirected ? '5 5' : finalEdge.style?.strokeDasharray,
           transition: 'all 0.13s',
-          cursor: 'pointer',
+          cursor: shouldFadeEdge ? 'default' : 'pointer', // 음영 처리된 엣지는 클릭 불가능한 것처럼 보이게
+          opacity,
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -860,7 +885,7 @@ export default function DiagramViewer() {
     });
     
     return Array.from(seen.values());
-  }, [edges, collapsedGroups, nodes, hoveredEdgeId, highlightedNodeIds]);
+  }, [edges, collapsedGroups, nodes, hoveredEdgeId, highlightedNodeIds, fadeOpacity]);
 
   // Process nodes for styling
   const finalNodes = useMemo(() => {
@@ -869,10 +894,32 @@ export default function DiagramViewer() {
       const isActive = cleanPath === activePath;
       const isHover = hoverId === n.id;
       const isSelected = selectedNodeId === n.id;
-      const isHighlighted = highlightedNodeIds.has(n.id);
+      const isNodeHighlighted = highlightedNodeIds.has(n.id);
       const isGroup = n.type === 'group';
       const isCollapsed = isGroup && collapsedGroups.has(n.id);
       const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
+      
+      // 하이라이트 모드에서 음영 처리 여부 결정
+      // 그룹 노드의 경우: 그룹에 속한 자식 노드 중 하이라이트된 노드가 있는지 확인
+      let shouldFadeNode = false;
+      let opacity = 1;
+      
+      if (highlightedNodeIds.size > 0) {
+        if (isGroup) {
+          // 그룹 노드의 경우: 자식 노드 중 하이라이트된 노드가 있는지 확인
+          const hasHighlightedChild = nodes.some(childNode => 
+            childNode.parentId === n.id && highlightedNodeIds.has(childNode.id)
+          );
+          shouldFadeNode = !hasHighlightedChild;
+        } else {
+          // 일반 노드의 경우: 직접 하이라이트되지 않았으면 음영 처리
+          shouldFadeNode = !isNodeHighlighted;
+        }
+        
+        if (shouldFadeNode) {
+          opacity = (100 - fadeOpacity) / 100;
+        }
+      }
       
       // 노드 타입 확인
       const nodeType = (n.data as any)?.nodeType || 'function';
@@ -898,7 +945,7 @@ export default function DiagramViewer() {
           ? STYLES.COLORS.NODE.CLASS.SELECTED
           : isHover
             ? STYLES.COLORS.NODE.CLASS.HOVER
-            : isHighlighted
+            : isNodeHighlighted
               ? STYLES.COLORS.NODE.HIGHLIGHTED
               : isActive
                 ? STYLES.COLORS.NODE.ACTIVE
@@ -909,7 +956,7 @@ export default function DiagramViewer() {
           ? STYLES.COLORS.NODE.METHOD.SELECTED
           : isHover
             ? STYLES.COLORS.NODE.METHOD.HOVER
-            : isHighlighted
+            : isNodeHighlighted
               ? STYLES.COLORS.NODE.HIGHLIGHTED
               : isActive
                 ? STYLES.COLORS.NODE.ACTIVE
@@ -920,7 +967,7 @@ export default function DiagramViewer() {
           ? STYLES.COLORS.NODE.SELECTED
           : isHover
             ? STYLES.COLORS.NODE.HOVER
-            : isHighlighted
+            : isNodeHighlighted
               ? STYLES.COLORS.NODE.HIGHLIGHTED
               : isActive
                 ? STYLES.COLORS.NODE.ACTIVE
@@ -946,7 +993,7 @@ export default function DiagramViewer() {
               ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
               : isHover
                 ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
-                : isHighlighted
+                : isNodeHighlighted
                   ? `3px solid ${STYLES.COLORS.NODE.BORDER_HIGHLIGHTED}`
                   : isActive
                     ? `1px solid ${STYLES.COLORS.NODE.BORDER_ACTIVE}`
@@ -957,7 +1004,9 @@ export default function DiagramViewer() {
           minWidth: isGroup ? (isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : undefined) : (n.style?.width as number),
           width: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_WIDTH : n.style?.width,
           height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : n.style?.height,
-          cursor: isGroup && isCollapsed ? 'pointer' : 'default',
+          cursor: isGroup && isCollapsed ? 'pointer' : shouldFadeNode ? 'default' : 'default',
+          opacity,
+          pointerEvents: shouldFadeNode ? 'none' : 'auto', // 음영 처리된 노드는 상호작용 불가
         },
         data: isGroup
           ? {
@@ -968,7 +1017,7 @@ export default function DiagramViewer() {
           : n.data,
       };
     });
-  }, [nodes, activePath, hoverId, selectedNodeId, collapsedGroups, toggleCollapse, highlightedNodeIds]);
+  }, [nodes, activePath, hoverId, selectedNodeId, collapsedGroups, toggleCollapse, highlightedNodeIds, fadeOpacity]);
 
   if (!diagramReady) {
     return (
@@ -1009,7 +1058,14 @@ export default function DiagramViewer() {
         onNodeClick={onNodeClick}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
-        onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+        onEdgeMouseEnter={(_, edge) => {
+          // 음영 처리된 엣지는 호버 이벤트 무시
+          const isEdgeHighlighted = highlightedNodeIds.has(edge.source) && highlightedNodeIds.has(edge.target);
+          const shouldFadeEdge = highlightedNodeIds.size > 0 && !isEdgeHighlighted;
+          if (!shouldFadeEdge) {
+            setHoveredEdgeId(edge.id);
+          }
+        }}
         onEdgeMouseLeave={() => setHoveredEdgeId(null)}
         fitView
         minZoom={0.2}
@@ -1124,6 +1180,35 @@ export default function DiagramViewer() {
           </button>
         </Controls>
       </ReactFlow>
+      
+      {/* Fade Level Control - 하이라이트가 활성화된 경우에만 표시 */}
+      {highlightedNodeIds.size > 0 && (
+        <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-md border border-gray-200 z-50">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-700 font-medium whitespace-nowrap">Fade Level:</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="10"
+              value={fadeOpacity}
+              onChange={(e) => {
+                const newOpacity = Number(e.target.value);
+                setFadeOpacity(newOpacity);
+                // 전역 함수를 통해 fadeOpacity 업데이트 (현재 하이라이트 유지)
+                if ((window as any).updateHighlightedNodes && highlightedNodeIds.size > 0) {
+                  (window as any).updateHighlightedNodes(Array.from(highlightedNodeIds), newOpacity);
+                }
+              }}
+              className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #6b7280 0%, #6b7280 ${fadeOpacity}%, #d1d5db ${fadeOpacity}%, #d1d5db 100%)`
+              }}
+            />
+            <span className="text-xs text-gray-700 font-mono min-w-[3ch] text-center">{fadeOpacity}%</span>
+          </div>
+        </div>
+      )}
       
       {cfgMessage && (
         <div className="absolute top-[60px] right-6 bg-red-100 text-red-800 px-4 py-2 rounded-md z-[100] text-sm shadow-md">

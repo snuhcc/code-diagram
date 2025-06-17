@@ -30,6 +30,7 @@ export default function ChatUI() {
   const [isGraphSearch, setIsGraphSearch] = useState(false); // Call Graph Search 활성화 상태
   const [lastHighlightedNodes, setLastHighlightedNodes] = useState<string[]>([]); // 최근 하이라이트 노드들
   const [isHighlightOn, setIsHighlightOn] = useState(false); // 하이라이트 On/Off 상태
+  const [fadeOpacity, setFadeOpacity] = useState(30); // 음영 처리 투명도 (0-100)
   const { tree } = useFS();
   const allFiles = getAllFilePaths(tree);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -225,10 +226,10 @@ export default function ChatUI() {
     if ((window as any).updateHighlightedNodes) {
       if (newHighlightState && lastHighlightedNodes.length > 0) {
         // ON: 최근 하이라이트 노드들 복원
-        (window as any).updateHighlightedNodes(lastHighlightedNodes);
+        (window as any).updateHighlightedNodes(lastHighlightedNodes, fadeOpacity);
       } else {
         // OFF: 하이라이트 해제
-        (window as any).updateHighlightedNodes([]);
+        (window as any).updateHighlightedNodes([], fadeOpacity);
       }
     }
   };
@@ -238,7 +239,7 @@ export default function ChatUI() {
     console.log('[ChatUI] Clearing highlights');
     setIsHighlightOn(false);
     if ((window as any).updateHighlightedNodes) {
-      (window as any).updateHighlightedNodes([]);
+      (window as any).updateHighlightedNodes([], fadeOpacity);
     }
   };
 
@@ -287,7 +288,7 @@ export default function ChatUI() {
         // DiagramViewer에 하이라이트 노드들 전달
         console.log('[ChatUI] Highlight nodes:', highlightNodes);
         if ((window as any).updateHighlightedNodes) {
-          (window as any).updateHighlightedNodes(highlightNodes);
+          (window as any).updateHighlightedNodes(highlightNodes, fadeOpacity);
         }
       }
       

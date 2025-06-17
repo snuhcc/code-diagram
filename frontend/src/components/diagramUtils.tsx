@@ -85,6 +85,9 @@ export interface RawNode {
   label?: string;
   function_name?: string;
   file: string;
+  node_type?: string;
+  line_start?: number;
+  line_end?: number;
 }
 
 export interface RawEdge {
@@ -92,6 +95,7 @@ export interface RawEdge {
   source: string;
   target: string;
   type?: string;
+  edge_type?: string;
 }
 
 export interface CFGPanel {
