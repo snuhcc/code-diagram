@@ -11,6 +11,7 @@ export const ENDPOINTS = {
   CG: '/api/generate_call_graph_ast', // AST 기반 호출 그래프 생성
   CFG: '/api/generate_control_flow_graph',
   INLINE_CODE_EXPLANATION: '/api/inline_code_explanation',
+  INLINE_CODE_EXPLANATION_STREAM: '/api/inline_code_explanation_stream',
 } as const;
 
 export const STYLES = {

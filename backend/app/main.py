@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
@@ -7,7 +7,7 @@ from schemas.common import *
 from llm.diagram_generator import generate_call_graph, generate_control_flow_graph
 from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
 from llm.utils import get_source_file_with_line_number
-from llm.inline_explanation import generate_inline_code_explanation
+from llm.inline_explanation import generate_inline_code_explanation, generate_inline_code_explanation_stream
 from analyzers.ast_analyzer import analyze_project_call_graph
 from fastapi.responses import JSONResponse
 from llm.constants import SAMPLE_CFG_JSON
@@ -161,5 +161,37 @@ async def api_inline_code_explanation(req: InlineCodeExplanationRequest):
         explanation = await generate_inline_code_explanation(req.file_path, req.line_start, req.line_end, req.context, req.explanation_level)
         print(f"Explanation: {explanation}")
         return {"explanation": explanation}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/inline_code_explanation_stream")
+async def api_inline_code_explanation_stream(req: InlineCodeExplanationRequest):
+    """
+    Generate an inline explanation for the given code with streaming response.
+    """
+    try:
+        print(f"Inline Code Stream: {req.file_path}, {req.line_start}, {req.line_end}, {req.context}, level: {req.explanation_level}")
+        if not req.file_path:
+            raise HTTPException(status_code=400, detail="File path is required")
+        if not req.line_start or not req.line_end:
+            raise HTTPException(status_code=400, detail="Line start and end are required")
+        
+        async def stream_explanation():
+            try:
+                async for chunk in generate_inline_code_explanation_stream(req.file_path, req.line_start, req.line_end, req.context, req.explanation_level):
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        
+        return StreamingResponse(
+            stream_explanation(),
+            media_type="text/plain",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Content-Type": "text/plain; charset=utf-8"
+            }
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

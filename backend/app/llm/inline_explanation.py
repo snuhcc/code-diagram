@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, AsyncGenerator
 from llm.constants import OPENAI_GPT_4_1, OPENAI_GPT_4_1_MINI, WORKSPACE_ROOT_DIR
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
@@ -26,7 +26,6 @@ async def generate_inline_code_explanation(file_path: str, line_start: int, line
     file_path = os.path.join(WORKSPACE_ROOT_DIR, file_path)
     print(f"Generating inline code explanation for file: {file_path}, lines: {line_start}-{line_end}, context: {context}, level: {explanation_level}")
     code_snippet = get_source_file_with_line_number(file_path)
-
     print(code_snippet)
 
     messages = chat_prompt.format_messages(
@@ -43,3 +42,37 @@ async def generate_inline_code_explanation(file_path: str, line_start: int, line
     if not response or not hasattr(response, "content"):
         raise ValueError("Invalid response from LLM")
     return response.content
+
+async def generate_inline_code_explanation_stream(file_path: str, line_start: int, line_end: int, context: Optional[str] = None, explanation_level: int = 5
+) -> AsyncGenerator[str, None]:
+    """
+    Generate inline code explanation for a given file and line range with streaming response."""
+
+    llm = ChatOpenAI(
+        model=OPENAI_GPT_4_1_MINI,
+        temperature=0.1,
+        max_retries=2,
+        streaming=True  # Enable streaming
+    )
+
+    chat_prompt = ChatPromptTemplate.from_messages(
+        [
+            SystemMessagePromptTemplate.from_template("YOU ARE A SOFTWARE ENGINEERING EXPERT. You are given a Python code snippet. Please generate an inline code explanation for the provided code."),
+            HumanMessagePromptTemplate.from_template(PROMPT_INLINE_CODE_EXPLANATION),
+        ]
+    )
+    file_path = os.path.join(WORKSPACE_ROOT_DIR, file_path)
+    print(f"Generating streaming inline code explanation for file: {file_path}, lines: {line_start}-{line_end}, context: {context}, level: {explanation_level}")
+    code_snippet = get_source_file_with_line_number(file_path)
+
+    messages = chat_prompt.format_messages(
+        code_snippet=code_snippet,
+        line_start=line_start,
+        line_end=line_end,
+        explanation_level=explanation_level,
+    )
+    
+    # Stream the response
+    async for chunk in llm.astream(messages):
+        if chunk.content:
+            yield chunk.content

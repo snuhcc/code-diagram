@@ -57,6 +57,9 @@ export default function DiagramViewer() {
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const [currentStreamController, setCurrentStreamController] = useState<AbortController | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set()); // 빈 Set으로 시작
   const [fadeOpacity, setFadeOpacity] = useState(30); // 음영 처리 투명도 (0-100)
 
@@ -92,6 +95,15 @@ export default function DiagramViewer() {
       delete (window as any).updateHighlightedNodes;
     };
   }, [nodes]);
+
+  // Cleanup streaming on unmount
+  useEffect(() => {
+    return () => {
+      if (currentStreamController) {
+        currentStreamController.abort();
+      }
+    };
+  }, [currentStreamController]);
 
   const editorState = useEditor.getState();
   const fsState = useFS.getState();
@@ -229,18 +241,34 @@ export default function DiagramViewer() {
   }, []);
 
   const handleCFGNodeHover = useCallback(async (node: Node | null, panel: CFGPanel) => {
-    // Only clear message when hovering over a different node, not when leaving current node
+    // 이전 스트리밍이 있다면 중지
+    if (currentStreamController) {
+      currentStreamController.abort();
+      setCurrentStreamController(null);
+      setIsStreaming(false);
+    }
+
+    // 노드가 null이면 메시지만 클리어하고 리턴
     if (!node) {
-      return; // Don't clear message when just leaving a node
+      setCfgPanelMessage(null);
+      return;
     }
 
     const { line_start, line_end } = node.data as any;
+    
+    // 새로운 AbortController 생성
+    const abortController = new AbortController();
+    setCurrentStreamController(abortController);
+    
+    // Reset streaming state
+    setIsStreaming(true);
+    setStreamingText('');
     
     setCfgPanelMessage(
       `<div style="display:flex;align-items:flex-start;gap:8px;">
         <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
         <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
-          설명을 불러오는 중입니다...
+          설명을 불러오는 중입니다<span class="blinking-cursor">|</span>
         </span>
       </div>`
     );
@@ -248,28 +276,122 @@ export default function DiagramViewer() {
     openFile(TARGET_FOLDER + '/' + panel.file, line_start, { from: line_start, to: line_end });
 
     try {
-      const res = await fetch(`${apiUrl}${ENDPOINTS.INLINE_CODE_EXPLANATION}`, {
+      const response = await fetch(`${apiUrl}${ENDPOINTS.INLINE_CODE_EXPLANATION_STREAM}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           file_path: TARGET_FOLDER + '/' + panel.file, 
           line_start, 
           line_end,
-          explanation_level: panel.explanationLevel || 5  // Use panel's explanation level
+          explanation_level: panel.explanationLevel || 5
         }),
+        signal: abortController.signal, // AbortController 신호 추가
       });
-      const data = await res.json();
-      const explanation = data.explanation || data.data?.explanation || '설명을 가져올 수 없습니다.';
       
-      setCfgPanelMessage(
-        `<div style="display:flex;align-items:flex-start;gap:8px;">
-          <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
-          <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;">
-            ${explanation}
-          </span>
-        </div>`
-      );
-    } catch {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No reader available');
+      }
+
+      let accumulatedText = '';
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            setIsStreaming(false);
+            setCurrentStreamController(null);
+            break;
+          }
+          
+          // 중지 신호가 온 경우 스트리밍 중단
+          if (abortController.signal.aborted) {
+            break;
+          }
+          
+          const chunk = new TextDecoder().decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6);
+              if (dataStr.trim()) {
+                try {
+                  const data = JSON.parse(dataStr);
+                  
+                  if (data.error) {
+                    throw new Error(data.error);
+                  }
+                  
+                  if (data.chunk) {
+                    accumulatedText += data.chunk;
+                    setStreamingText(accumulatedText);
+                    
+                    // 중지 신호가 온 경우 업데이트 중단
+                    if (abortController.signal.aborted) {
+                      break;
+                    }
+                    
+                    // Update message with accumulated text and blinking cursor
+                    setCfgPanelMessage(
+                      `<div style="display:flex;align-items:flex-start;gap:8px;">
+                        <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
+                        <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;">
+                          ${accumulatedText}<span class="blinking-cursor">|</span>
+                        </span>
+                      </div>`
+                    );
+                  }
+                  
+                  if (data.done) {
+                    setIsStreaming(false);
+                    setCurrentStreamController(null);
+                    // Remove blinking cursor when done
+                    setCfgPanelMessage(
+                      `<div style="display:flex;align-items:flex-start;gap:8px;">
+                        <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
+                        <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:320px;display:inline-block;">
+                          ${accumulatedText}
+                        </span>
+                      </div>`
+                    );
+                    break;
+                  }
+                } catch (parseError) {
+                  console.warn('Failed to parse SSE data:', dataStr);
+                }
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (error) {
+      setIsStreaming(false);
+      setCurrentStreamController(null);
+      
+      // AbortError와 관련된 에러들은 정상적인 취소이므로 에러 메시지를 표시하지 않음
+      const errorMessage = (error as Error).message || '';
+      const errorName = (error as Error).name || '';
+      
+      if (
+        errorName === 'AbortError' || 
+        errorMessage.includes('aborted') || 
+        errorMessage.includes('BodyStreamBuffer was aborted') ||
+        errorMessage.includes('fetch was aborted')
+      ) {
+        console.log('Streaming was intentionally aborted');
+        return;
+      }
+      
+      // 실제 에러만 로그와 UI에 표시
+      console.error('Streaming error:', error);
       setCfgPanelMessage(
         `<div style="display:flex;align-items:flex-start;gap:8px;">
           <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
@@ -280,7 +402,7 @@ export default function DiagramViewer() {
       );
     }
 
-  }, [apiUrl, openFile]);
+  }, [apiUrl, openFile, currentStreamController]);
 
   const handleGenerateCFG = useCallback(async () => {
     setCfgMessage(null);
@@ -1092,6 +1214,18 @@ export default function DiagramViewer() {
 
   return (
     <div className="relative h-full w-full border-l border-slate-300">
+      {/* CSS for blinking cursor animation */}
+      <style jsx>{`
+        .blinking-cursor {
+          animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+      `}</style>
+      
       <ReactFlow
         nodes={finalNodes}
         edges={processedEdges}
