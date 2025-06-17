@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 import uuid
 import json
 import os
+from typing import AsyncGenerator
 from llm.constants import OPENAI_GPT_4_1
 from llm.prompt_util import *
 from llm.utils import *
@@ -246,6 +247,11 @@ class LangGraphChatbotEngine:
             use_responses_api=True,
             temperature=0.1,
         )
+        self.streaming_llm = ChatOpenAI(
+            model=OPENAI_GPT_4_1,
+            temperature=0.1,
+            streaming=True
+        )
         self.graph = StateGraph(ChatbotState)
         self.graph.add_node("llm", lambda state: llm_node(state, self.llm))
         self.graph.add_edge(START, "llm")
@@ -266,6 +272,72 @@ class LangGraphChatbotEngine:
         result = await self.app.ainvoke(state)
         return result['answer'], result['highlight'], result['history']
 
+    async def ask_stream(self, query: str, graph_mode: bool, target_path: str, code: str = None, diagram: str = None, history: list = None) -> AsyncGenerator[str, None]:
+        """
+        스트리밍 방식으로 챗봇 답변을 생성합니다.
+        """
+        # 기본 프롬프트 생성
+        if graph_mode:
+            # 그래프 검색 모드
+            call_graph_data = load_call_graph_data()
+            if not call_graph_data:
+                yield "Call Graph 데이터를 로드할 수 없습니다. 일반 채팅 모드로 전환해주세요."
+                return
+            
+            target_path_abs = os.path.join(WORKSPACE_ROOT_DIR, target_path)
+            target_path_abs = os.path.abspath(target_path_abs)
+            
+            repo_tree = build_repo_tree(Path(target_path_abs))
+            all_codes = get_all_source_files_with_line_numbers(target_path_abs)
+
+            human_prompt = """아래 Call Graph 데이터를 분석하여 사용자의 질문에 답변해주세요.
+사용자가 특정 함수에 대해 질문하면, 해당 함수와 관련된 모든 함수들을 찾아서 설명해주세요.
+관련된 함수의 ID들을 정확히 식별해서 답변에 포함해주세요.
+
+<call_graph_data>
+{call_graph_json}
+</call_graph_data>
+
+<directory_tree>
+{repo_tree}
+</directory_tree>
+
+<code>
+{all_codes}
+</code>
+
+[사용자 질문]: {query}
+""".format(
+                call_graph_json=json.dumps(call_graph_data, ensure_ascii=False, indent=2),
+                repo_tree=repo_tree,
+                all_codes=all_codes,
+                query=query
+            )
+            
+            system_message = SystemMessage(content=GRAPH_SYSTEM_PROMPT)
+        else:
+            # 일반 채팅 모드
+            human_prompt = """아래 INPUT 정보를 참고해서 충분히 고민한 후 사용자의 질문에 정확하고 간결하게 답변하세요.
+INPUT: 질문, 채팅 히스토리, 코드[Optional], 다이어그램[Optional]"""
+            human_prompt += f"\n[질문]: {query}"
+            
+            system_message = SystemMessage(content=SYSTEM_PROMPT)
+        
+        if history:
+            human_prompt += f"\n[채팅 히스토리]: {history}"
+        if code:
+            human_prompt += f"\n<code>\n{code}\n</code>\n"
+        if diagram:
+            human_prompt += f"\n<diagram>\n{diagram}\n</diagram>\n"
+        
+        human_message = HumanMessage(content=human_prompt)
+        messages = [system_message, human_message]
+        
+        # 스트리밍 응답 생성
+        async for chunk in self.streaming_llm.astream(messages):
+            if chunk.content:
+                yield chunk.content
+
 async def generate_chatbot_answer_with_session(session_id: str, graph_mode: bool, target_path: str, query: str, code: str = None, diagram: str = None):
     """
     세션 기반 챗봇 답변 생성. 세션별 history를 서버에서 관리.
@@ -276,3 +348,25 @@ async def generate_chatbot_answer_with_session(session_id: str, graph_mode: bool
     answer, highlight, updated_history = await engine.ask(query, graph_mode, target_path, code, diagram, history)
     session["history"] = updated_history  # 서버에 최신 history 저장
     return answer, highlight
+
+async def generate_chatbot_answer_with_session_stream(session_id: str, graph_mode: bool, target_path: str, query: str, code: str = None, diagram: str = None) -> AsyncGenerator[str, None]:
+    """
+    세션 기반 챗봇 답변을 스트리밍 방식으로 생성합니다.
+    """
+    session = get_session(session_id)
+    engine = session["engine"]
+    history = session["history"]
+    
+    # 스트리밍 응답 수집 및 히스토리 업데이트를 위한 버퍼
+    response_buffer = ""
+    
+    async for chunk in engine.ask_stream(query, graph_mode, target_path, code, diagram, history):
+        response_buffer += chunk
+        yield chunk
+    
+    # 응답이 완료되면 히스토리 업데이트
+    if response_buffer:
+        if 'history' not in session or session['history'] is None:
+            session['history'] = []
+        session['history'].append({"USER": query})
+        session['history'].append({"AI": response_buffer})

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from schemas.common import *
 from llm.diagram_generator import generate_call_graph, generate_control_flow_graph
-from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, get_session_history
+from llm.chatbot import create_session, remove_session, generate_chatbot_answer_with_session, generate_chatbot_answer_with_session_stream, get_session_history
 from llm.utils import get_source_file_with_line_number
 from llm.inline_explanation import generate_inline_code_explanation, generate_inline_code_explanation_stream
 from analyzers.ast_analyzer import analyze_project_call_graph
@@ -186,6 +186,57 @@ async def api_inline_code_explanation_stream(req: InlineCodeExplanationRequest):
         
         return StreamingResponse(
             stream_explanation(),
+            media_type="text/plain",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Content-Type": "text/plain; charset=utf-8"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/chatbot/session/chat_stream")
+async def api_session_chat_stream(req: ChatbotQueryRequest):
+    """
+    Generate a streaming chatbot response for the given session.
+    """
+    try:
+        print(f"Received streaming request: {req}")
+        if not req.session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        if not req.query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        
+        # Handle Context Files
+        context = ""
+        if hasattr(req, 'context_files') and req.context_files:
+            context += "Below is the context from the provided files:\n"
+            for file_path in req.context_files:
+                context += get_source_file_with_line_number(file_path)
+            context += "Please answer the question based on the above context.\n"
+
+        print(f"Session ID: {req.session_id}")
+        print(f"Graph Mode: {req.graph_mode}")
+        print(f"Target Path: {req.target_path}")
+        print(f"Query: {req.query}")
+        print(f"Code: {req.code}")
+        print(f"Diagram: {req.diagram}")
+        print(f"Context Files: {req.context_files}")
+        print(f"Context: {context}")
+        
+        async def stream_chatbot_response():
+            try:
+                async for chunk in generate_chatbot_answer_with_session_stream(
+                    req.session_id, req.graph_mode, req.target_path, req.query + context, req.code, req.diagram
+                ):
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        
+        return StreamingResponse(
+            stream_chatbot_response(),
             media_type="text/plain",
             headers={
                 "Cache-Control": "no-cache",

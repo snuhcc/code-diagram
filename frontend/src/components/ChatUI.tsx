@@ -247,9 +247,10 @@ export default function ChatUI() {
     e.preventDefault();
     if (!input.trim() || !currentSessionId) return;
 
+    const userQuery = input;
     setSessions((prev) =>
       prev.map((s) =>
-        s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'user', t: input }] } : s
+        s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'user', t: userQuery }] } : s
       )
     );
     setInput('');
@@ -258,46 +259,127 @@ export default function ChatUI() {
     try {
       // context_files 생성 시 targetFolder를 앞에 붙임
       const contextFiles =
-        input.match(/@(\S+)/g)?.map((m) => {
+        userQuery.match(/@(\S+)/g)?.map((m) => {
           const file = m.slice(1);
           return targetFolder ? `${targetFolder}/${file}` : file;
         }) || [];
-      const res = await fetch(`${apiUrl}/api/chatbot/session/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: currentSessionId,
-          graph_mode: isGraphSearch,
-          target_path: targetFolder,
-          query: input,
-          code: '',
-          diagram: '',
-          context_files: contextFiles,
-        }),
-      });
-      if (!res.ok) throw new Error(`Failed to send message: ${res.status}`);
-      const data = await res.json();
-      const text = data.answer;
-      const highlightNodes = data.highlight || [];
-      // 그래프 검색 모드에서 하이라이트할 노드 ID들이 있는지 확인
-      if (isGraphSearch && highlightNodes.length > 0) {
-        // 최근 하이라이트 노드들 저장
-        setLastHighlightedNodes(highlightNodes);
-        setIsHighlightOn(true);
+
+      if (isGraphSearch) {
+        // 그래프 검색 모드: 기존 API 사용 (하이라이트 정보 필요)
+        const res = await fetch(`${apiUrl}/api/chatbot/session/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: currentSessionId,
+            graph_mode: isGraphSearch,
+            target_path: targetFolder,
+            query: userQuery,
+            code: '',
+            diagram: '',
+            context_files: contextFiles,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`Failed to send message: ${res.status}`);
+        const data = await res.json();
+        const text = data.answer;
+        const highlightNodes = data.highlight || [];
+
+        // 하이라이트할 노드 ID들이 있는지 확인
+        if (highlightNodes.length > 0) {
+          // 최근 하이라이트 노드들 저장
+          setLastHighlightedNodes(highlightNodes);
+          setIsHighlightOn(true);
+          
+          // DiagramViewer에 하이라이트 노드들 전달
+          console.log('[ChatUI] Highlight nodes:', highlightNodes);
+          if ((window as any).updateHighlightedNodes) {
+            (window as any).updateHighlightedNodes(highlightNodes, fadeOpacity);
+          }
+        }
         
-        // DiagramViewer에 하이라이트 노드들 전달
-        console.log('[ChatUI] Highlight nodes:', highlightNodes);
-        if ((window as any).updateHighlightedNodes) {
-          (window as any).updateHighlightedNodes(highlightNodes, fadeOpacity);
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'bot', t: text }] } : s
+          )
+        );
+      } else {
+        // 일반 모드: 스트리밍 API 사용
+        const res = await fetch(`${apiUrl}/api/chatbot/session/chat_stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: currentSessionId,
+            graph_mode: isGraphSearch,
+            target_path: targetFolder,
+            query: userQuery,
+            code: '',
+            diagram: '',
+            context_files: contextFiles,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`Failed to send message: ${res.status}`);
+
+        // 스트리밍 응답 처리
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder();
+        let botResponse = '';
+        let botMessageIndex = -1;
+
+        if (reader) {
+          // 봇 메시지 슬롯 미리 생성
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id === currentSessionId) {
+                const newLog = [...s.log, { role: 'bot', t: '' }];
+                botMessageIndex = newLog.length - 1;
+                return { ...s, log: newLog };
+              }
+              return s;
+            })
+          );
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  if (data.chunk) {
+                    botResponse += data.chunk;
+                    // 실시간으로 봇 응답 업데이트
+                    setSessions((prev) =>
+                      prev.map((s) => {
+                        if (s.id === currentSessionId && botMessageIndex >= 0) {
+                          const newLog = [...s.log];
+                          newLog[botMessageIndex] = { role: 'bot', t: botResponse };
+                          return { ...s, log: newLog };
+                        }
+                        return s;
+                      })
+                    );
+                  } else if (data.done) {
+                    console.log('[ChatUI] Streaming completed');
+                  } else if (data.error) {
+                    throw new Error(data.error);
+                  }
+                } catch (parseErr) {
+                  console.error('Failed to parse SSE data:', parseErr);
+                }
+              }
+            }
+          }
         }
       }
-      
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === currentSessionId ? { ...s, log: [...s.log, { role: 'bot', t: text }] } : s
-        )
-      );
-      setIsBotTyping(false); // 답변 도착
+
+      setIsBotTyping(false); // 답변 완료
     } catch (err) {
       console.error('Failed to send message:', err);
       setSessions((prev) =>
