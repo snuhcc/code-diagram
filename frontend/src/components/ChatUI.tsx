@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, FormEvent } from 'react';
 import { XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useFS, getAllFilePaths } from '@/store/files';
 import { marked } from 'marked'; // 마크다운 파서 추가
+import { getApiUrl, getTargetFolder } from '@/utils/config';
 
 interface Message {
   role: 'user' | 'bot';
@@ -13,8 +14,8 @@ interface Session {
   log: Message[];
 }
 
-const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-const targetFolder = process.env.NEXT_PUBLIC_TARGET_FOLDER || ''; // 추가
+const apiUrl = getApiUrl();
+const targetFolder = getTargetFolder(); // 추가
 
 export default function ChatUI() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -60,9 +61,7 @@ export default function ChatUI() {
 
   const openNewSession = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/chatbot/session/open`, { method: 'GET', headers: {
-    'ngrok-skip-browser-warning': 'true'
-  }});
+      const res = await fetch(`${apiUrl}/api/chatbot/session/open`, { method: 'GET', headers: {'ngrok-skip-browser-warning': 'true'}});
       if (!res.ok) throw new Error(`Failed to open session: ${res.status}`);
       const data = await res.json();
       const newSessionId = data.session_id;

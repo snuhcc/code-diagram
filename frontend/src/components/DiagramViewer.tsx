@@ -36,11 +36,12 @@ import {
   STYLES,
   calculateCFGLayout, // 추가
 } from './diagramUtils';
+import { getApiUrl, getTargetFolder } from '@/utils/config';
 
 // Constants
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
-const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-const TARGET_FOLDER = process.env.NEXT_PUBLIC_TARGET_FOLDER;
+const apiUrl = getApiUrl();
+const TARGET_FOLDER = getTargetFolder();
 
 export default function DiagramViewer() {
   const [nodes, setNodes] = useState<Node[]>([]);

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:ngrok": "NEXT_PUBLIC_USE_NGROK=true next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
