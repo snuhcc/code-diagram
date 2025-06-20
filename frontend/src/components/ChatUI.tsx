@@ -60,7 +60,9 @@ export default function ChatUI() {
 
   const openNewSession = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/chatbot/session/open`, { method: 'GET' });
+      const res = await fetch(`${apiUrl}/api/chatbot/session/open`, { method: 'GET', headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }});
       if (!res.ok) throw new Error(`Failed to open session: ${res.status}`);
       const data = await res.json();
       const newSessionId = data.session_id;
