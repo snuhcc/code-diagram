@@ -146,6 +146,11 @@ PROMPT_INLINE_CODE_EXPLANATION = """
 
     OUTPUT:
     - The output must be korean.
+    - The output must follow this exact format: 
+        "xx~xx 줄에 대한 설명: 
+        aa~bb 줄은 설명 내용입니다.\n
+        cc~dd 줄은 설명 내용입니다.\n
+        ee~ff 줄은 설명 내용입니다."
     - Adjust the explanation depth based on the explanation level:
       * Level 1-2: Very brief, single sentence explanation
       * Level 3-4: Brief explanation with key points
@@ -153,6 +158,7 @@ PROMPT_INLINE_CODE_EXPLANATION = """
       * Level 7-8: Detailed explanation with examples
       * Level 9-10: Very detailed explanation with implementation details, edge cases, and best practices
     - The output must be a clear explanation appropriate for the given level.
+    
 """
 
 def build_repo_tree(root: Path, prefix: str = "", is_sub: bool = False) -> str:

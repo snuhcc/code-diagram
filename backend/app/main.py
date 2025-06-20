@@ -153,12 +153,12 @@ async def api_inline_code_explanation(req: InlineCodeExplanationRequest):
     Generate an inline explanation for the given code.
     """
     try:
-        print(f"Inline Code: {req.file_path}, {req.line_start}, {req.line_end}, {req.context}, level: {req.explanation_level}")
+        print(f"Inline Code: {req.file_path}, {req.line_start}, {req.line_end}, level: {req.explanation_level}")
         if not req.file_path:
             raise HTTPException(status_code=400, detail="File path is required")
         if not req.line_start or not req.line_end:
             raise HTTPException(status_code=400, detail="Line start and end are required")
-        explanation = await generate_inline_code_explanation(req.file_path, req.line_start, req.line_end, req.context, req.explanation_level)
+        explanation = await generate_inline_code_explanation(req.file_path, req.line_start, req.line_end, req.explanation_level)
         print(f"Explanation: {explanation}")
         return {"explanation": explanation}
     except Exception as e:
@@ -170,7 +170,7 @@ async def api_inline_code_explanation_stream(req: InlineCodeExplanationRequest):
     Generate an inline explanation for the given code with streaming response.
     """
     try:
-        print(f"Inline Code Stream: {req.file_path}, {req.line_start}, {req.line_end}, {req.context}, level: {req.explanation_level}")
+        print(f"Inline Code Stream: {req.file_path}, {req.line_start}, {req.line_end}, level: {req.explanation_level}")
         if not req.file_path:
             raise HTTPException(status_code=400, detail="File path is required")
         if not req.line_start or not req.line_end:
@@ -178,7 +178,7 @@ async def api_inline_code_explanation_stream(req: InlineCodeExplanationRequest):
         
         async def stream_explanation():
             try:
-                async for chunk in generate_inline_code_explanation_stream(req.file_path, req.line_start, req.line_end, req.context, req.explanation_level):
+                async for chunk in generate_inline_code_explanation_stream(req.file_path, req.line_start, req.line_end, req.explanation_level):
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
                 yield f"data: {json.dumps({'done': True})}\n\n"
             except Exception as e:
