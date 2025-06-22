@@ -1113,9 +1113,9 @@ export default function DiagramViewer() {
     setNodes([...allGroupNodes, ...laidOutNodes]);
     setEdges(allEdges);
 
-    // 초기에는 최상위 폴더 그룹만 접어서 보여줌 (depth=1)
-    const topLevelFolderIds = folderGroupNodes.filter(g => ((g.data as any)?.folderPath || '').split('/').length === 1).map(g => g.id);
-    setCollapsedGroups(new Set(topLevelFolderIds));
+    // --- 초기 상태: 모든 그룹 노드를 접힌(collapse) 상태로 ---
+    const initialCollapsedIds = allGroupNodes.map(g => g.id);
+    setCollapsedGroups(new Set(initialCollapsedIds));
   }, []);
 
   // --- Add: Expand/Collapse All Groups ---
