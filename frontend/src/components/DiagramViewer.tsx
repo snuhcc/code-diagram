@@ -829,7 +829,7 @@ export default function DiagramViewer() {
     // Detect and resolve overlaps between groups
     const files = Object.keys(groupBounds);
     const groupPadding = STYLES.GROUP.PADDING;
-    const minGroupSpacing = 40; // 그룹 간 최소 간격
+    const minGroupSpacing = 100; // 그룹 간 최소 간격 (이전 40)
     
     // Multiple passes to resolve overlaps
     for (let pass = 0; pass < 5; pass++) {
@@ -918,11 +918,13 @@ export default function DiagramViewer() {
       
       groupNodes.push({
         id: groupId,
-        // type omitted so it becomes a default node (allows nesting inside folder group)
+        type: 'group', // use custom group node for better label rendering
         data: {
           label: file.split('/').pop() || file,
-          file: file,
+          file,
           nodeType: 'file',
+          isCollapsed: false,
+          onToggleCollapse: () => {},
         },
         position: {
           x: bounds.minX - groupPadding,
@@ -934,6 +936,7 @@ export default function DiagramViewer() {
           background: 'rgba(0, 0, 0, 0.05)',
           border: '1px dashed #fb923c',
           borderRadius: 8,
+          pointerEvents: 'none',
         },
         zIndex: 0,
       });

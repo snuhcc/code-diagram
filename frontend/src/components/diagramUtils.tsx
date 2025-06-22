@@ -28,9 +28,10 @@ export const STYLES = {
     FONT_FAMILY: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   GROUP: {
-    PADDING: 15, // Reduced from 20 to 15 for more compact layout
+    PADDING: 30, // Reduced from 20 to 15 for more compact layout
     COLLAPSED_WIDTH: 180, // Reduced from 200 to 180
     COLLAPSED_HEIGHT: 45, // Reduced from 50 to 45
+    FILE_HEADER_HEIGHT: 28,
   },    COLORS: {
     NODE: {
       DEFAULT: '#ffffff',
@@ -205,7 +206,8 @@ export function calculateLayoutWithClasses(
     CLASS_SPACING: 40,      // Closer spacing between classes
     METHOD_SPACING_X: 10,   // Tighter horizontal spacing for methods
     METHOD_SPACING_Y: 15,   // Tighter vertical spacing for methods
-    FUNCTION_SPACING: 30,   // Closer spacing for standalone functions
+    FUNCTION_SPACING_X: 30, // Horizontal gap between standalone functions
+    FUNCTION_SPACING_Y: 50, // Vertical gap (must be >= node height to avoid overlap)
     CLASS_PADDING: {        // Slightly smaller padding inside class boxes
       TOP: 30,
       BOTTOM: 15,
@@ -332,20 +334,25 @@ export function calculateLayoutWithClasses(
     if (functionNodes.length > 0) {
       currentY += 30; // 클래스와 함수 사이 추가 간격
       
+      // 단일 파일 내 함수들의 최대 폭을 기준으로 셀 폭 통일 (가변 폭에 의한 겹침 방지)
+      const maxFuncWidth = Math.max(...functionNodes.map(fn => nodeWidths[fn.id] || 150), 150);
+
       functionNodes.forEach((funcNode, funcIndex) => {
         const functionsPerRow = 4;
         const funcCol = funcIndex % functionsPerRow;
         const funcRow = Math.floor(funcIndex / functionsPerRow);
-        
+
+        const cellWidth = maxFuncWidth + LAYOUT_CONFIG.FUNCTION_SPACING_X;
+        const funcX = fileAreaStartX + funcCol * cellWidth;
+        const funcY = currentY + funcRow * LAYOUT_CONFIG.FUNCTION_SPACING_Y;
+
         const funcWidth = nodeWidths[funcNode.id] || 150;
-        const funcX = fileAreaStartX + funcCol * (funcWidth + 30);
-        const funcY = currentY + funcRow * LAYOUT_CONFIG.FUNCTION_SPACING;
-        
-        positions[funcNode.id] = { 
-          x: funcX, 
+
+        positions[funcNode.id] = {
+          x: funcX,
           y: funcY,
           width: funcWidth,
-          height: 35
+          height: 35,
         };
       });
     }
