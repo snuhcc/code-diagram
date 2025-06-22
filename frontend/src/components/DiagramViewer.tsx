@@ -12,6 +12,8 @@ import {
   type NodeMouseHandler,
   applyNodeChanges,
   NodeChange,
+  useReactFlow,
+  useStore,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { nanoid } from 'nanoid';
@@ -278,9 +280,18 @@ export default function DiagramViewer() {
     } else {
       setHoverId(null);
       // 선택된 노드가 있으면 hover snippet은 지우되 selected snippet은 유지
-      setSnippet('');
     }
   }, [selectedNodeId]);
+
+  // Handle node changes (for React Flow)
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes(nds => applyNodeChanges(changes, nds));
+  }, []);
+
+  // Define node types
+  const nodeTypes = useMemo(() => ({
+    group: CustomGroupNode
+  }), []);
 
   const handleCFGPanelUpdate = useCallback((id: string, updates: Partial<CFGPanel>) => {
     setCfgPanels(panels => panels.map(p => p.id === id ? { ...p, ...updates } : p));
@@ -652,9 +663,9 @@ export default function DiagramViewer() {
             ...nodeStyle,
             border: `1px solid ${STYLES.COLORS.NODE.METHOD.BORDER}`,
             background: STYLES.COLORS.NODE.METHOD.DEFAULT,
-            fontSize: '11px', // 메소드는 조금 더 작은 폰트
+            fontSize: STYLES.NODE.FONT_SIZE, // 메소드는 기본 폰트 사용하여 타입 오류 방지
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
             textAlign: 'center',
           };
@@ -664,7 +675,7 @@ export default function DiagramViewer() {
             border: '1px solid #3b82f6',
             background: '#fff',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
             textAlign: 'center',
           };
@@ -906,14 +917,15 @@ export default function DiagramViewer() {
       
       groupNodes.push({
         id: groupId,
-        type: 'group',
-        data: { 
+        // type omitted so it becomes a default node (allows nesting inside folder group)
+        data: {
           label: file.split('/').pop() || file,
-          file: file
+          file: file,
+          nodeType: 'file',
         },
-        position: { 
-          x: bounds.minX - groupPadding, 
-          y: bounds.minY - groupPadding 
+        position: {
+          x: bounds.minX - groupPadding,
+          y: bounds.minY - groupPadding,
         },
         style: {
           width: bounds.maxX - bounds.minX + 2 * groupPadding,
@@ -942,11 +954,134 @@ export default function DiagramViewer() {
       });
     });
 
-    setNodes([...groupNodes, ...laidOutNodes]);
+    // ---------- 재귀적 폴더 그룹 생성 (N 레벨) ----------
+    // 1) 모든 폴더 경로 수집
+    const fileGroupByPath: Record<string, Node> = {};
+    groupNodes.forEach(fg => {
+      const filePath = (fg.data as any)?.file as string | undefined;
+      if (filePath) fileGroupByPath[filePath] = fg;
+    });
+
+    const folderPathsSet = new Set<string>();
+    Object.keys(fileGroupByPath).forEach(fp => {
+      const dirs = fp.split('/');
+      // remove filename
+      dirs.pop();
+      let current = '';
+      dirs.forEach(dir => {
+        current = current ? `${current}/${dir}` : dir;
+        folderPathsSet.add(current);
+      });
+    });
+
+    // Helper to sanitize id
+    const idFromPath = (p: string) => `folder-${p.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+    // Map path -> group node (once created)
+    const folderGroupMap: Record<string, Node> = {};
+
+    // Convert set to array sorted by depth DESC (깊은 폴더부터) so 자식 폴더가 먼저 생성되어 부모가 포함 가능
+    const folderPaths = Array.from(folderPathsSet).sort((a, b) => b.split('/').length - a.split('/').length);
+
+    folderPaths.forEach(folderPath => {
+      // Immediate child nodes = (a) file groups directly in this folder, (b) sub-folder groups one level deeper
+      const childFileGroups = Object.entries(fileGroupByPath)
+        .filter(([filePath]) => filePath.startsWith(folderPath + '/') && filePath.split('/').length === folderPath.split('/').length + 1)
+        .map(([, node]) => node);
+
+      const childFolderGroups = Object.entries(folderGroupMap)
+        .filter(([childPath]) => childPath.startsWith(folderPath + '/') && childPath.split('/').length === folderPath.split('/').length + 1)
+        .map(([, node]) => node);
+
+      const childrenNodes = [...childFileGroups, ...childFolderGroups];
+      if (childrenNodes.length === 0) return; // nothing inside
+
+      // --- Grid layout (up to 3 columns) to reduce vertical length and avoid overlap ---
+      const MAX_COLS = 3;
+      const spacingX = 16; // tighter horizontal gap
+      const spacingY = 16; // tighter vertical gap
+
+      // Determine uniform cell size based on largest child
+      let cellW = 0;
+      let cellH = 0;
+      childrenNodes.forEach(c => {
+        const w = (c.style?.width as number) || 120;
+        const h = (c.style?.height as number) || 80;
+        if (w > cellW) cellW = w;
+        if (h > cellH) cellH = h;
+      });
+      if (cellW === 0) cellW = 120;
+      if (cellH === 0) cellH = 80;
+
+      const HEADER_H = 32; // space for collapse header
+      const groupPaddingTop = groupPadding + HEADER_H;
+      // adjust children positions
+      childrenNodes.forEach((child, idx) => {
+        const col = idx % MAX_COLS;
+        const row = Math.floor(idx / MAX_COLS);
+        const posX = groupPadding + col * (cellW + spacingX);
+        const posY = groupPaddingTop + row * (cellH + spacingY);
+        child.position = { x: posX, y: posY };
+      });
+      const rows = Math.ceil(childrenNodes.length / MAX_COLS);
+      const cols = Math.min(childrenNodes.length, MAX_COLS);
+      const maxY = groupPaddingTop + rows * cellH + (rows - 1) * spacingY;
+      const maxX = groupPadding + cols * cellW + (cols - 1) * spacingX;
+      
+      // Keep previously set absolute position if exists, else use current layout positions
+      const absOffsetX = folderGroupMap[folderPath]?.position.x ?? 0;
+      const absOffsetY = folderGroupMap[folderPath]?.position.y ?? 0;
+
+      const groupId = idFromPath(folderPath);
+
+      const groupNode: Node = {
+        id: groupId,
+        type: 'group',
+        data: { label: folderPath.split('/').pop() || folderPath, folderPath },
+        position: { x: absOffsetX, y: absOffsetY },
+        style: {
+          width: maxX + groupPadding,
+          height: maxY + groupPadding,
+          background: 'rgba(0,0,0,0.03)',
+          border: '1px dashed #94a3b8',
+          borderRadius: 10,
+          pointerEvents: 'auto',
+          overflow: 'visible',
+        },
+        zIndex: 20,
+      } as Node;
+
+      // Adjust children positions with absolute offset
+      childrenNodes.forEach(child => {
+        child.position = {
+          x: child.position.x + absOffsetX,
+          y: child.position.y + absOffsetY,
+        };
+      });
+
+      folderGroupMap[folderPath] = groupNode;
+
+      // 자식노드 위치/parent 지정
+      childrenNodes.forEach(child => {
+        child.parentId = groupId;
+        child.extent = 'parent';
+      });
+    });
+
+    const folderGroupNodes = Object.values(folderGroupMap);
+    const allGroupNodes = [...folderGroupNodes, ...groupNodes].sort((a, b) => {
+      const depthA = ((a.data as any)?.folderPath || (a.data as any)?.file || '').split('/').length;
+      const depthB = ((b.data as any)?.folderPath || (b.data as any)?.file || '').split('/').length;
+      return depthA - depthB;
+    });
+
+    // 상태 반영 (부모 → 자식 순)
+    setNodes([...allGroupNodes, ...laidOutNodes]);
     setEdges(allEdges);
 
-    // ▼ 모든 그룹을 collapse 상태로 초기화
-    setCollapsedGroups(new Set(groupNodes.map(g => g.id)));
+    // 초기에는 최상위 폴더 그룹만 접어서 보여줌 (depth=1)
+    const topLevelFolderIds = folderGroupNodes.filter(g => ((g.data as any)?.folderPath || '').split('/').length === 1).map(g => g.id);
+    setCollapsedGroups(new Set(topLevelFolderIds));
   }, []);
 
   // --- Add: Expand/Collapse All Groups ---
@@ -1110,7 +1245,7 @@ export default function DiagramViewer() {
       const isNodeHighlighted = highlightedNodeIds.has(n.id);
       const isGroup = n.type === 'group';
       const isCollapsed = isGroup && collapsedGroups.has(n.id);
-      const isHidden = !isGroup && isNodeHidden(n.id, collapsedGroups, nodes);
+      const isHidden = (isNodeHidden(n.id, collapsedGroups, nodes) && !(isGroup && collapsedGroups.has(n.id)));
       
       // 하이라이트 모드에서 음영 처리 여부 결정
       // 그룹 노드의 경우: 그룹에 속한 자식 노드 중 하이라이트된 노드가 있는지 확인
@@ -1194,29 +1329,24 @@ export default function DiagramViewer() {
         style: {
           ...n.style,
           background: backgroundColor,
+          // --- 안정적 그룹 테두리: 폭 고정 2px -------------
           border: isGroup
-            ? isCollapsed
-              ? `2px solid ${STYLES.COLORS.GROUP.BORDER_COLLAPSED}`
-              : isHover
-                ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
-                : isActive
-                  ? `1px solid ${STYLES.COLORS.GROUP.BORDER_ACTIVE}`
-                  : `1px solid ${STYLES.COLORS.GROUP.BORDER}`
+            ? `2px solid ${isCollapsed ? STYLES.COLORS.GROUP.BORDER_COLLAPSED : STYLES.COLORS.GROUP.BORDER}`
             : isSelected
-              ? `4px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
-              : isHover
-                ? `4px solid ${STYLES.COLORS.NODE.BORDER_HOVER}`
-                : isNodeHighlighted
-                  ? `3px solid ${STYLES.COLORS.NODE.BORDER_HIGHLIGHTED}`
-                  : isActive
-                    ? `1px solid ${STYLES.COLORS.NODE.BORDER_ACTIVE}`
-                    : isClass
-                      ? `2px solid ${borderColor}`
-                      : `1px solid ${borderColor}`,
-          transition: 'all 0.1s ease-in-out',
+              ? `2px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
+              : `1px solid ${borderColor}`,
+          // Hover / Active 하이라이트는 box-shadow 로, 레이아웃 영향 無
+          boxShadow: isGroup && (isHover || isActive) ? `0 0 0 3px ${STYLES.COLORS.NODE.BORDER_HOVER}` : undefined,
+          // Smoothly animate size and position changes (e.g., group collapse / expand)
+          transition: 'box-shadow 0.15s, background 0.1s, width 0.2s ease, height 0.2s ease, transform 0.2s ease',
+          // --- 크기 스케일 적용 (그룹 노드 제외) -----------------------
           minWidth: isGroup ? (isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : undefined) : (n.style?.width as number),
           width: isGroup && isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : n.style?.width,
-          height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : n.style?.height,
+          height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : ((n.style?.height as number) || STYLES.NODE.HEIGHT.DEFAULT),
+          padding: '2px 6px 4px',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
           cursor: isGroup && isCollapsed ? 'pointer' : shouldFadeNode ? 'default' : 'default',
           opacity,
           pointerEvents: shouldFadeNode ? 'none' : 'auto', // 음영 처리된 노드는 상호작용 불가
@@ -1231,6 +1361,23 @@ export default function DiagramViewer() {
       };
     });
   }, [nodes, activePath, hoverId, selectedNodeId, collapsedGroups, toggleCollapse, highlightedNodeIds, fadeOpacity]);
+
+  // Update group node data when collapsedGroups changes
+  useEffect(() => {
+    setNodes(nds => nds.map(n => {
+      if (n.type === 'group') {
+        return {
+          ...n,
+          data: {
+            ...(n.data as any),
+            isCollapsed: collapsedGroups.has(n.id),
+            onToggleCollapse: () => toggleCollapse(n.id),
+          },
+        } as Node;
+      }
+      return n;
+    }));
+  }, [collapsedGroups, toggleCollapse]);
 
   if (!diagramReady) {
     return (
@@ -1263,23 +1410,27 @@ export default function DiagramViewer() {
   }
 
   return (
-    <div className="relative h-full w-full border-l border-slate-300">
-      {/* CSS for blinking cursor animation */}
-      <style jsx>{`
-        .blinking-cursor {
-          animation: blink 1s infinite;
-        }
-        
-        @keyframes blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0; }
-        }
-      `}</style>
+    <div className="w-full h-full bg-gray-50 relative">
+      {loading && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+          <div className="text-lg font-medium text-gray-600">Loading diagram...</div>
+        </div>
+      )}
       
+      {error && (
+        <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10">
+          <div className="text-center">
+            <div className="text-red-600 text-lg font-medium mb-2">Error loading diagram</div>
+            <div className="text-gray-600">{error}</div>
+          </div>
+        </div>
+      )}
+
       <ReactFlow
         nodes={finalNodes}
         edges={processedEdges}
-        onNodesChange={(changes) => setNodes(nds => applyNodeChanges(changes, nds))}
+        onNodesChange={onNodesChange}
+        nodeTypes={nodeTypes}
         onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
         onNodeMouseEnter={onNodeMouseEnter}
@@ -1294,42 +1445,89 @@ export default function DiagramViewer() {
         }}
         onEdgeMouseLeave={() => setHoveredEdgeId(null)}
         fitView
-        minZoom={0.2}
-        maxZoom={2}
+        fitViewOptions={{ 
+          padding: 0.15, // Increased padding for better initial view
+          minZoom: 0.3,  // Lower minimum zoom to see more
+          maxZoom: 2.0   // Higher maximum zoom for detail view
+        }}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.6 }} // Better initial zoom level
+        minZoom={0.1}
+        maxZoom={3}
         className="bg-gray-50"
-        nodeTypes={{ group: CustomGroupNode }}
         onPaneClick={() => {
           setSelectedNodeId(null);
           setSelectedSnippet(''); // 선택 해제 시 snippet도 제거
           setCfgMessage(null);
         }}
+        defaultEdgeOptions={{
+          type: 'smoothstep', // Use smooth curved edges instead of straight lines
+          animated: false,
+          style: { 
+            strokeWidth: 1.5, // Slightly thicker edges for better visibility
+            stroke: STYLES.COLORS.EDGE.DEFAULT 
+          },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
+        }}
+        connectionLineStyle={{ strokeWidth: 1.5 }}
+        snapToGrid={false}
+        snapGrid={[15, 15]}
+        panOnScroll={true}
+        selectionOnDrag={false}
+        panOnDrag={true}
+        selectNodesOnDrag={false}
+        multiSelectionKeyCode={null} // Disable multi-selection for cleaner UX
+        deleteKeyCode={null} // Disable delete key
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={false} // Keep disabled to avoid node dbl-click conflict
+        preventScrolling={true}
+        elementsSelectable={true}
+        nodesConnectable={false}
+        /* Removed nodesDraggable and nodesFocusable to rely on defaults for better pan/zoom */
       >
-        <Background variant="dots" gap={16} size={1} />
-        <MiniMap
+        {/* Improved background with subtle grid */}
+        <Background 
+          color="#e2e8f0" 
+          gap={20} 
+          size={1}
+          variant="dots"
+          style={{ opacity: 0.4 }}
+        />
+        
+        {/* MiniMap moved to bottom-right */}
+        <MiniMap 
+          nodeColor={(node) => {
+            if (node.type === 'group') return '#9ca3af'; // Gray for groups
+            return '#2563eb'; // Blue for regular nodes
+          }}
+          nodeStrokeColor={(node) => {
+            if (node.type === 'group') return '#4b5563';
+            return '#1e3a8a';
+          }}
+          nodeStrokeWidth={1}
+          maskColor="rgba(0, 0, 0, 0.1)"
+          style={{ 
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px'
+          }}
           pannable
           zoomable
-          nodeColor={n => {
-            if (n.type === 'group') return collapsedGroups.has(n.id) ? '#6b7280' : '#bdbdbd';
-            const bg = n.style?.background;
-            return bg === STYLES.COLORS.NODE.HOVER ? '#facc15' :
-                   bg === STYLES.COLORS.NODE.ACTIVE ? '#0284c7' : '#2563eb';
-          }}
-          nodeStrokeColor={n => {
-            if (n.type === 'group') return collapsedGroups.has(n.id) ? '#374151' : '#757575';
-            const border = n.style?.border;
-            return border?.includes(STYLES.COLORS.NODE.BORDER_HOVER) ? STYLES.COLORS.NODE.BORDER_HOVER :
-                   border?.includes(STYLES.COLORS.NODE.BORDER_ACTIVE) ? STYLES.COLORS.NODE.BORDER_ACTIVE : '#1e40af';
-          }}
-          nodeStrokeWidth={2}
-          maskColor="rgba(255,255,255,0.7)"
-          style={{
-            background: '#f3f4f6',
-            border: '1.5px solid #cbd5e1',
-            borderRadius: 6,
-            boxShadow: '0 2px 8px #0002',
-          }}
+          position="bottom-right"
         />
-        <Controls>
+        
+        {/* Enhanced Controls (moved to bottom-left) */}
+        <Controls 
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px'
+          }}
+          showZoom={true}
+          showFitView={true}
+          showInteractive={false}
+          position="bottom-left"
+        >
           <button
             type="button"
             title={allGroupsCollapsed ? "Expand all groups" : "Collapse all groups"}
@@ -1352,12 +1550,10 @@ export default function DiagramViewer() {
             }}
           >
             {allGroupsCollapsed ? (
-              // Expand icon: Down arrow (like VSCode "chevron-down")
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <polyline points="7.5,4.5 12,9 7.5,13.5" stroke="#222" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             ) : (
-              // Collapse icon: Right arrow (like VSCode "chevron-right")
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <polyline points="4.5,7.5 9,12 13.5,7.5" stroke="#222" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -1406,70 +1602,81 @@ export default function DiagramViewer() {
             )}
           </button>
         </Controls>
-      </ReactFlow>
-      
-      {/* Fade Level Control - 하이라이트가 활성화된 경우에만 표시 */}
-      {highlightedNodeIds.size > 0 && (
-        <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-md border border-gray-200 z-50">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-700 font-medium whitespace-nowrap">Fade Level:</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="10"
-              value={fadeOpacity}
-              onChange={(e) => {
-                const newOpacity = Number(e.target.value);
-                setFadeOpacity(newOpacity);
-                // 전역 함수를 통해 fadeOpacity 업데이트 (현재 하이라이트 유지)
-                if ((window as any).updateHighlightedNodes && highlightedNodeIds.size > 0) {
-                  (window as any).updateHighlightedNodes(Array.from(highlightedNodeIds), newOpacity);
-                }
-              }}
-              className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #6b7280 0%, #6b7280 ${fadeOpacity}%, #d1d5db ${fadeOpacity}%, #d1d5db 100%)`
-              }}
-            />
-            <span className="text-xs text-gray-700 font-mono min-w-[3ch] text-center">{fadeOpacity}%</span>
+
+        {/* Overlay buttons removed - using internal buttons */}
+
+        {/* Fade Level Control - 하이라이트가 활성화된 경우에만 표시 */}
+        {highlightedNodeIds.size > 0 && (
+          <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-md border border-gray-200 z-50">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-700 font-medium whitespace-nowrap">Fade Level:</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="10"
+                value={fadeOpacity}
+                onChange={(e) => {
+                  const newOpacity = Number(e.target.value);
+                  setFadeOpacity(newOpacity);
+                  // 전역 함수를 통해 fadeOpacity 업데이트 (현재 하이라이트 유지)
+                  if ((window as any).updateHighlightedNodes && highlightedNodeIds.size > 0) {
+                    (window as any).updateHighlightedNodes(Array.from(highlightedNodeIds), newOpacity);
+                  }
+                }}
+                className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #6b7280 0%, #6b7280 ${fadeOpacity}%, #d1d5db ${fadeOpacity}%, #d1d5db 100%)`
+                }}
+              />
+              <span className="text-xs text-gray-700 font-mono min-w-[3ch] text-center">{fadeOpacity}%</span>
+            </div>
           </div>
-        </div>
-      )}
-      
-      {cfgMessage && (
-        <div className="absolute top-[60px] right-6 bg-red-100 text-red-800 px-4 py-2 rounded-md z-[100] text-sm shadow-md">
-          {cfgMessage}
-        </div>
-      )}
-      
-      {cfgPanels.map((panel, idx) => (
-        <CFGPanelComponent
-          key={panel.id}
-          panel={panel}
-          index={idx}
-          onUpdate={handleCFGPanelUpdate}
-          onClose={handleCFGPanelClose}
-          onNodeHover={handleCFGNodeHover}
-          onClearMessage={() => setCfgPanelMessage(null)}
-          message={cfgPanelMessage}
-        />
-      ))}
-      
-      {(hoverId && snippet) || (selectedNodeId && selectedSnippet) ? (
-        <div
-          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-y-auto overflow-x-auto font-mono pointer-events-auto"
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#cbd5e1 #f1f5f9'
-          }}
-        >
-          <pre 
-            className="hljs m-0 p-0 bg-transparent overflow-visible whitespace-pre-wrap break-words"
-            dangerouslySetInnerHTML={{ __html: selectedNodeId && selectedSnippet ? selectedSnippet : snippet }}
+        )}
+        
+        {cfgMessage && (
+          <div className="absolute top-[60px] right-6 bg-red-100 text-red-800 px-4 py-2 rounded-md z-[100] text-sm shadow-md">
+            {cfgMessage}
+          </div>
+        )}
+        
+        {cfgPanels.map((panel, idx) => (
+          <CFGPanelComponent
+            key={panel.id}
+            panel={panel}
+            index={idx}
+            onUpdate={handleCFGPanelUpdate}
+            onClose={handleCFGPanelClose}
+            onNodeHover={handleCFGNodeHover}
+            onClearMessage={() => setCfgPanelMessage(null)}
+            message={cfgPanelMessage}
           />
-        </div>
-      ) : null}
+        ))}
+        
+        {(hoverId && snippet) || (selectedNodeId && selectedSnippet) ? (
+          <div
+            className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-y-auto overflow-x-auto font-mono pointer-events-auto"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#cbd5e1 #f1f5f9'
+            }}
+          >
+            <pre 
+              className="hljs m-0 p-0 bg-transparent overflow-visible whitespace-pre-wrap break-words"
+              dangerouslySetInnerHTML={{ __html: selectedNodeId && selectedSnippet ? selectedSnippet : snippet }}
+            />
+          </div>
+        ) : null}
+        
+        {highlightedNodeIds.size > 0 && (
+          <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-md border border-gray-200 z-50">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-700 font-medium whitespace-nowrap">Highlighted Nodes:</span>
+              <span className="text-xs text-gray-500 font-normal">{highlightedNodeIds.size}</span>
+            </div>
+          </div>
+        )}
+      </ReactFlow>
     </div>
   );
 }
@@ -1685,7 +1892,7 @@ function CFGPanelComponent({
           aria-label={panel.expanded ? 'Collapse' : 'Expand'}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4 6l4 4 4-4" stroke="#888" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <button

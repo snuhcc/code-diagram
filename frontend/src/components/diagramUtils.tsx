@@ -3,6 +3,7 @@ import dagre from 'dagre';
 import hljs from 'highlight.js/lib/core';
 import python from 'highlight.js/lib/languages/python';
 import 'highlight.js/styles/atom-one-light.css';
+import { motion } from 'framer-motion';
 
 hljs.registerLanguage('python', python);
 
@@ -19,17 +20,17 @@ export const STYLES = {
     MIN_WIDTH: 120,
     PADDING: 20,
     HEIGHT: {
-      DEFAULT: 28,
-      CLASS: 35,  // 클래스 노드는 더 큰 높이
-      METHOD: 26, // 메소드 노드는 조금 작은 높이
+      DEFAULT: 40,
+      CLASS: 48,  // 클래스 노드는 더 큰 높이
+      METHOD: 36, // 메소드 노드는 조금 작은 높이
     },
-    FONT_SIZE: '12px',
+    FONT_SIZE: '13px',
     FONT_FAMILY: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   GROUP: {
-    PADDING: 20, // Reduced from 40 to 20
-    COLLAPSED_WIDTH: 200,
-    COLLAPSED_HEIGHT: 50,
+    PADDING: 15, // Reduced from 20 to 15 for more compact layout
+    COLLAPSED_WIDTH: 180, // Reduced from 200 to 180
+    COLLAPSED_HEIGHT: 45, // Reduced from 50 to 45
   },    COLORS: {
     NODE: {
       DEFAULT: '#ffffff',
@@ -195,23 +196,23 @@ export function calculateLayoutWithClasses(
   const LAYOUT_CONFIG = {
     CENTER_X: 400,          // 중심점 X 좌표
     CENTER_Y: 400,          // 중심점 Y 좌표
-    FILE_RADIUS: 350,       // 파일들이 중심에서 떨어진 거리
-    FILE_AREA_WIDTH: 600,   // 각 파일 영역의 너비
-    FILE_AREA_HEIGHT: 500,  // 각 파일 영역의 높이
-    CLASS_SPACING: 80,      // 클래스 간격
-    METHOD_SPACING_X: 20,   // 메소드 좌우 간격
-    METHOD_SPACING_Y: 35,   // 메소드 상하 간격
-    FUNCTION_SPACING: 70,   // 일반 함수 간격
+    FILE_RADIUS: 250,       // Reduced from 350 to 250 - 파일들이 중심에서 떨어진 거리
+    FILE_AREA_WIDTH: 450,   // Reduced from 600 to 450 - 각 파일 영역의 너비
+    FILE_AREA_HEIGHT: 350,  // Reduced from 500 to 350 - 각 파일 영역의 높이
+    CLASS_SPACING: 60,      // Reduced from 80 to 60 - 클래스 간격
+    METHOD_SPACING_X: 15,   // Reduced from 20 to 15 - 메소드 좌우 간격
+    METHOD_SPACING_Y: 25,   // Reduced from 35 to 25 - 메소드 상하 간격
+    FUNCTION_SPACING: 50,   // Reduced from 70 to 50 - 일반 함수 간격
     CLASS_PADDING: {        // 클래스 내부 패딩
-      TOP: 50,    
-      BOTTOM: 25, 
-      LEFT: 25,   
-      RIGHT: 25,  
+      TOP: 40,    // Reduced from 50 to 40
+      BOTTOM: 20, // Reduced from 25 to 20
+      LEFT: 20,   // Reduced from 25 to 20
+      RIGHT: 20,  // Reduced from 25 to 20
     },
-    METHOD_WIDTH: 140,      // 메소드 노드 너비
-    METHOD_HEIGHT: 30,      // 메소드 노드 높이
-    CLASS_MIN_WIDTH: 200,   // 클래스 최소 너비
-    CLASS_MIN_HEIGHT: 100,  // 클래스 최소 높이
+    METHOD_WIDTH: 120,      // Reduced from 140 to 120 - 메소드 노드 너비
+    METHOD_HEIGHT: 28,      // Reduced from 30 to 28 - 메소드 노드 높이
+    CLASS_MIN_WIDTH: 180,   // Reduced from 200 to 180 - 클래스 최소 너비
+    CLASS_MIN_HEIGHT: 80,   // Reduced from 100 to 80 - 클래스 최소 높이
   };
 
   const fileEntries = Object.entries(files);
@@ -378,14 +379,14 @@ export function calculateLayout(
   
   // 더 컴팩트한 레이아웃 설정
   const LAYOUT_CONFIG = {
-    HORIZONTAL_SPACING: 150,     
-    VERTICAL_SPACING: 60,        
-    LEVEL_RADIUS_INCREMENT: 40,  
-    INITIAL_RADIUS: 50,          
-    SIBLING_ANGLE_SPREAD: Math.PI * 0.15, 
-    FILE_SPACING_X: 450,         // 350에서 450으로 더 증가
-    FILE_SPACING_Y: 400,         // 300에서 400으로 더 증가
-    GROUP_MIN_DISTANCE: 300,     // 200에서 300으로 증가
+    HORIZONTAL_SPACING: 120,     // Reduced from 150 to 120
+    VERTICAL_SPACING: 40,        // Reduced from 60 to 40
+    LEVEL_RADIUS_INCREMENT: 30,  // Reduced from 40 to 30
+    INITIAL_RADIUS: 40,          // Reduced from 50 to 40
+    SIBLING_ANGLE_SPREAD: Math.PI * 0.12, // Reduced from 0.15 to 0.12
+    FILE_SPACING_X: 350,         // Reduced from 450 to 350
+    FILE_SPACING_Y: 300,         // Reduced from 400 to 300
+    GROUP_MIN_DISTANCE: 250,     // Reduced from 300 to 250
   };
   
   // 그룹 노드 충돌 감지 함수 (더 큰 여백 포함)
@@ -644,9 +645,8 @@ export function calculateCFGLayout(
   });
 }
 
-// Custom Group Node Component
 export function CustomGroupNode({ data }: NodeProps) {
-  const { label, isCollapsed, onToggleCollapse } = data;
+  const { label, isCollapsed, onToggleCollapse } = data as any;
 
   const ChevronIcon = ({ direction = 'down' }: { direction: 'down' | 'right' }) => (
     <svg
@@ -677,7 +677,9 @@ export function CustomGroupNode({ data }: NodeProps) {
       <>
         <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
         <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-        <div
+        <motion.div
+          layout
+          transition={{ type: 'spring', stiffness: 420, damping: 35 }}
           style={{
             width: dynamicWidth,
             height: '100%',
@@ -697,42 +699,39 @@ export function CustomGroupNode({ data }: NodeProps) {
         >
           <ChevronIcon direction="right" />
           <span>{label}</span>
-        </div>
+        </motion.div>
       </>
     );
   }
 
+  // Expanded header inside group top area
   return (
     <>
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-      <div
+      <motion.div
+        layout
+        transition={{ type: 'spring', stiffness: 420, damping: 35 }}
         style={{
           position: 'absolute',
-          top: -32,
-          left: 0,
-          width: dynamicWidth,
+          top: 4,
+          left: 4,
           fontWeight: 600,
           fontSize: 13,
           color: '#444',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          height: 32,
+          gap: 6,
+          cursor: 'pointer',
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleCollapse();
         }}
       >
-        <span
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleCollapse();
-          }}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          <ChevronIcon direction="down" />
-        </span>
-        <span>{label}</span>
-      </div>
+        <ChevronIcon direction="down" />
+        <span style={{ whiteSpace: 'nowrap' }}>{label}</span>
+      </motion.div>
     </>
   );
 }
