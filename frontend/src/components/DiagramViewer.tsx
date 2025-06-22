@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -68,6 +68,12 @@ export default function DiagramViewer() {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set()); // 빈 Set으로 시작
   const [fadeOpacity, setFadeOpacity] = useState(60); // 음영 처리 투명도 (0-100)
 
+  // 최신 nodes를 참조하기 위한 ref (toggleCollapse가 안정적이게 유지)
+  const nodesRef = useRef<Node[]>([]);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
   // 전역에서 하이라이트 노드를 업데이트할 수 있도록 함수 노출
   useEffect(() => {
     (window as any).updateHighlightedNodes = (nodeIds: string[], opacity: number = 60) => {
@@ -116,10 +122,33 @@ export default function DiagramViewer() {
   const activePath = editorState.tabs.find(t => t.id === editorState.activeId)?.path ?? '';
 
   // Handlers
+  // 그룹 노드 토글: 펼칠 때 하위 그룹은 모두 접힌 상태로 유지
   const toggleCollapse = useCallback((groupId: string) => {
     setCollapsedGroups(prev => {
       const newSet = new Set(prev);
-      newSet.has(groupId) ? newSet.delete(groupId) : newSet.add(groupId);
+      const isCurrentlyCollapsed = newSet.has(groupId);
+
+      if (isCurrentlyCollapsed) {
+        // --- Expand ---
+        newSet.delete(groupId);
+
+        // collapse all descendant groups
+        nodesRef.current.forEach(n => {
+          if (n.type !== 'group') return;
+          let curParent = n.parentId;
+          while (curParent) {
+            if (curParent === groupId) {
+              newSet.add(n.id);
+              break;
+            }
+            const parent = nodesRef.current.find(p => p.id === curParent);
+            curParent = parent?.parentId;
+          }
+        });
+      } else {
+        // --- Collapse ---
+        newSet.add(groupId);
+      }
       return newSet;
     });
   }, []);
@@ -938,7 +967,7 @@ export default function DiagramViewer() {
           borderRadius: 8,
           pointerEvents: 'none',
         },
-        zIndex: 0,
+        zIndex: 10, // file group under folder groups
       });
       
       // Update node positions to be relative to group
@@ -997,7 +1026,8 @@ export default function DiagramViewer() {
         .filter(([childPath]) => childPath.startsWith(folderPath + '/') && childPath.split('/').length === folderPath.split('/').length + 1)
         .map(([, node]) => node);
 
-      const childrenNodes = [...childFileGroups, ...childFolderGroups];
+      // 폴더 그룹(childFolderGroups)이 grid 상에서 먼저(상단) 오도록 순서 변경
+      const childrenNodes = [...childFolderGroups, ...childFileGroups];
       if (childrenNodes.length === 0) return; // nothing inside
 
       // --- Grid layout (up to 3 columns) to reduce vertical length and avoid overlap ---
@@ -1052,7 +1082,7 @@ export default function DiagramViewer() {
           pointerEvents: 'auto',
           overflow: 'visible',
         },
-        zIndex: 20,
+        zIndex: 40, // folder group above file groups
       } as Node;
 
       // Adjust children positions with absolute offset
@@ -1155,7 +1185,8 @@ export default function DiagramViewer() {
       const sourceRep = findRepresentativeNode(e.source, collapsedGroups, nodes);
       const targetRep = findRepresentativeNode(e.target, collapsedGroups, nodes);
       
-      if (sourceRep === targetRep && collapsedGroups.has(sourceRep)) {
+      // Skip self-edges within a collapsed group, but do not hide other edges
+      if (sourceRep === targetRep) {
         return { ...e, hidden: true };
       }
       
@@ -1241,6 +1272,7 @@ export default function DiagramViewer() {
 
   // Process nodes for styling
   const finalNodes = useMemo(() => {
+    // 숨김 여부만 설정하고 모든 노드를 그대로 전달해야 Edge 단절이 발생하지 않음
     return nodes.map(n => {
       const cleanPath = cleanFilePath((n.data as any)?.file || '', TARGET_FOLDER);
       const isActive = cleanPath === activePath;
@@ -1249,7 +1281,7 @@ export default function DiagramViewer() {
       const isNodeHighlighted = highlightedNodeIds.has(n.id);
       const isGroup = n.type === 'group';
       const isCollapsed = isGroup && collapsedGroups.has(n.id);
-      const isHidden = (isNodeHidden(n.id, collapsedGroups, nodes) && !(isGroup && collapsedGroups.has(n.id)));
+      const isHidden = isNodeHidden(n.id, collapsedGroups, nodes);
       
       // 하이라이트 모드에서 음영 처리 여부 결정
       // 그룹 노드의 경우: 그룹에 속한 자식 노드 중 하이라이트된 노드가 있는지 확인
