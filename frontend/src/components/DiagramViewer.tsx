@@ -39,6 +39,7 @@ import {
   calculateCFGLayout, // 추가
 } from './diagramUtils';
 import { getApiUrl, getTargetFolder } from '@/utils/config';
+import type { CSSProperties } from 'react';
 
 // Constants
 let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null = null;
@@ -634,7 +635,7 @@ export default function DiagramViewer() {
         }
         
         // 노드 타입에 따른 스타일 설정
-        let nodeStyle = {
+        let nodeStyle: CSSProperties = {
           padding: '6px 8px',
           borderRadius: 4,
           width: nodeWidths[n.id],
@@ -657,7 +658,7 @@ export default function DiagramViewer() {
             justifyContent: 'center',
             textAlign: 'center',
             // 크기는 calculateLayoutWithClasses에서 동적으로 계산됨
-          };
+          } as CSSProperties;
         } else if (isMethod) {
           nodeStyle = {
             ...nodeStyle,
@@ -668,7 +669,7 @@ export default function DiagramViewer() {
             alignItems: 'flex-start',
             justifyContent: 'center',
             textAlign: 'center',
-          };
+          } as CSSProperties;
         } else {
           nodeStyle = {
             ...nodeStyle,
@@ -678,7 +679,7 @@ export default function DiagramViewer() {
             alignItems: 'flex-start',
             justifyContent: 'center',
             textAlign: 'center',
-          };
+          } as CSSProperties;
         }
 
         return {
@@ -720,7 +721,7 @@ export default function DiagramViewer() {
           style: nodeStyle,
           zIndex: isMethod ? 10 : isClass ? 1 : 5, // 메소드가 가장 위, 클래스가 가장 아래
           parentId, // 메소드인 경우 클래스 ID 설정
-          extent: parentId ? 'parent' : undefined, // 부모 노드 내부로 제한
+          extent: parentId ? ('parent' as 'parent') : undefined, // 부모 노드 내부로 제한
         };
       });
       
@@ -735,7 +736,7 @@ export default function DiagramViewer() {
       .map(e => {
         // 엣지 타입에 따른 색상 결정
         const edgeType = e.edge_type || 'function_call';
-        let edgeColor = STYLES.COLORS.EDGE.DEFAULT;
+        let edgeColor: string = STYLES.COLORS.EDGE.DEFAULT;
         let strokeDasharray = undefined;
         
         switch (edgeType) {
@@ -793,7 +794,7 @@ export default function DiagramViewer() {
         ...n,
         position: layoutInfo ?? { x: 0, y: 0 },
         style: nodeStyle,
-      };
+      } as Node;
     });
 
     // Create groups with overlap prevention
@@ -1178,7 +1179,7 @@ export default function DiagramViewer() {
       
       // 엣지 타입에 따른 기본 색상 결정
       const edgeType = finalEdge.data?.edge_type || 'function_call';
-      let baseColor = STYLES.COLORS.EDGE.DEFAULT;
+      let baseColor: string = STYLES.COLORS.EDGE.DEFAULT;
       
       switch (edgeType) {
         case 'instantiation':
@@ -1217,7 +1218,7 @@ export default function DiagramViewer() {
           width: 15,
           height: 15,
           color: finalColor,
-          ...(finalEdge.markerEnd || {}),
+          ...(finalEdge.markerEnd as any || {}),
         },
         zIndex: isRedirected ? 10001 : 10000,
       };
@@ -1275,8 +1276,8 @@ export default function DiagramViewer() {
       const isMethod = nodeType === 'method';
 
       // 노드 타입에 따른 배경색 및 테두리 색상 결정
-      let backgroundColor = STYLES.COLORS.NODE.DEFAULT;
-      let borderColor = STYLES.COLORS.NODE.BORDER;
+      let backgroundColor: string = STYLES.COLORS.NODE.DEFAULT;
+      let borderColor: string = STYLES.COLORS.NODE.BORDER;
 
       if (isGroup) {
         backgroundColor = isCollapsed 
@@ -1322,43 +1323,45 @@ export default function DiagramViewer() {
                 : STYLES.COLORS.NODE.DEFAULT;
       }
 
+      const styledNode: CSSProperties = {
+        ...n.style,
+        background: backgroundColor,
+        // --- 안정적 그룹 테두리: 폭 고정 2px -------------
+        border: isGroup
+          ? `2px solid ${isCollapsed ? STYLES.COLORS.GROUP.BORDER_COLLAPSED : STYLES.COLORS.GROUP.BORDER}`
+          : isSelected
+            ? `2px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
+            : `1px solid ${borderColor}`,
+        // Hover / Active 하이라이트는 box-shadow 로, 레이아웃 영향 無
+        boxShadow: isGroup && (isHover || isActive) ? `0 0 0 3px ${STYLES.COLORS.NODE.BORDER_HOVER}` : undefined,
+        // Smoothly animate size and position changes (e.g., group collapse / expand)
+        transition: 'box-shadow 0.15s, background 0.1s, width 0.2s ease, height 0.2s ease, transform 0.2s ease',
+        // --- 크기 스케일 적용 (그룹 노드 제외) -----------------------
+        minWidth: isGroup ? (isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : undefined) : (n.style?.width as number),
+        width: isGroup && isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : n.style?.width,
+        height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : ((n.style?.height as number) || STYLES.NODE.HEIGHT.DEFAULT),
+        padding: '2px 6px 4px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        cursor: isGroup && isCollapsed ? 'pointer' : shouldFadeNode ? 'default' : 'default',
+        opacity,
+        pointerEvents: shouldFadeNode ? ('none' as const) : ('auto' as const),
+      } as CSSProperties;
+
       return {
         ...n,
         type: isGroup ? 'group' : (n.type || 'default'),
         hidden: isHidden,
-        style: {
-          ...n.style,
-          background: backgroundColor,
-          // --- 안정적 그룹 테두리: 폭 고정 2px -------------
-          border: isGroup
-            ? `2px solid ${isCollapsed ? STYLES.COLORS.GROUP.BORDER_COLLAPSED : STYLES.COLORS.GROUP.BORDER}`
-            : isSelected
-              ? `2px solid ${STYLES.COLORS.NODE.BORDER_SELECTED}`
-              : `1px solid ${borderColor}`,
-          // Hover / Active 하이라이트는 box-shadow 로, 레이아웃 영향 無
-          boxShadow: isGroup && (isHover || isActive) ? `0 0 0 3px ${STYLES.COLORS.NODE.BORDER_HOVER}` : undefined,
-          // Smoothly animate size and position changes (e.g., group collapse / expand)
-          transition: 'box-shadow 0.15s, background 0.1s, width 0.2s ease, height 0.2s ease, transform 0.2s ease',
-          // --- 크기 스케일 적용 (그룹 노드 제외) -----------------------
-          minWidth: isGroup ? (isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : undefined) : (n.style?.width as number),
-          width: isGroup && isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : n.style?.width,
-          height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : ((n.style?.height as number) || STYLES.NODE.HEIGHT.DEFAULT),
-          padding: '2px 6px 4px',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          cursor: isGroup && isCollapsed ? 'pointer' : shouldFadeNode ? 'default' : 'default',
-          opacity,
-          pointerEvents: shouldFadeNode ? 'none' : 'auto', // 음영 처리된 노드는 상호작용 불가
-        },
+        style: styledNode,
         data: isGroup
           ? {
-              ...n.data,
+              ...(n.data as any),
               isCollapsed,
               onToggleCollapse: () => toggleCollapse(n.id),
             }
           : n.data,
-      };
+      } as Node;
     });
   }, [nodes, activePath, hoverId, selectedNodeId, collapsedGroups, toggleCollapse, highlightedNodeIds, fadeOpacity]);
 
@@ -1490,7 +1493,7 @@ export default function DiagramViewer() {
           color="#e2e8f0" 
           gap={20} 
           size={1}
-          variant="dots"
+          variant={"dots" as any}
           style={{ opacity: 0.4 }}
         />
         
@@ -1938,7 +1941,7 @@ function CFGPanelComponent({
                   onClearMessage();
                 }}
               >
-                <Background variant="dots" gap={16} size={1} />
+                <Background variant={"dots" as any} gap={16} size={1} />
                 <Controls showInteractive={false} />
               </ReactFlow>
             </div>

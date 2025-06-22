@@ -81,6 +81,9 @@ export const STYLES = {
   },
 } as const;
 
+// Global diagram scale factor to compress overall distances (0 < SCALE <= 1)
+const GLOBAL_SCALE = 0.65; // 65% of original spacing to shorten edges
+
 // Types
 export interface RawNode {
   id: string;
@@ -196,23 +199,23 @@ export function calculateLayoutWithClasses(
   const LAYOUT_CONFIG = {
     CENTER_X: 400,          // 중심점 X 좌표
     CENTER_Y: 400,          // 중심점 Y 좌표
-    FILE_RADIUS: 250,       // Reduced from 350 to 250 - 파일들이 중심에서 떨어진 거리
-    FILE_AREA_WIDTH: 450,   // Reduced from 600 to 450 - 각 파일 영역의 너비
-    FILE_AREA_HEIGHT: 350,  // Reduced from 500 to 350 - 각 파일 영역의 높이
-    CLASS_SPACING: 60,      // Reduced from 80 to 60 - 클래스 간격
-    METHOD_SPACING_X: 15,   // Reduced from 20 to 15 - 메소드 좌우 간격
-    METHOD_SPACING_Y: 25,   // Reduced from 35 to 25 - 메소드 상하 간격
-    FUNCTION_SPACING: 50,   // Reduced from 70 to 50 - 일반 함수 간격
-    CLASS_PADDING: {        // 클래스 내부 패딩
-      TOP: 40,    // Reduced from 50 to 40
-      BOTTOM: 20, // Reduced from 25 to 20
-      LEFT: 20,   // Reduced from 25 to 20
-      RIGHT: 20,  // Reduced from 25 to 20
+    FILE_RADIUS: 180,       // Further reduced to cluster files closer to center
+    FILE_AREA_WIDTH: 320,   // Narrower file area to shorten intra-file edges
+    FILE_AREA_HEIGHT: 250,  // Narrower file area height
+    CLASS_SPACING: 40,      // Closer spacing between classes
+    METHOD_SPACING_X: 10,   // Tighter horizontal spacing for methods
+    METHOD_SPACING_Y: 15,   // Tighter vertical spacing for methods
+    FUNCTION_SPACING: 30,   // Closer spacing for standalone functions
+    CLASS_PADDING: {        // Slightly smaller padding inside class boxes
+      TOP: 30,
+      BOTTOM: 15,
+      LEFT: 15,
+      RIGHT: 15,
     },
-    METHOD_WIDTH: 120,      // Reduced from 140 to 120 - 메소드 노드 너비
-    METHOD_HEIGHT: 28,      // Reduced from 30 to 28 - 메소드 노드 높이
-    CLASS_MIN_WIDTH: 180,   // Reduced from 200 to 180 - 클래스 최소 너비
-    CLASS_MIN_HEIGHT: 80,   // Reduced from 100 to 80 - 클래스 최소 높이
+    METHOD_WIDTH: 110,      // Slightly narrower method node width
+    METHOD_HEIGHT: 24,      // Slightly shorter method node height
+    CLASS_MIN_WIDTH: 160,   // Slightly narrower class min width
+    CLASS_MIN_HEIGHT: 70,   // Slightly shorter class min height
   };
 
   const fileEntries = Object.entries(files);
@@ -363,6 +366,12 @@ export function calculateLayoutWithClasses(
     Object.keys(positions).forEach(id => {
       positions[id].x -= centerOffsetX;
       positions[id].y -= centerOffsetY;
+
+      // Apply global scale around (200,200) + offset (keeping file grouping roughly same center)
+      const scaleCenterX = 200;
+      const scaleCenterY = 200;
+      positions[id].x = scaleCenterX + (positions[id].x - scaleCenterX) * GLOBAL_SCALE;
+      positions[id].y = scaleCenterY + (positions[id].y - scaleCenterY) * GLOBAL_SCALE;
     });
   }
 
@@ -379,14 +388,14 @@ export function calculateLayout(
   
   // 더 컴팩트한 레이아웃 설정
   const LAYOUT_CONFIG = {
-    HORIZONTAL_SPACING: 120,     // Reduced from 150 to 120
-    VERTICAL_SPACING: 40,        // Reduced from 60 to 40
-    LEVEL_RADIUS_INCREMENT: 30,  // Reduced from 40 to 30
-    INITIAL_RADIUS: 40,          // Reduced from 50 to 40
-    SIBLING_ANGLE_SPREAD: Math.PI * 0.12, // Reduced from 0.15 to 0.12
-    FILE_SPACING_X: 350,         // Reduced from 450 to 350
-    FILE_SPACING_Y: 300,         // Reduced from 400 to 300
-    GROUP_MIN_DISTANCE: 250,     // Reduced from 300 to 250
+    HORIZONTAL_SPACING: 90,      // Bring sibling nodes closer horizontally
+    VERTICAL_SPACING: 30,        // Bring sibling nodes closer vertically
+    LEVEL_RADIUS_INCREMENT: 24,  // Smaller radial increment between levels
+    INITIAL_RADIUS: 30,          // Initial radius closer to parent
+    SIBLING_ANGLE_SPREAD: Math.PI * 0.1,  // Narrower angle spread
+    FILE_SPACING_X: 280,         // Reduce distance between file groups horizontally
+    FILE_SPACING_Y: 240,         // Reduce distance between file groups vertically
+    GROUP_MIN_DISTANCE: 200,     // Allow groups to be placed nearer while avoiding overlap
   };
   
   // 그룹 노드 충돌 감지 함수 (더 큰 여백 포함)
@@ -603,6 +612,12 @@ export function calculateLayout(
   Object.keys(positions).forEach(id => {
     positions[id].x -= centerX - 400;
     positions[id].y -= centerY - 400;
+
+    // Apply global scale around (200,200) + offset (keeping file grouping roughly same center)
+    const scaleCenterX = 200;
+    const scaleCenterY = 200;
+    positions[id].x = scaleCenterX + (positions[id].x - scaleCenterX) * GLOBAL_SCALE;
+    positions[id].y = scaleCenterY + (positions[id].y - scaleCenterY) * GLOBAL_SCALE;
   });
   
   return positions;
