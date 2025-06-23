@@ -483,22 +483,29 @@ export function calculateLayoutWithClasses(
         height: classHeight
       };
       
-      // 해당 클래스의 메소드들을 클래스 내부에 그리드로 배치 (이전 방식)
-      methods.forEach((method, methodIndex) => {
-        const row = Math.floor(methodIndex / methodsPerRow);
-        const col = methodIndex % methodsPerRow;
-        
-        const methodX = classX + LAYOUT_CONFIG.CLASS_PADDING.LEFT + 10 + 
-                       col * (LAYOUT_CONFIG.METHOD_SPACING_X);
-        const methodY = classY + LAYOUT_CONFIG.CLASS_PADDING.TOP + 10 + 
-                       row * (LAYOUT_CONFIG.METHOD_HEIGHT + LAYOUT_CONFIG.METHOD_SPACING_Y);
-        
-        positions[method.id] = {
-          x: methodX,
-          y: methodY,
-          width: nodeWidths[method.id] + LAYOUT_RULES.NODE_PADDING_X * 2,
-          height: LAYOUT_CONFIG.METHOD_HEIGHT,
-        };
+      // --- 메소드 배치 : 가변 폭 누적 방식 -----------------------------
+      const startX = classX;
+      const startY = classY + LAYOUT_CONFIG.CLASS_PADDING.TOP-10;
+      let curX = startX;
+      let curY = startY;
+      let rowMaxH = 0;
+      let colCount = 0;
+      methods.forEach(method => {
+        const w = nodeWidths[method.id] + LAYOUT_RULES.NODE_PADDING_X * 2;
+        const h = LAYOUT_CONFIG.METHOD_HEIGHT;
+
+        if (colCount >= methodsPerRow) { // 줄바꿈
+          curX = startX;
+          curY += rowMaxH + LAYOUT_CONFIG.METHOD_SPACING_Y;
+          rowMaxH = 0;
+          colCount = 0;
+        }
+
+        positions[method.id] = { x: curX, y: curY, width: w, height: h };
+
+        curX += w + LAYOUT_CONFIG.METHOD_SPACING_X;
+        rowMaxH = Math.max(rowMaxH, h);
+        colCount++;
       });
       
       // 다음 클래스들을 위한 currentY 업데이트
@@ -889,13 +896,17 @@ export function CustomNode({ data }: NodeProps) {
         >
           {getIcon()}
         </div>
-        <span style={{ 
-          marginLeft: 18, // 아이콘 공간 확보
-          fontSize: 'inherit',
-          fontWeight: 'inherit',
-          whiteSpace: 'nowrap',
-          overflow: 'visible'
-        }}>
+        <span
+          style={{
+            marginLeft: 18,
+            top: 1,
+            position: 'absolute',
+            fontSize: 'inherit',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            overflow: 'visible',
+          }}
+        >
           {label}
         </span>
       </div>
@@ -1021,5 +1032,5 @@ export function calculateNodeWidth(label: string): number {
   const textWidth = getTextWidth(label);
   const iconExtra = 22; // 16 icon + 6 gap
   const width = textWidth + (iconExtra + LAYOUT_RULES.NODE_PADDING_X) * 1.5;
-  return Math.max(100, width); // 100px 을 안전 최소 폭으로 사용
+  return Math.max(140, width); // 100px 을 안전 최소 폭으로 사용
 }
