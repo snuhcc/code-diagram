@@ -247,8 +247,16 @@ export const STYLES = {
   },
 } as const;
 
+
+export const LAYOUT_RULES = {
+  NODE_PADDING_X: 20,  // 텍스트 좌우 여백
+  NODE_PADDING_Y: 8,   // 텍스트 상하 여백
+  MIN_GAP: 50,         // 노드 간 최소 거리(px)
+  MAX_GAP: 300,        // 노드 간 최대 허용 거리(px) – 레이아웃 압축 시 사용
+} as const;
+
 // Global diagram scale factor to compress overall distances (0 < SCALE <= 1)
-const GLOBAL_SCALE = 0.65; // 65% of original spacing to shorten edges
+const GLOBAL_SCALE = 1; // 65% of original spacing to shorten edges
 
 // Types
 export interface RawNode {
@@ -362,27 +370,31 @@ export function calculateLayoutWithClasses(
 ): Record<string, { x: number; y: number; width?: number; height?: number }> {
   const positions: Record<string, { x: number; y: number; width?: number; height?: number }> = {};
   
+  // 단순화된 레이아웃 파라미터 – LAYOUT_RULES 로부터 파생
   const LAYOUT_CONFIG = {
-    CENTER_X: 400,          // 중심점 X 좌표
-    CENTER_Y: 400,          // 중심점 Y 좌표
-    FILE_RADIUS: 180,       // Further reduced to cluster files closer to center
-    FILE_AREA_WIDTH: 320,   // Narrower file area to shorten intra-file edges
-    FILE_AREA_HEIGHT: 250,  // Narrower file area height
-    CLASS_SPACING: 40,      // Closer spacing between classes
-    METHOD_SPACING_X: 10,   // Tighter horizontal spacing for methods
-    METHOD_SPACING_Y: 15,   // Tighter vertical spacing for methods
-    FUNCTION_SPACING_X: 30, // Horizontal gap between standalone functions
-    FUNCTION_SPACING_Y: 50, // Vertical gap (must be >= node height to avoid overlap)
-    CLASS_PADDING: {        // Slightly smaller padding inside class boxes
-      TOP: 30,
-      BOTTOM: 15,
-      LEFT: 15,
-      RIGHT: 15,
+    CENTER_X: 1,
+    CENTER_Y: 1,
+    FILE_RADIUS: 160, // 파일 그룹이 퍼지는 반지름 – 노드 간 MAX_GAP 을 고려해 소폭 감소
+    FILE_AREA_WIDTH: 10 * (LAYOUT_RULES.MAX_GAP),
+    FILE_AREA_HEIGHT: 10 * (LAYOUT_RULES.MAX_GAP),
+
+    CLASS_SPACING: LAYOUT_RULES.MIN_GAP,
+    METHOD_SPACING_X: LAYOUT_RULES.MIN_GAP / 2,
+    METHOD_SPACING_Y: LAYOUT_RULES.MIN_GAP / 2,
+
+    FUNCTION_SPACING_X: LAYOUT_RULES.MIN_GAP,
+    FUNCTION_SPACING_Y: LAYOUT_RULES.MIN_GAP,
+
+    CLASS_PADDING: {
+      TOP: 24,
+      BOTTOM: 12,
+      LEFT: 16,
+      RIGHT: 16,
     },
-    METHOD_WIDTH: 110,      // Slightly narrower method node width
-    METHOD_HEIGHT: 24,      // Slightly shorter method node height
-    CLASS_MIN_WIDTH: 160,   // Slightly narrower class min width
-    CLASS_MIN_HEIGHT: 70,   // Slightly shorter class min height
+
+    // 메소드/클래스 최소 크기는 텍스트 폭 + 패딩으로 동적으로 계산하므로 기본값만 남김
+    METHOD_HEIGHT: 24,
+    CLASS_MIN_HEIGHT: 70,
   };
 
   const fileEntries = Object.entries(files);
@@ -439,13 +451,13 @@ export function calculateLayoutWithClasses(
       const methodsPerRow = Math.min(3, Math.max(1, Math.ceil(Math.sqrt(methodCount))));
       const methodRows = Math.ceil(methodCount / methodsPerRow);
       
-      // 클래스 크기 계산
+      // 클래스 크기 계산 – 메소드 한 줄 폭 + 패딩, 글씨 길이에 따라 자동 확장
+      const methodBoxWidth = nodeWidths[classNode.id] + LAYOUT_RULES.NODE_PADDING_X * 2;
       const classWidth = Math.max(
-        LAYOUT_CONFIG.CLASS_MIN_WIDTH,
-        methodsPerRow * LAYOUT_CONFIG.METHOD_WIDTH + 
-        (methodsPerRow - 1) * LAYOUT_CONFIG.METHOD_SPACING_X + 
-        LAYOUT_CONFIG.CLASS_PADDING.LEFT + LAYOUT_CONFIG.CLASS_PADDING.RIGHT + 40
-      );
+        methodBoxWidth,
+        methodsPerRow * methodBoxWidth +
+        (methodsPerRow - 1) * LAYOUT_CONFIG.METHOD_SPACING_X
+      ) + LAYOUT_CONFIG.CLASS_PADDING.LEFT + LAYOUT_CONFIG.CLASS_PADDING.RIGHT;
       
       const classHeight = Math.max(
         LAYOUT_CONFIG.CLASS_MIN_HEIGHT,
@@ -477,15 +489,15 @@ export function calculateLayoutWithClasses(
         const col = methodIndex % methodsPerRow;
         
         const methodX = classX + LAYOUT_CONFIG.CLASS_PADDING.LEFT + 10 + 
-                       col * (LAYOUT_CONFIG.METHOD_WIDTH + LAYOUT_CONFIG.METHOD_SPACING_X);
+                       col * (LAYOUT_CONFIG.METHOD_SPACING_X);
         const methodY = classY + LAYOUT_CONFIG.CLASS_PADDING.TOP + 10 + 
                        row * (LAYOUT_CONFIG.METHOD_HEIGHT + LAYOUT_CONFIG.METHOD_SPACING_Y);
         
-        positions[method.id] = { 
-          x: methodX, 
+        positions[method.id] = {
+          x: methodX,
           y: methodY,
-          width: LAYOUT_CONFIG.METHOD_WIDTH,
-          height: LAYOUT_CONFIG.METHOD_HEIGHT
+          width: nodeWidths[method.id] + LAYOUT_RULES.NODE_PADDING_X * 2,
+          height: LAYOUT_CONFIG.METHOD_HEIGHT,
         };
       });
       
@@ -511,7 +523,7 @@ export function calculateLayoutWithClasses(
         const funcX = fileAreaStartX + funcCol * cellWidth;
         const funcY = currentY + funcRow * LAYOUT_CONFIG.FUNCTION_SPACING_Y;
 
-        const funcWidth = nodeWidths[funcNode.id] || 150;
+        const funcWidth = nodeWidths[funcNode.id] + LAYOUT_RULES.NODE_PADDING_X * 2;
 
         positions[funcNode.id] = {
           x: funcX,
@@ -882,8 +894,7 @@ export function CustomNode({ data }: NodeProps) {
           fontSize: 'inherit',
           fontWeight: 'inherit',
           whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          overflow: 'visible'
         }}>
           {label}
         </span>
@@ -921,7 +932,7 @@ export function CustomGroupNode({ data }: NodeProps) {
 
   // 그룹 노드 width를 label 크기에 맞게 동적으로 계산
   // 아이콘과 패딩을 고려하여 추가 공간 확보
-  const dynamicWidth = calculateNodeWidth(label) + 60; // 아이콘과 추가 패딩 공간
+  const dynamicWidth = calculateNodeWidth(label) + 60; // 아이콘·패딩 여유
 
   if (isCollapsed) {
     return (
@@ -1008,6 +1019,7 @@ export function cleanFilePath(path: string, targetFolder?: string): string {
 
 export function calculateNodeWidth(label: string): number {
   const textWidth = getTextWidth(label);
-  // 아이콘 공간을 고려하여 추가 패딩 적용 (아이콘 16px + 간격 6px + 기존 패딩)
-  return Math.max(STYLES.NODE.MIN_WIDTH, textWidth + STYLES.NODE.PADDING + 22);
+  const iconExtra = 22; // 16 icon + 6 gap
+  const width = textWidth + (iconExtra + LAYOUT_RULES.NODE_PADDING_X) * 1.5;
+  return Math.max(100, width); // 100px 을 안전 최소 폭으로 사용
 }

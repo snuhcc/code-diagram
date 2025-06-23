@@ -38,6 +38,7 @@ import {
   calculateNodeWidth,
   ENDPOINTS,
   STYLES,
+  LAYOUT_RULES,
   calculateCFGLayout, // 추가
 } from './diagramUtils';
 import { getApiUrl, getTargetFolder } from '@/utils/config';
@@ -687,7 +688,12 @@ export default function DiagramViewer() {
       });
 
       // 모든 노드 생성
-      const allNodes = [...classNodes, ...methodNodes, ...functionNodes].map(n => {
+      const allNodesRaw = [...classNodes, ...methodNodes, ...functionNodes];
+      const allNodes: any[] = [];
+      allNodesRaw.forEach(n => {
+        // 중복 ID 방지 – 이미 추가된 노드는 건너뜀
+        if (allFunctionNodes.some(existing => existing.id === n.id)) return;
+
         const nodeType = n.node_type || 'function';
         const isClass = nodeType === 'class';
         const isMethod = nodeType === 'method';
@@ -751,7 +757,7 @@ export default function DiagramViewer() {
           } as CSSProperties;
         }
 
-        return {
+        allNodes.push({
           id: n.id,
           type: 'customNode', // 커스텀 노드 타입 사용
           data: { 
@@ -792,7 +798,7 @@ export default function DiagramViewer() {
           zIndex: isMethod ? 10 : isClass ? 1 : 5, // 메소드가 가장 위, 클래스가 가장 아래
           parentId, // 메소드인 경우 클래스 ID 설정
           extent: parentId ? ('parent' as 'parent') : undefined, // 부모 노드 내부로 제한
-        };
+        });
       });
       
       allFunctionNodes = allFunctionNodes.concat(allNodes);
@@ -885,8 +891,8 @@ export default function DiagramViewer() {
       
       const xs = nodesInGroup.map(n => n.position.x);
       const ys = nodesInGroup.map(n => n.position.y);
-      const widths = nodesInGroup.map(n => (n.style?.width as number) || STYLES.NODE.MIN_WIDTH);
-      const heights = nodesInGroup.map(n => (n.style?.height as number) || STYLES.NODE.HEIGHT.DEFAULT);
+      const widths = nodesInGroup.map(n => (n.style?.width as number) || 120);
+      const heights = nodesInGroup.map(n => (n.style?.height as number) || (LAYOUT_RULES.NODE_PADDING_Y * 2 + 16));
       
       const minX = Math.min(...xs);
       const minY = Math.min(...ys);
@@ -1417,7 +1423,7 @@ export default function DiagramViewer() {
         // --- 크기 스케일 적용 (그룹 노드 제외) -----------------------
         minWidth: isGroup ? (isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : undefined) : (n.style?.width as number),
         width: isGroup && isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : n.style?.width,
-        height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : ((n.style?.height as number) || STYLES.NODE.HEIGHT.DEFAULT),
+        height: isGroup && isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : ((n.style?.height as number) || (LAYOUT_RULES.NODE_PADDING_Y * 2 + 16)),
         padding: '2px 6px 4px',
         whiteSpace: 'nowrap',
         overflow: 'hidden',
