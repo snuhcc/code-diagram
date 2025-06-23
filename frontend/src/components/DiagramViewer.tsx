@@ -49,6 +49,13 @@ let diagramCache: Record<string, { nodes: RawNode[]; edges: RawEdge[] }> | null 
 const apiUrl = getApiUrl();
 const TARGET_FOLDER = getTargetFolder();
 
+// --- Types for internal layout index ---
+interface CachedGroup {
+  id: string;
+  parentId?: string;
+  children: string[]; // immediate child node ids (groups or leaf)
+}
+
 export default function DiagramViewer() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -74,6 +81,9 @@ export default function DiagramViewer() {
 
   // 최신 nodes를 참조하기 위한 ref (toggleCollapse가 안정적이게 유지)
   const nodesRef = useRef<Node[]>([]);
+  // fast lookup refs
+  const nodeMapRef = useRef<Map<string, Node>>(new Map());
+  const groupIdxRef = useRef<Map<string, CachedGroup>>(new Map());
   const hydrateRef = useRef<any>(null);
   useEffect(() => {
     nodesRef.current = nodes;
@@ -130,34 +140,13 @@ export default function DiagramViewer() {
   // 그룹 노드 토글: 펼칠 때 하위 그룹은 모두 접힌 상태로 유지 & 레이아웃 재계산
   const toggleCollapse = useCallback((groupId: string) => {
     setCollapsedGroups(prev => {
-      const newSet = new Set(prev);
-      const isCurrentlyCollapsed = newSet.has(groupId);
+      const next = new Set(prev);
+      next.has(groupId) ? next.delete(groupId) : next.add(groupId);
 
-      if (isCurrentlyCollapsed) {
-        // --- Expand ---
-        newSet.delete(groupId);
-
-        // collapse all descendant groups
-        nodesRef.current.forEach(n => {
-          if (n.type !== 'group') return;
-          let curParent = n.parentId;
-          while (curParent) {
-            if (curParent === groupId) {
-              newSet.add(n.id);
-              break;
-            }
-            const parent = nodesRef.current.find(p => p.id === curParent);
-            curParent = parent?.parentId;
-          }
-        });
-      } else {
-        // --- Collapse ---
-        newSet.add(groupId);
-      }
-
-      // 레이아웃 재계산은 collapsedGroups useEffect에서 처리됩니다.
-
-      return newSet;
+      // partial relayout
+      relayoutGroup(groupId, next);
+      setNodes(Array.from(nodeMapRef.current.values()));
+      return next;
     });
   }, []);
 
@@ -1185,6 +1174,22 @@ export default function DiagramViewer() {
     setNodes([...allGroupNodes, ...laidOutNodes]);
     setEdges(allEdges);
 
+    // ---------- build quick indexes -------------
+    const map = new Map<string, Node>();
+    [...allGroupNodes, ...laidOutNodes].forEach(n => map.set(n.id, n));
+    nodeMapRef.current = map;
+    const gIdx = new Map<string, CachedGroup>();
+    [...allGroupNodes].forEach(g => {
+      gIdx.set(g.id, { id: g.id, parentId: g.parentId, children: [] });
+    });
+    [...allGroupNodes, ...laidOutNodes].forEach(n => {
+      if (n.parentId) {
+        const pg = gIdx.get(n.parentId);
+        if (pg) pg.children.push(n.id);
+      }
+    });
+    groupIdxRef.current = gIdx;
+
     // --- 초기 상태: 모든 그룹 노드를 접힌(collapse) 상태로 ---
     const initialCollapsedIds = allGroupNodes.map(g => g.id);
     setCollapsedGroups(new Set(initialCollapsedIds));
@@ -1497,6 +1502,37 @@ export default function DiagramViewer() {
       hydrateRef.current?.(diagramCache, collapsedGroups);
     }
   }, [collapsedGroups, diagramReady]);
+
+  // ----- Helpers must be defined BEFORE they are captured in toggleCollapse ----
+
+  const layoutChildren = useCallback((groupId: string, collapsed: Set<string>) => {
+    const group = groupIdxRef.current.get(groupId);
+    if (!group) return { w: 120, h: 80 };
+    const children = group.children.map(id => nodeMapRef.current.get(id)).filter(Boolean) as Node[];
+    const MAX_COLS = 3, spacingX = 80, spacingY = 80, gp = 40, headerH = 32;
+    let cx = gp, cy = gp + headerH, rowH = 0, col = 0, maxRight = 0, maxBottom = 0;
+    children.forEach(c => {
+      const isCol = collapsed.has(c.id);
+      const w = isCol ? calculateNodeWidth((c.data as any)?.label || '') + 80 : ((c.style?.width as number) || 120);
+      const h = isCol ? STYLES.GROUP.COLLAPSED_HEIGHT : ((c.style?.height as number) || 80);
+      if (col >= MAX_COLS) { cx = gp; cy += rowH + spacingY; rowH = 0; col = 0; }
+      c.position = { x: cx, y: cy };
+      cx += w + spacingX; rowH = Math.max(rowH, h); col++;
+      maxRight = Math.max(maxRight, c.position.x + w);
+      maxBottom = Math.max(maxBottom, c.position.y + h);
+    });
+    return { w: maxRight + gp, h: maxBottom + gp };
+  }, []);
+
+  const relayoutGroup = useCallback((gid: string, collapsed: Set<string>) => {
+    const gNode = nodeMapRef.current.get(gid);
+    if (!gNode) return;
+    const size = layoutChildren(gid, collapsed);
+    gNode.style = { ...gNode.style, width: size.w, height: size.h } as CSSProperties;
+    nodeMapRef.current.set(gid, gNode);
+    const groupInfo = groupIdxRef.current.get(gid);
+    if (groupInfo?.parentId) relayoutGroup(groupInfo.parentId, collapsed);
+  }, [layoutChildren]);
 
   if (!diagramReady) {
     return (
