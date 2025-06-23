@@ -7,6 +7,171 @@ import { motion } from 'framer-motion';
 
 hljs.registerLanguage('python', python);
 
+// Icon components for different node types
+export const NodeIcons = {
+  directory: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+    >
+      <rect
+        x="2"
+        y="4"
+        width="12"
+        height="8"
+        rx="1.5"
+        fill="#fde68a"
+        stroke="#b45309"
+        strokeWidth="0.7"
+      />
+      <path
+        d="M5.5 3h2.38a1.5 1.5 0 0 1 1.06.44l.62.62A1.5 1.5 0 0 0 8.62 5H2V4.5A1.5 1.5 0 0 1 3.5 3h2Z"
+        fill="#fbbf24"
+        stroke="#b45309"
+        strokeWidth="0.7"
+      />
+    </svg>
+  ),
+  file: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 32 32"
+      fill="none"
+    >
+      <rect x="4" y="7" width="24" height="18" rx="6" fill="#3776AB" />
+      <rect x="4" y="7" width="24" height="9" rx="4.5" fill="#FFD43B" />
+      <circle cx="10" cy="12" r="1.5" fill="#222" />
+      <circle cx="22" cy="20" r="1.5" fill="#fff" />
+    </svg>
+  ),
+  class: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+    >
+      <rect
+        x="2"
+        y="3"
+        width="12"
+        height="10"
+        rx="2"
+        fill="#dbeafe"
+        stroke="#1e40af"
+        strokeWidth="0.7"
+      />
+      <rect
+        x="4"
+        y="5"
+        width="8"
+        height="1"
+        rx="0.5"
+        fill="#1e40af"
+      />
+      <rect
+        x="4"
+        y="7"
+        width="6"
+        height="1"
+        rx="0.5"
+        fill="#3b82f6"
+      />
+      <rect
+        x="4"
+        y="9"
+        width="6"
+        height="1"
+        rx="0.5"
+        fill="#3b82f6"
+      />
+      <circle
+        cx="11"
+        cy="8"
+        r="1.5"
+        fill="#1e40af"
+      />
+    </svg>
+  ),
+  function: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+    >
+      <rect
+        x="2"
+        y="4"
+        width="12"
+        height="8"
+        rx="2"
+        fill="#dcfce7"
+        stroke="#166534"
+        strokeWidth="0.7"
+      />
+      <path
+        d="M5 7h6M5 9h4"
+        stroke="#166534"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <circle
+        cx="6"
+        cy="6"
+        r="1"
+        fill="#16a34a"
+      />
+      <path
+        d="M9 6h3"
+        stroke="#16a34a"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </svg>
+  ),
+  method: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+    >
+      <rect
+        x="2"
+        y="4"
+        width="12"
+        height="8"
+        rx="2"
+        fill="#dcfce7"
+        stroke="#166534"
+        strokeWidth="0.7"
+      />
+      <path
+        d="M5 7h6M5 9h4"
+        stroke="#166534"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <circle
+        cx="6"
+        cy="6"
+        r="1"
+        fill="#16a34a"
+      />
+      <path
+        d="M9 6h3"
+        stroke="#16a34a"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+};
+
 // Constants
 export const ENDPOINTS = {
   CG: '/api/generate_call_graph_ast', // AST 기반 호출 그래프 생성
@@ -667,8 +832,72 @@ export function calculateCFGLayout(
   });
 }
 
+// Custom node component for individual nodes (function, class, method)
+export function CustomNode({ data }: NodeProps) {
+  const { label, nodeType = 'function' } = data as any;
+  
+  const getIcon = () => {
+    switch (nodeType) {
+      case 'class':
+        return <NodeIcons.class />;
+      case 'method':
+        return <NodeIcons.method />;
+      case 'function':
+      default:
+        return <NodeIcons.function />;
+    }
+  };
+
+  return (
+    <>
+      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          paddingLeft: 8,
+          position: 'relative',
+        }}
+      >
+        <div 
+          style={{ 
+            position: 'absolute',
+            top: 3,
+            left: 3,
+            color: '#6b7280',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1
+          }}
+        >
+          {getIcon()}
+        </div>
+        <span style={{ 
+          marginLeft: 18, // 아이콘 공간 확보
+          fontSize: 'inherit',
+          fontWeight: 'inherit',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {label}
+        </span>
+      </div>
+    </>
+  );
+}
+
+// Custom group node component for file and directory groups
 export function CustomGroupNode({ data }: NodeProps) {
-  const { label, isCollapsed, onToggleCollapse } = data as any;
+  const { label, isCollapsed, onToggleCollapse, folderPath } = data as any;
+  
+  // 폴더 그룹인지 파일 그룹인지 구분
+  const isFolder = !!folderPath;
 
   const ChevronIcon = ({ direction = 'down' }: { direction: 'down' | 'right' }) => (
     <svg
@@ -690,7 +919,7 @@ export function CustomGroupNode({ data }: NodeProps) {
     </svg>
   );
 
-  // 파일 노드 width를 label 크기에 맞게 동적으로 계산
+  // 그룹 노드 width를 label 크기에 맞게 동적으로 계산
   // 아이콘과 패딩을 고려하여 추가 공간 확보
   const dynamicWidth = calculateNodeWidth(label) + 60; // 아이콘과 추가 패딩 공간
 
@@ -719,7 +948,12 @@ export function CustomGroupNode({ data }: NodeProps) {
             onToggleCollapse();
           }}
         >
-          <ChevronIcon direction="right" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ color: '#6b7280', marginTop: '1px' }}>
+              {isFolder ? <NodeIcons.directory /> : <NodeIcons.file />}
+            </div>
+            <ChevronIcon direction="right" />
+          </div>
           <span>{label}</span>
         </motion.div>
       </>
@@ -751,6 +985,9 @@ export function CustomGroupNode({ data }: NodeProps) {
           onToggleCollapse();
         }}
       >
+        <div style={{ color: '#6b7280', marginTop: '1px' }}>
+          {isFolder ? <NodeIcons.directory /> : <NodeIcons.file />}
+        </div>
         <ChevronIcon direction="down" />
         <span style={{ whiteSpace: 'nowrap' }}>{label}</span>
       </motion.div>
@@ -771,5 +1008,6 @@ export function cleanFilePath(path: string, targetFolder?: string): string {
 
 export function calculateNodeWidth(label: string): number {
   const textWidth = getTextWidth(label);
-  return Math.max(STYLES.NODE.MIN_WIDTH, textWidth + STYLES.NODE.PADDING);
+  // 아이콘 공간을 고려하여 추가 패딩 적용 (아이콘 16px + 간격 6px + 기존 패딩)
+  return Math.max(STYLES.NODE.MIN_WIDTH, textWidth + STYLES.NODE.PADDING + 22);
 }

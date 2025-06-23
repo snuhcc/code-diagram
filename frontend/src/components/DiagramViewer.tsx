@@ -31,6 +31,7 @@ import {
   calculateLayout,
   calculateLayoutWithClasses,
   CustomGroupNode,
+  CustomNode,
   parseApiResponse,
   cleanFilePath,
   calculateNodeWidth,
@@ -320,7 +321,8 @@ export default function DiagramViewer() {
 
   // Define node types
   const nodeTypes = useMemo(() => ({
-    group: CustomGroupNode
+    group: CustomGroupNode,
+    customNode: CustomNode
   }), []);
 
   const handleCFGPanelUpdate = useCallback((id: string, updates: Partial<CFGPanel>) => {
@@ -713,6 +715,7 @@ export default function DiagramViewer() {
 
         return {
           id: n.id,
+          type: 'customNode', // 커스텀 노드 타입 사용
           data: { 
             label: (() => {
               const originalLabel = n.label || n.function_name || n.id;
@@ -1386,7 +1389,7 @@ export default function DiagramViewer() {
 
       return {
         ...n,
-        type: isGroup ? 'group' : (n.type || 'default'),
+        type: isGroup ? 'group' : 'customNode', // 그룹이 아닌 경우 customNode 타입 사용
         hidden: isHidden,
         style: styledNode,
         data: isGroup
