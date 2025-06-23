@@ -74,6 +74,7 @@ export default function DiagramViewer() {
 
   // 최신 nodes를 참조하기 위한 ref (toggleCollapse가 안정적이게 유지)
   const nodesRef = useRef<Node[]>([]);
+  const hydrateRef = useRef<any>(null);
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
@@ -126,7 +127,7 @@ export default function DiagramViewer() {
   const activePath = editorState.tabs.find(t => t.id === editorState.activeId)?.path ?? '';
 
   // Handlers
-  // 그룹 노드 토글: 펼칠 때 하위 그룹은 모두 접힌 상태로 유지
+  // 그룹 노드 토글: 펼칠 때 하위 그룹은 모두 접힌 상태로 유지 & 레이아웃 재계산
   const toggleCollapse = useCallback((groupId: string) => {
     setCollapsedGroups(prev => {
       const newSet = new Set(prev);
@@ -153,6 +154,9 @@ export default function DiagramViewer() {
         // --- Collapse ---
         newSet.add(groupId);
       }
+
+      // 레이아웃 재계산은 collapsedGroups useEffect에서 처리됩니다.
+
       return newSet;
     });
   }, []);
@@ -630,7 +634,7 @@ export default function DiagramViewer() {
     }
   }, [nodes, selectedNodeId, cfgPanels, apiUrl]);
 
-  const hydrate = useCallback((json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>) => {
+  const hydrate = useCallback((json: Record<string, { nodes: RawNode[]; edges: RawEdge[] }>, prevCollapsed?: Set<string>) => {
     const nodeWidths: Record<string, number> = {};
     const nodeFont = `${STYLES.NODE.FONT_SIZE} ${STYLES.NODE.FONT_FAMILY}`;
 
@@ -1077,37 +1081,58 @@ export default function DiagramViewer() {
       const childrenNodes = [...childFolderGroups, ...childFileGroups];
       if (childrenNodes.length === 0) return; // nothing inside
 
-      // --- Grid layout (up to 3 columns) to reduce vertical length and avoid overlap ---
+      // --- Responsive row-wise layout (max 3 columns, variable cell size) ---
       const MAX_COLS = 3;
-      const spacingX = 16; // tighter horizontal gap
-      const spacingY = 16; // tighter vertical gap
+      const spacingX = 16;
+      const spacingY = 16;
 
-      // Determine uniform cell size based on largest child
-      let cellW = 0;
-      let cellH = 0;
-      childrenNodes.forEach(c => {
-        const w = (c.style?.width as number) || 120;
-        const h = (c.style?.height as number) || 80;
-        if (w > cellW) cellW = w;
-        if (h > cellH) cellH = h;
-      });
-      if (cellW === 0) cellW = 120;
-      if (cellH === 0) cellH = 80;
-
-      const HEADER_H = 32; // space for collapse header
+      const HEADER_H = 32;
       const groupPaddingTop = groupPadding + HEADER_H;
-      // adjust children positions
-      childrenNodes.forEach((child, idx) => {
-        const col = idx % MAX_COLS;
-        const row = Math.floor(idx / MAX_COLS);
-        const posX = groupPadding + col * (cellW + spacingX);
-        const posY = groupPaddingTop + row * (cellH + spacingY);
-        child.position = { x: posX, y: posY };
+
+      let curX = groupPadding;
+      let curY = groupPaddingTop;
+      let rowMaxH = 0;
+      let colIdx = 0;
+
+      childrenNodes.forEach(child => {
+        // 접힘 상태라면 최소 폭/높이 사용
+        const isChildCollapsed = (prevCollapsed?.has(child.id) ?? false) || collapsedGroups.has(child.id);
+        const w = isChildCollapsed
+          ? calculateNodeWidth((child.data as any)?.label || '') + 80
+          : ((child.style?.width as number) || 120);
+        const h = isChildCollapsed
+          ? STYLES.GROUP.COLLAPSED_HEIGHT
+          : ((child.style?.height as number) || 80);
+
+        if (colIdx >= MAX_COLS) {
+          // 줄 바꿈
+          curX = groupPadding;
+          curY += rowMaxH + spacingY;
+          rowMaxH = 0;
+          colIdx = 0;
+        }
+
+        child.position = { x: curX, y: curY };
+
+        curX += w + spacingX;
+        rowMaxH = Math.max(rowMaxH, h);
+        colIdx += 1;
       });
-      const rows = Math.ceil(childrenNodes.length / MAX_COLS);
-      const cols = Math.min(childrenNodes.length, MAX_COLS);
-      const maxY = groupPaddingTop + rows * cellH + (rows - 1) * spacingY;
-      const maxX = groupPadding + cols * cellW + (cols - 1) * spacingX;
+
+      // 그룹 bounds 계산 (실제 자식 노드 크기 기반)
+      const maxRight = Math.max(...childrenNodes.map(c => {
+        const isCollapsed = (prevCollapsed?.has(c.id) ?? false) || collapsedGroups.has(c.id);
+        const w = isCollapsed ? calculateNodeWidth((c.data as any)?.label || '') + 80 : ((c.style?.width as number) || 120);
+        return c.position.x + w;
+      }));
+      const maxBottom = Math.max(...childrenNodes.map(c => {
+        const isCollapsed = (prevCollapsed?.has(c.id) ?? false) || collapsedGroups.has(c.id);
+        const h = isCollapsed ? STYLES.GROUP.COLLAPSED_HEIGHT : ((c.style?.height as number) || 80);
+        return c.position.y + h;
+      }));
+
+      const maxX = maxRight;
+      const maxY = maxBottom;
       
       // Keep previously set absolute position if exists, else use current layout positions
       const absOffsetX = folderGroupMap[folderPath]?.position.x ?? 0;
@@ -1465,6 +1490,13 @@ export default function DiagramViewer() {
       return n;
     }));
   }, [collapsedGroups, toggleCollapse]);
+
+  // 그룹 접힘 상태가 변경될 때마다 레이아웃 재계산 (폭/높이 반영)
+  useEffect(() => {
+    if (diagramCache && diagramReady) {
+      hydrateRef.current?.(diagramCache, collapsedGroups);
+    }
+  }, [collapsedGroups, diagramReady]);
 
   if (!diagramReady) {
     return (
