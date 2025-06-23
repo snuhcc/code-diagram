@@ -197,30 +197,46 @@ export default function DiagramViewer() {
     if (newSelectedId) {
       const filePath = (node.data as any)?.file;
       const functionName = (node.data as any)?.originalName || (node.data as any)?.label;
+      const lineStart = (node.data as any)?.line_start;
       
       if (filePath && functionName) {
         const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
-        const cacheKey = `${cleanPath}_${functionName}`;
         
-        try {
-          let code = snippetCache.get(cacheKey);
-          if (!code) {
-            const response = await fetch(`/api/file?path=${encodeURIComponent(cleanPath)}`);
-            code = await response.text();
-          }
+        // 현재 에디터에 같은 파일이 열려있고, 같은 라인 영역이 표시되고 있는지 확인
+        const editorState = useEditor.getState();
+        const currentActivePath = editorState.tabs.find(t => t.id === editorState.activeId)?.path ?? '';
+        const currentLine = editorState.line;
+        
+        const isFileCurrentlyOpen = currentActivePath && 
+          cleanFilePath(currentActivePath, TARGET_FOLDER) === cleanPath;
+        
+        // 같은 파일이 열려있고, 라인 정보가 있으며, 현재 표시된 라인과 유사한 범위라면
+        if (isFileCurrentlyOpen && lineStart && currentLine && 
+            Math.abs(currentLine - lineStart) <= 5) { // 5줄 이내 차이면 같은 영역으로 간주
+          setSelectedSnippet('(code is already open in the editor)');
+        } else {
+          const cacheKey = `${cleanPath}_${functionName}`;
           
-          const result = extractCodeSnippet(code, functionName);
-          if (result) {
-            snippetCache.set(cacheKey, result.snippet);
-            setSelectedSnippet(highlightWithLineNumbers(result.snippet, result.startLine));
-          } else if (functionName.includes('.main')) {
-            // script파일의 'main' 함수의 경우 특별 처리
-            setSelectedSnippet(highlightWithLineNumbers(code, 1));
-          } else {
-            setSelectedSnippet('(code definition not found)');
+          try {
+            let code = snippetCache.get(cacheKey);
+            if (!code) {
+              const response = await fetch(`/api/file?path=${encodeURIComponent(cleanPath)}`);
+              code = await response.text();
+            }
+            
+            const result = extractCodeSnippet(code, functionName);
+            if (result) {
+              snippetCache.set(cacheKey, result.snippet);
+              setSelectedSnippet(highlightWithLineNumbers(result.snippet, result.startLine));
+            } else if (functionName.includes('.main')) {
+              // script파일의 'main' 함수의 경우 특별 처리
+              setSelectedSnippet(highlightWithLineNumbers(code, 1));
+            } else {
+              setSelectedSnippet('(code definition not found)');
+            }
+          } catch {
+            setSelectedSnippet('(preview unavailable)');
           }
-        } catch {
-          setSelectedSnippet('(preview unavailable)');
         }
       } else {
         setSelectedSnippet('');
@@ -275,12 +291,30 @@ export default function DiagramViewer() {
     setHoveredNodeId(node.id); // 노드 hover 상태 설정
     const filePath = (node.data as any)?.file;
     const functionName = (node.data as any)?.originalName || (node.data as any)?.label;
+    const lineStart = (node.data as any)?.line_start;
+    
     if (!filePath || !functionName) {
       setSnippet('');
       return;
     }
 
     const cleanPath = cleanFilePath(filePath, TARGET_FOLDER);
+    
+    // 현재 에디터에 같은 파일이 열려있고, 같은 라인 영역이 표시되고 있는지 확인
+    const editorState = useEditor.getState();
+    const currentActivePath = editorState.tabs.find(t => t.id === editorState.activeId)?.path ?? '';
+    const currentLine = editorState.line;
+    
+    const isFileCurrentlyOpen = currentActivePath && 
+      cleanFilePath(currentActivePath, TARGET_FOLDER) === cleanPath;
+    
+    // 같은 파일이 열려있고, 라인 정보가 있으며, 현재 표시된 라인과 유사한 범위라면
+    if (isFileCurrentlyOpen && lineStart && currentLine && 
+        Math.abs(currentLine - lineStart) <= 5) { // 5줄 이내 차이면 같은 영역으로 간주
+      setSnippet('(code is already open in the editor)');
+      return;
+    }
+    
     const cacheKey = `${cleanPath}_${functionName}`;
     
     try {
@@ -362,7 +396,7 @@ export default function DiagramViewer() {
     setStreamingText('');
     
     setCfgPanelMessage(
-      `<div style="display:flex;align-items:flex-start;gap:40px;">
+      `<div style="display:flex;align-items:flex-start;gap:8px;">
         <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
         <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
           설명을 불러오는 중입니다<span class="blinking-cursor">|</span>
