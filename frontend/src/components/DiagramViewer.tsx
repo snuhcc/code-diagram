@@ -61,6 +61,7 @@ export default function DiagramViewer() {
   const [cfgLoading, setCfgLoading] = useState(false);
   const [diagramReady, setDiagramReady] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [cfgPanelMessage, setCfgPanelMessage] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -270,6 +271,7 @@ export default function DiagramViewer() {
     if (shouldFadeNode) return;
     
     setHoverId(node.id);
+    setHoveredNodeId(node.id); // 노드 hover 상태 설정
     const filePath = (node.data as any)?.file;
     const functionName = (node.data as any)?.originalName || (node.data as any)?.label;
     if (!filePath || !functionName) {
@@ -312,6 +314,7 @@ export default function DiagramViewer() {
       setHoverId(null);
       // 선택된 노드가 있으면 hover snippet은 지우되 selected snippet은 유지
     }
+    setHoveredNodeId(null); // 노드 hover 상태 해제
   }, [selectedNodeId]);
 
   // Handle node changes (for React Flow)
@@ -1208,6 +1211,8 @@ export default function DiagramViewer() {
       } : e;
       
       const isHover = hoveredEdgeId === finalEdge.id;
+      const isNodeHoverConnected = hoveredNodeId && (finalEdge.source === hoveredNodeId || finalEdge.target === hoveredNodeId);
+      const isNodeSelectedConnected = selectedNodeId && (finalEdge.source === selectedNodeId || finalEdge.target === selectedNodeId);
       const isEdgeHighlighted = highlightedNodeIds.has(finalEdge.source) && highlightedNodeIds.has(finalEdge.target);
       
       // 하이라이트 모드에서 음영 처리 여부 결정
@@ -1232,7 +1237,7 @@ export default function DiagramViewer() {
       }
       
       // 상태에 따른 최종 색상 결정
-      const finalColor = isHover 
+      const finalColor = isHover || isNodeHoverConnected || isNodeSelectedConnected
         ? STYLES.COLORS.EDGE.HOVER 
         : isEdgeHighlighted
           ? STYLES.COLORS.EDGE.HIGHLIGHTED
@@ -1244,7 +1249,7 @@ export default function DiagramViewer() {
         style: {
           ...(finalEdge.style || {}),
           stroke: finalColor,
-          strokeWidth: isHover ? 4 : isEdgeHighlighted ? 3 : (isRedirected ? 3 : 2),
+          strokeWidth: isHover || isNodeHoverConnected || isNodeSelectedConnected ? 4 : isEdgeHighlighted ? 3 : (isRedirected ? 3 : 2),
           strokeDasharray: isRedirected ? '5 5' : finalEdge.style?.strokeDasharray,
           transition: 'all 0.13s',
           cursor: shouldFadeEdge ? 'default' : 'pointer', // 음영 처리된 엣지는 클릭 불가능한 것처럼 보이게
@@ -1271,7 +1276,7 @@ export default function DiagramViewer() {
     });
     
     return Array.from(seen.values());
-  }, [edges, collapsedGroups, nodes, hoveredEdgeId, highlightedNodeIds, fadeOpacity]);
+  }, [edges, collapsedGroups, nodes, hoveredEdgeId, hoveredNodeId, selectedNodeId, highlightedNodeIds, fadeOpacity]);
 
   // Process nodes for styling
   const finalNodes = useMemo(() => {
@@ -1476,15 +1481,15 @@ export default function DiagramViewer() {
         onNodeDoubleClick={onNodeDoubleClick}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
-        onEdgeMouseEnter={(_, edge) => {
-          // 음영 처리된 엣지는 호버 이벤트 무시
-          const isEdgeHighlighted = highlightedNodeIds.has(edge.source) && highlightedNodeIds.has(edge.target);
-          const shouldFadeEdge = highlightedNodeIds.size > 0 && !isEdgeHighlighted;
-          if (!shouldFadeEdge) {
-            setHoveredEdgeId(edge.id);
-          }
-        }}
-        onEdgeMouseLeave={() => setHoveredEdgeId(null)}
+        // onEdgeMouseEnter={(_, edge) => {
+        //   // 음영 처리된 엣지는 호버 이벤트 무시
+        //   const isEdgeHighlighted = highlightedNodeIds.has(edge.source) && highlightedNodeIds.has(edge.target);
+        //   const shouldFadeEdge = highlightedNodeIds.size > 0 && !isEdgeHighlighted;
+        //   if (!shouldFadeEdge) {
+        //     setHoveredEdgeId(edge.id);
+        //   }
+        // }}
+        // onEdgeMouseLeave={() => setHoveredEdgeId(null)}
         fitView
         fitViewOptions={{ 
           padding: 0.15, // Increased padding for better initial view
