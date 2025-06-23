@@ -1731,7 +1731,11 @@ export default function DiagramViewer() {
           <button
             type="button"
             title="Generate Control Flow Graph"
-            onClick={handleGenerateCFG}
+            onClick={(e) => {
+              // Prevent the click from bubbling up to the ReactFlow pane, which would clear the current selection
+              e.stopPropagation();
+              handleGenerateCFG();
+            }}
             disabled={cfgLoading}
             className="w-5 h-5 bg-white p-0 m-1 cursor-pointer flex items-center justify-center shadow-sm hover:shadow-md transition-shadow relative disabled:cursor-not-allowed"
           >
