@@ -1141,6 +1141,7 @@ export default function DiagramViewer() {
           borderRadius: 10,
           pointerEvents: 'auto',
           overflow: 'visible',
+          willChange: 'transform',
         },
         zIndex: 40, // folder group above file groups
       } as Node;
@@ -1448,7 +1449,7 @@ export default function DiagramViewer() {
         // Hover / Active 하이라이트는 box-shadow 로, 레이아웃 영향 無
         boxShadow: isGroup && (isHover || isActive) ? `0 0 0 3px ${STYLES.COLORS.NODE.BORDER_HOVER}` : undefined,
         // Smoothly animate size and position changes (e.g., group collapse / expand)
-        transition: 'box-shadow 0.15s, background 0.1s, width 0.2s ease, height 0.2s ease, transform 0.2s ease',
+        transition: 'box-shadow 0.15s, background 0.1s, width 0.2s ease, height 0.2s ease',
         // --- 크기 스케일 적용 (그룹 노드 제외) -----------------------
         minWidth: isGroup ? (isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : undefined) : (n.style?.width as number),
         width: isGroup && isCollapsed ? calculateNodeWidth((n.data as any)?.label || '') + 80 : n.style?.width,
@@ -1457,6 +1458,7 @@ export default function DiagramViewer() {
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
+        willChange: 'transform',
         cursor: isGroup && isCollapsed ? 'pointer' : shouldFadeNode ? 'default' : 'default',
         opacity,
         pointerEvents: shouldFadeNode ? ('none' as const) : ('auto' as const),

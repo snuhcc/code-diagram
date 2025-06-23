@@ -3,7 +3,6 @@ import dagre from 'dagre';
 import hljs from 'highlight.js/lib/core';
 import python from 'highlight.js/lib/languages/python';
 import 'highlight.js/styles/atom-one-light.css';
-import { motion } from 'framer-motion';
 
 hljs.registerLanguage('python', python);
 
@@ -966,9 +965,7 @@ export function CustomGroupNode({ data }: NodeProps) {
       <>
         <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
         <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-        <motion.div
-          layout
-          transition={{ type: 'spring', stiffness: 420, damping: 35 }}
+        <div
           style={{
             width: dynamicWidth,
             height: '100%',
@@ -993,7 +990,7 @@ export function CustomGroupNode({ data }: NodeProps) {
             <ChevronIcon direction="right" />
           </div>
           <span>{label}</span>
-        </motion.div>
+        </div>
       </>
     );
   }
@@ -1003,9 +1000,7 @@ export function CustomGroupNode({ data }: NodeProps) {
     <>
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-      <motion.div
-        layout
-        transition={{ type: 'spring', stiffness: 420, damping: 35 }}
+      <div
         style={{
           position: 'absolute',
           top: 4,
@@ -1028,7 +1023,7 @@ export function CustomGroupNode({ data }: NodeProps) {
         </div>
         <ChevronIcon direction="down" />
         <span style={{ whiteSpace: 'nowrap' }}>{label}</span>
-      </motion.div>
+      </div>
     </>
   );
 }
