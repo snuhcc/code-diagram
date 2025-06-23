@@ -741,7 +741,7 @@ export default function DiagramViewer() {
         } else {
           nodeStyle = {
             ...nodeStyle,
-            border: '1px solid #3b82f6',
+            border: `1px solid ${STYLES.COLORS.NODE.BORDER}`,
             background: '#fff',
             display: 'flex',
             alignItems: 'flex-start',
@@ -788,7 +788,8 @@ export default function DiagramViewer() {
           },
           position: { x: 0, y: 0 },
           style: nodeStyle,
-          zIndex: isMethod ? 10 : isClass ? 1 : 5, // 메소드가 가장 위, 클래스가 가장 아래
+          // 그룹 오버레이(파일/폴더 그룹)보다 위에 표시되도록 zIndex를 높임
+          zIndex: isMethod ? 100 : isClass ? 20 : 100, // 함수·메소드가 가장 위, 클래스는 그 아래
           parentId, // 메소드인 경우 클래스 ID 설정
           extent: parentId ? ('parent' as 'parent') : undefined, // 부모 노드 내부로 제한
         });

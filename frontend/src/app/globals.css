@@ -68,7 +68,13 @@ body {
   background-color: rgba(255, 255, 0, 0.5);
 }
 
-/* 드래그 중 노드의 zIndex 제한 */
-.react-flow__node.dragging {
-  z-index: 10 !important; /* 엣지의 zIndex(10000)보다 낮게 설정 */
+/* React Flow 11+ uses separate overlay nodes inside .react-flow__nodes-dragging.
+   또한 노드 타입별 클래스를 사용하므로 class="dragging" 만 붙는 경우도 고려 */
+.react-flow__node.dragging,
+.react-flow__node-default.dragging,
+.react-flow__node-group.dragging,
+.react-flow__nodes-dragging .react-flow__node,
+.dragging.react-flow__node,
+.dragging {
+  opacity: 1 !important;
 }
