@@ -38,7 +38,7 @@ function CodePane({
   }, [path]);
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || code === '// loading…') return; // 파일이 아직 로드되지 않았으면 대기
 
     // Remove all decorations first
     editor.deltaDecorations(
@@ -50,18 +50,21 @@ function CodePane({
     // Highlight search results
     if (highlights) {
       const { line, query } = highlights;
-      editor.revealLineAtTop(line);
+      editor.revealLineInCenter(line);
       decorations.push({
         range: new monaco.Range(line, 1, line, 1),
         options: { isWholeLine: true, className: 'highlight-line' },
       });
-      const matches = editor.getModel().findMatches(query, true, false, true, null, true);
-      decorations = decorations.concat(
-        matches.map((match) => ({
-          range: match.range,
-          options: { inlineClassName: 'highlight-text' },
-        }))
-      );
+      const model = editor.getModel();
+      if (model) {
+        const matches = model.findMatches(query, true, false, true, null, true);
+        decorations = decorations.concat(
+          matches.map((match) => ({
+            range: match.range,
+            options: { inlineClassName: 'highlight-text' },
+          }))
+        );
+      }
     }
     
     // Scroll to specific line (for function start) - position at 30% from top
@@ -100,7 +103,7 @@ function CodePane({
       editor.__currentDecorations || [],
       decorations
     );
-  }, [editor, highlights, highlight, line]);
+  }, [editor, highlights, highlight, line, code]); // code 의존성 추가
 
   const lang = (() => {
     if (path.endsWith('.py')) return 'python';

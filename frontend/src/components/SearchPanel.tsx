@@ -77,14 +77,20 @@ export default function SearchPanel() {
     const cleanPath = result.file.replace(regex, '');
     const name = cleanPath.split('/').pop() || cleanPath;
     const editorState = useEditor.getState();
+    
+    // 파일 오픈
     editorState.open({
       id: nanoid(),
       path: cleanPath,
       name,
     });
-    // 검색어가 있으면 하이라이트를 위해 저장
+    
+    // 파일이 로드된 후 하이라이트 설정
     if (query.trim()) {
-      editorState.setSearchHighlights(result.line, query);
+      // 약간의 지연을 두어 파일이 완전히 로드된 후 하이라이트 적용
+      setTimeout(() => {
+        editorState.setSearchHighlights(result.line, query);
+      }, 100);
     }
   };
 

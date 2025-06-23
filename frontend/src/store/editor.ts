@@ -23,6 +23,7 @@ interface State {
   close: (id: string) => void;
   setActive: (id: string, highlight?: { from: number; to: number }) => void; // highlight 인자 추가
   setSearchHighlights: (line: number, query: string) => void;
+  clearSearchHighlights: () => void; // 추가: 검색 하이라이트 클리어
 }
 
 export const useEditor = create<State>()(
@@ -38,7 +39,7 @@ export const useEditor = create<State>()(
         if (!s.tabs.find((t) => t.path === file.path)) s.tabs.push(file);
         s.activeId = s.tabs.find((t) => t.path === file.path)?.id ?? file.id;
         s.activePath = file.path;
-        s.searchHighlights = undefined;
+        // searchHighlights는 리셋하지 않음 - 검색에서 온 경우 유지되어야 함
         if (file.highlight) {
           s.highlight = file.highlight;
         } else {
@@ -58,7 +59,7 @@ export const useEditor = create<State>()(
           s.activeId = lastTab?.id;
           s.activePath = lastTab?.path;
         }
-        s.searchHighlights = undefined;
+        s.searchHighlights = undefined; // 탭 닫을 때는 검색 하이라이트 클리어
         s.highlight = undefined;
         s.line = undefined;
       }),
@@ -70,7 +71,7 @@ export const useEditor = create<State>()(
           const node = findByPath(useFS.getState().tree, s.activePath);
           if (node) useFS.getState().setCurrent(node.id);
         }
-        s.searchHighlights = undefined;
+        // 검색 하이라이트는 명시적으로 클리어하지 않는 한 유지
         if (highlight) {
           s.highlight = highlight;
         } else {
@@ -81,6 +82,10 @@ export const useEditor = create<State>()(
     setSearchHighlights: (line, query) =>
       set((s) => {
         s.searchHighlights = { line, query };
+      }),
+    clearSearchHighlights: () =>
+      set((s) => {
+        s.searchHighlights = undefined;
       }),
   }))
 );
