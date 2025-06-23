@@ -1715,10 +1715,10 @@ export default function DiagramViewer() {
         ) : null}
         
         {highlightedNodeIds.size > 0 && (
-          <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-md border border-gray-200 z-50">
+          <div className="absolute top-16 left-4 bg-white p-3 rounded-lg shadow-md border border-gray-200 z-50">
             <div className="flex items-center gap-3">
               <span className="text-xs text-gray-700 font-medium whitespace-nowrap">Highlighted Nodes:</span>
-              <span className="text-xs text-gray-500 font-normal">{highlightedNodeIds.size}</span>
+              <span className="text-xs text-gray-500 font-semibold">{highlightedNodeIds.size}</span>
             </div>
           </div>
         )}
