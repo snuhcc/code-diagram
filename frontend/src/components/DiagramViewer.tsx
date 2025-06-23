@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   MiniMap,
   Controls,
@@ -361,7 +362,7 @@ export default function DiagramViewer() {
     setStreamingText('');
     
     setCfgPanelMessage(
-      `<div style="display:flex;align-items:flex-start;gap:8px;">
+      `<div style="display:flex;align-items:flex-start;gap:40px;">
         <span style="font-size:22px;line-height:1.1;">🧑‍🔬</span>
         <span style="background:#fffbe9;border-radius:8px;padding:7px 13px;box-shadow:0 1px 4px #0001;font-size:13px;color:#b45309;max-width:220px;display:inline-block;">
           설명을 불러오는 중입니다<span class="blinking-cursor">|</span>
@@ -1685,44 +1686,47 @@ export default function DiagramViewer() {
             {cfgMessage}
           </div>
         )}
-        
-        {cfgPanels.map((panel, idx) => (
-          <CFGPanelComponent
-            key={panel.id}
-            panel={panel}
-            index={idx}
-            onUpdate={handleCFGPanelUpdate}
-            onClose={handleCFGPanelClose}
-            onNodeHover={handleCFGNodeHover}
-            onClearMessage={() => setCfgPanelMessage(null)}
-            message={cfgPanelMessage}
-          />
-        ))}
-        
-        {(hoverId && snippet) || (selectedNodeId && selectedSnippet) ? (
-          <div
-            className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-y-auto overflow-x-auto font-mono pointer-events-auto"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#cbd5e1 #f1f5f9'
-            }}
-          >
-            <pre 
-              className="hljs m-0 p-0 bg-transparent overflow-visible whitespace-pre-wrap break-words"
-              dangerouslySetInnerHTML={{ __html: selectedNodeId && selectedSnippet ? selectedSnippet : snippet }}
-            />
-          </div>
-        ) : null}
-        
-        {highlightedNodeIds.size > 0 && (
-          <div className="absolute top-16 left-4 bg-white p-3 rounded-lg shadow-md border border-gray-200 z-50">
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-700 font-medium whitespace-nowrap">Highlighted Nodes:</span>
-              <span className="text-xs text-gray-500 font-semibold">{highlightedNodeIds.size}</span>
-            </div>
-          </div>
-        )}
       </ReactFlow>
+      
+      {/* Snippet display - 메인 ReactFlow 외부로 이동 */}
+      {(hoverId && snippet) || (selectedNodeId && selectedSnippet) ? (
+        <div
+          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-y-auto overflow-x-auto font-mono pointer-events-auto"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f1f5f9'
+          }}
+        >
+          <pre 
+            className="hljs m-0 p-0 bg-transparent overflow-visible whitespace-pre-wrap break-words"
+            dangerouslySetInnerHTML={{ __html: selectedNodeId && selectedSnippet ? selectedSnippet : snippet }}
+          />
+        </div>
+      ) : null}
+      
+      {/* Highlighted nodes info - 메인 ReactFlow 외부로 이동 */}
+      {highlightedNodeIds.size > 0 && (
+        <div className="absolute top-16 left-4 bg-white p-3 rounded-lg shadow-md border border-gray-200 z-50">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-700 font-medium whitespace-nowrap">Highlighted Nodes:</span>
+            <span className="text-xs text-gray-500 font-semibold">{highlightedNodeIds.size}</span>
+          </div>
+        </div>
+      )}
+      
+      {/* CFG Panels - 메인 ReactFlow 외부로 이동 */}
+      {cfgPanels.map((panel, idx) => (
+        <CFGPanelComponent
+          key={panel.id}
+          panel={panel}
+          index={idx}
+          onUpdate={handleCFGPanelUpdate}
+          onClose={handleCFGPanelClose}
+          onNodeHover={handleCFGNodeHover}
+          onClearMessage={() => setCfgPanelMessage(null)}
+          message={cfgPanelMessage}
+        />
+      ))}
     </div>
   );
 }
@@ -1825,7 +1829,7 @@ function CFGPanelComponent({
         color: '#222',
         padding: panel.expanded ? '12px 18px 18px 18px' : '8px 18px',
         borderRadius: 8,
-        zIndex: 200 + index,
+        zIndex: 1000 + index,
         fontSize: 13,
         minWidth: 220,
         maxWidth: 1600,
@@ -1968,25 +1972,35 @@ function CFGPanelComponent({
         <div style={{ width: '100%', height: panel.height ?? STYLES.CFG_PANEL.HEIGHT, overflow: 'auto', position: 'relative' }}>
           {panel.result?.nodes && panel.result?.edges ? (
             <div style={{ width: '100%', height: '100%', background: '#f8fafc', borderRadius: 6 }}>
-              <ReactFlow
-                nodes={panel.result.nodes}
-                edges={panel.result.edges}
-                fitView
-                minZoom={0.2}
-                maxZoom={2}
-                className="bg-gray-50"
-                style={{ width: '100%', height: '100%' }}
-                defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
-                onNodeMouseEnter={(_, node) => onNodeHover(node, panel)}
-                onNodeMouseLeave={() => onNodeHover(null, panel)}
-                onPaneClick={() => {
-                  // Clear explanation message when clicking on empty space
-                  onClearMessage();
-                }}
-              >
-                <Background variant={"dots" as any} gap={16} size={1} />
-                <Controls showInteractive={false} />
-              </ReactFlow>
+              <ReactFlowProvider>
+                <ReactFlow
+                  key={`cfg-${panel.id}`}
+                  nodes={panel.result.nodes}
+                  edges={panel.result.edges}
+                  nodeTypes={{}}
+                  fitView
+                  minZoom={0.2}
+                  maxZoom={2}
+                  className="bg-gray-50"
+                  style={{ width: '100%', height: '100%' }}
+                  defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
+                  onNodeMouseEnter={(_, node) => onNodeHover(node, panel)}
+                  onNodeMouseLeave={() => onNodeHover(null, panel)}
+                  onPaneClick={() => {
+                    onClearMessage();
+                  }}
+                  preventScrolling={false}
+                  elementsSelectable={true}
+                  nodesConnectable={false}
+                  nodesDraggable={false}
+                  panOnDrag={true}
+                  zoomOnScroll={true}
+                  selectNodesOnDrag={false}
+                >
+                  <Background variant={"dots" as any} gap={16} size={1} />
+                  <Controls showInteractive={false} />
+                </ReactFlow>
+              </ReactFlowProvider>
             </div>
           ) : (
             <pre style={{
