@@ -297,12 +297,28 @@ export const snippetCache = new Map<string, string>();
 
 // Helper Functions
 export function getTextWidth(text: string, font: string = `${STYLES.NODE.FONT_SIZE} ${STYLES.NODE.FONT_FAMILY}`): number {
+  // 1) SSR 안전 가드
   if (typeof document === 'undefined') return text.length * 7;
-  const canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
-  const context = canvas.getContext("2d");
+
+  // 2) 캐시 초기화 (font+text 조합으로 키 생성)
+  const cacheKey = `${font}__${text}`;
+  const cache: Map<string, number> = (getTextWidth as any)._cache || new Map();
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore – 사용자 정의 프로퍼티 저장
+  (getTextWidth as any)._cache = cache;
+
+  if (cache.has(cacheKey)) return cache.get(cacheKey)!;
+
+  // 3) 실제 측정
+  const canvas = (getTextWidth as any)._canvas || ((getTextWidth as any)._canvas = document.createElement('canvas'));
+  const context = canvas.getContext('2d');
   if (!context) return text.length * 7;
   context.font = font;
-  return context.measureText(text).width;
+  const width = context.measureText(text).width;
+
+  cache.set(cacheKey, width);
+  return width;
 }
 
 export function extractCodeSnippet(code: string, identifierName: string): { snippet: string, startLine: number } | null {
@@ -1034,3 +1050,9 @@ export function calculateNodeWidth(label: string): number {
   const width = textWidth + (iconExtra + LAYOUT_RULES.NODE_PADDING_X) * 1.5;
   return Math.max(140, width); // 100px 을 안전 최소 폭으로 사용
 }
+
+// 기존 코드 아래에 노드 타입 오브젝트를 한번만 생성하여 외부에서 재사용할 수 있게 export 합니다.
+export const NODE_TYPES = {
+  group: CustomGroupNode,
+  customNode: CustomNode,
+} as const;

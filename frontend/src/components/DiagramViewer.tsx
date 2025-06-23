@@ -40,6 +40,7 @@ import {
   STYLES,
   LAYOUT_RULES,
   calculateCFGLayout, // 추가
+  NODE_TYPES,
 } from './diagramUtils';
 import { getApiUrl, getTargetFolder } from '@/utils/config';
 import type { CSSProperties } from 'react';
@@ -352,10 +353,7 @@ export default function DiagramViewer() {
   }, []);
 
   // Define node types
-  const nodeTypes = useMemo(() => ({
-    group: CustomGroupNode,
-    customNode: CustomNode
-  }), []);
+  const nodeTypes = NODE_TYPES;
 
   const handleCFGPanelUpdate = useCallback((id: string, updates: Partial<CFGPanel>) => {
     setCfgPanels(panels => panels.map(p => p.id === id ? { ...p, ...updates } : p));
@@ -1804,10 +1802,13 @@ export default function DiagramViewer() {
       {/* Snippet display - 메인 ReactFlow 외부로 이동 */}
       {(hoverId && snippet) || (selectedNodeId && selectedSnippet) ? (
         <div
-          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-y-auto overflow-x-auto font-mono pointer-events-auto"
+          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-y-auto overflow-x-auto font-mono"
           style={{
+            // 선택된(snippet 고정) 경우에는 스크롤·복사 등 인터랙션을 허용하고
+            // 단순 호버 프리뷰일 때는 포인터 이벤트를 차단해 깜빡임 방지
+            pointerEvents: selectedNodeId ? 'auto' : 'none',
             scrollbarWidth: 'thin',
-            scrollbarColor: '#cbd5e1 #f1f5f9'
+            scrollbarColor: '#cbd5e1 #f1f5f9',
           }}
         >
           <pre 
