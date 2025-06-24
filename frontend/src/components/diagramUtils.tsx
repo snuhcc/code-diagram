@@ -232,7 +232,7 @@ export const STYLES = {
     },
     EDGE: {
       DEFAULT: '#64748b',
-      HOVER: '#f59e0b',
+      HOVER: '#f50b28',
       HIGHLIGHTED: '#8b5cf6',
       // 엣지 타입별 색상
       FUNCTION_CALL: '#64748b',
