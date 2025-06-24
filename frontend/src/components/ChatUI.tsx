@@ -123,17 +123,30 @@ export default function ChatUI() {
       const afterAt = value.slice(atIndex + 1);
       const spaceIndex = afterAt.indexOf(' ');
       const word = spaceIndex >= 0 ? afterAt.slice(0, spaceIndex) : afterAt;
-      if (word) {
-        const filtered = allFiles.filter((path) =>
-          path.toLowerCase().includes(word.toLowerCase())
-        );
-        setDropdownItems(filtered);
-        setShowDropdown(true);
-        setDropdownSelectedIndex(filtered.length > 0 ? 0 : -1);
+      
+      // 현재 @ 뒤의 텍스트가 이미 완성된 파일명인지 확인
+      const isCompletedFile = spaceIndex >= 0 && allFiles.some(file => 
+        afterAt.startsWith(file + ' ')
+      );
+      
+      // 완성된 파일명이 아니고, @ 뒤에 텍스트가 있는 경우에만 필터링
+      if (!isCompletedFile) {
+        if (word) {
+          const filtered = allFiles.filter((path) =>
+            path.toLowerCase().includes(word.toLowerCase())
+          );
+          setDropdownItems(filtered);
+          setShowDropdown(true);
+          setDropdownSelectedIndex(filtered.length > 0 ? 0 : -1);
+        } else {
+          setDropdownItems(allFiles); // Show all files when just "@" is typed
+          setShowDropdown(true);
+          setDropdownSelectedIndex(allFiles.length > 0 ? 0 : -1);
+        }
       } else {
-        setDropdownItems(allFiles); // Show all files when just "@" is typed
-        setShowDropdown(true);
-        setDropdownSelectedIndex(allFiles.length > 0 ? 0 : -1);
+        // 완성된 파일명인 경우 드롭다운 숨김
+        setShowDropdown(false);
+        setDropdownSelectedIndex(-1);
       }
     } else {
       setShowDropdown(false); // Hide dropdown if no "@" present
