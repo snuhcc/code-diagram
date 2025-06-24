@@ -325,25 +325,86 @@ export function extractCodeSnippet(code: string, identifierName: string): { snip
   
   // Try to find function definition first
   let startIndex = lines.findIndex(line => line.trim().startsWith(`def ${identifierName}(`));
+  let isFunction = true;
   
   // If not found, try to find class definition
   if (startIndex === -1) {
     startIndex = lines.findIndex(line => line.trim().startsWith(`class ${identifierName}(`));
+    isFunction = false;
   }
   
   // Also try without parentheses for classes that don't inherit
   if (startIndex === -1) {
     startIndex = lines.findIndex(line => line.trim() === `class ${identifierName}:` || line.trim().startsWith(`class ${identifierName}:`));
+    isFunction = false;
   }
   
   if (startIndex === -1) return null;
   
-  for (let i = startIndex + 1; i < lines.length; i++) {
-    if (lines[i].trim() === '') continue;
-    if (!lines[i].startsWith(' ') && !lines[i].startsWith('\t')) {
-      return { snippet: lines.slice(startIndex, i).join('\n'), startLine: startIndex + 1 };
+  // Get the indentation level of the definition
+  const definitionLine = lines[startIndex];
+  const definitionIndent = definitionLine.length - definitionLine.trimStart().length;
+  
+  // For functions/methods, find the end by looking for the next definition at the same or lower indentation
+  if (isFunction) {
+    let hasFoundBody = false;  // Track if we've found the function body
+    
+    for (let i = startIndex + 1; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Skip empty lines
+      if (line.trim() === '') continue;
+      
+      // Skip comments
+      if (line.trim().startsWith('#')) continue;
+      
+      // Get current line indentation
+      const currentIndent = line.length - line.trimStart().length;
+      
+      // If we haven't found the body yet, look for it
+      if (!hasFoundBody && currentIndent > definitionIndent) {
+        hasFoundBody = true;
+        continue;
+      }
+      
+      // Once we've found the body, look for the end
+      if (hasFoundBody && currentIndent <= definitionIndent) {
+        const trimmed = line.trim();
+        
+        // Check if it's a new definition at the same level
+        if (trimmed.startsWith('def ') || trimmed.startsWith('class ') || 
+            trimmed.startsWith('async def ')) {
+          return { snippet: lines.slice(startIndex, i).join('\n'), startLine: startIndex + 1 };
+        }
+        
+        // Check if it's a decorator for the next function
+        if (trimmed.startsWith('@')) {
+          return { snippet: lines.slice(startIndex, i).join('\n'), startLine: startIndex + 1 };
+        }
+        
+        // If we're inside a class (definitionIndent > 0) and hit a top-level statement
+        if (definitionIndent > 0 && currentIndent === 0) {
+          return { snippet: lines.slice(startIndex, i).join('\n'), startLine: startIndex + 1 };
+        }
+      }
+    }
+  } else {
+    // For classes, use the original logic but improved
+    for (let i = startIndex + 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.trim() === '') continue;
+      
+      const currentIndent = line.length - line.trimStart().length;
+      if (currentIndent <= definitionIndent) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('class ') || trimmed.startsWith('def ') || 
+            trimmed.startsWith('import ') || trimmed.startsWith('from ')) {
+          return { snippet: lines.slice(startIndex, i).join('\n'), startLine: startIndex + 1 };
+        }
+      }
     }
   }
+  
   return { snippet: lines.slice(startIndex).join('\n'), startLine: startIndex + 1 };
 }
 
