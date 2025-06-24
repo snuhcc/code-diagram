@@ -832,8 +832,8 @@ async def analyze_project_call_graph(project_path: str, exclude_patterns: List[s
     
     # Determine workspace root (go up directories to find backend folder)
     current_path = os.path.abspath(project_path)
-    workspace_root = os.path.join(current_path, "..", "..")
-    
+    # workspace_root = os.path.join(current_path, "..", "..")
+    workspace_root = os.path.join(current_path, "..")
     # Save to artifacts directory
     artifacts_dir = os.path.join(workspace_root, 'backend', 'app', 'artifacts')
     os.makedirs(artifacts_dir, exist_ok=True)

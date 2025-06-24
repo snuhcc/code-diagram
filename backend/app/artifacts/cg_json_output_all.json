@@ -1,364 +1,3554 @@
 {
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/validator.py": {
-        "nodes": [
-            {
-                "id": "validator.validate_data",
-                "function_name": "validate_data",
-                "file": "poc/validator.py",
-                "line_start": 1,
-                "line_end": 7,
-                "description": "Validates data by filtering integers, removing negatives, and enforcing range 0–100."
-            },
-            {
-                "id": "validator.remove_negatives",
-                "function_name": "remove_negatives",
-                "file": "poc/validator.py",
-                "line_start": 9,
-                "line_end": 12,
-                "description": "Removes negative values from the data list."
-            },
-            {
-                "id": "validator.check_range",
-                "function_name": "check_range",
-                "file": "poc/validator.py",
-                "line_start": 13,
-                "line_end": 15,
-                "description": "Filters data to include only values within the specified min and max range."
-            }
-        ],
-        "edges": [
-            {
-                "id": "validator.e0",
-                "source": "validator.validate_data",
-                "target": "validator.remove_negatives"
-            },
-            {
-                "id": "validator.e1",
-                "source": "validator.validate_data",
-                "target": "validator.check_range"
-            }
-        ]
-    },
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/aggregator.py": {
-        "nodes": [
-            {
-                "id": "aggregator.aggregate_data",
-                "function_name": "aggregate_data",
-                "file": "poc/aggregator.py",
-                "line_start": 1,
-                "line_end": 11,
-                "description": "Aggregates data and prints summary."
-            },
-            {
-                "id": "aggregator.compute_average",
-                "function_name": "compute_average",
-                "file": "poc/aggregator.py",
-                "line_start": 13,
-                "line_end": 16,
-                "description": "Computes average of data."
-            },
-            {
-                "id": "aggregator.format_summary",
-                "function_name": "format_summary",
-                "file": "poc/aggregator.py",
-                "line_start": 17,
-                "line_end": 19,
-                "description": "Formats summary string from stats."
-            }
-        ],
-        "edges": [
-            {
-                "id": "aggregator.e0",
-                "source": "aggregator.aggregate_data",
-                "target": "aggregator.compute_average"
-            },
-            {
-                "id": "aggregator.e1",
-                "source": "aggregator.aggregate_data",
-                "target": "aggregator.format_summary"
-            }
-        ]
-    },
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/reporter.py": {
-        "nodes": [
-            {
-                "id": "reporter.generate_report",
-                "function_name": "generate_report",
-                "file": "poc/reporter.py",
-                "line_start": 2,
-                "line_end": 21,
-                "description": "Generate a textual report based on the analysis dictionary."
-            }
-        ],
-        "edges": []
-    },
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/analyzer.py": {
-        "nodes": [
-            {
-                "id": "analyzer.analyze_data",
-                "function_name": "analyze_data",
-                "file": "poc/analyzer.py",
-                "line_start": 4,
-                "line_end": 16,
-                "description": "Analyze data to compute average, median, high and low values."
-            }
-        ],
-        "edges": [
-            {
-                "id": "analyzer.e0",
-                "source": "analyzer.analyze_data",
-                "target": "statistics.mean"
-            },
-            {
-                "id": "analyzer.e1",
-                "source": "analyzer.analyze_data",
-                "target": "statistics.median"
-            }
-        ]
-    },
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/processor.py": {
-        "nodes": [
-            {
-                "id": "processor.process_data",
-                "function_name": "process_data",
-                "file": "poc/processor.py",
-                "line_start": 3,
-                "line_end": 15,
-                "description": "Main data processing function that dispatches to handlers based on divisibility."
-            },
-            {
-                "id": "processor.handle_div3",
-                "function_name": "handle_div3",
-                "file": "poc/processor.py",
-                "line_start": 17,
-                "line_end": 20,
-                "description": "Handler for numbers divisible by 3."
-            },
-            {
-                "id": "processor.handle_even",
-                "function_name": "handle_even",
-                "file": "poc/processor.py",
-                "line_start": 21,
-                "line_end": 24,
-                "description": "Handler for even numbers not divisible by 3."
-            },
-            {
-                "id": "processor.handle_other",
-                "function_name": "handle_other",
-                "file": "poc/processor.py",
-                "line_start": 25,
-                "line_end": 27,
-                "description": "Handler for numbers that are neither divisible by 3 nor even."
-            }
-        ],
-        "edges": [
-            {
-                "id": "processor.e0",
-                "source": "processor.process_data",
-                "target": "processor.handle_div3"
-            },
-            {
-                "id": "processor.e1",
-                "source": "processor.process_data",
-                "target": "processor.handle_even"
-            },
-            {
-                "id": "processor.e2",
-                "source": "processor.process_data",
-                "target": "processor.handle_other"
-            }
-        ]
-    },
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/filterer.py": {
-        "nodes": [
-            {
-                "id": "filterer.filter_even",
-                "function_name": "filter_even",
-                "file": "poc/filterer.py",
-                "line_start": 1,
-                "line_end": 4,
-                "description": "Filters even numbers from data and then filters those greater than a threshold."
-            },
-            {
-                "id": "filterer.remove_odd",
-                "function_name": "remove_odd",
-                "file": "poc/filterer.py",
-                "line_start": 6,
-                "line_end": 8,
-                "description": "Removes odd numbers from data."
-            },
-            {
-                "id": "filterer.filter_gt",
-                "function_name": "filter_gt",
-                "file": "poc/filterer.py",
-                "line_start": 10,
-                "line_end": 12,
-                "description": "Filters numbers greater than a given threshold."
-            }
-        ],
-        "edges": [
-            {
-                "id": "filterer.e0",
-                "source": "filterer.filter_even",
-                "target": "filterer.remove_odd"
-            },
-            {
-                "id": "filterer.e1",
-                "source": "filterer.filter_even",
-                "target": "filterer.filter_gt"
-            }
-        ]
-    },
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/transformer.py": {
-        "nodes": [
-            {
-                "id": "transformer.transform_special",
-                "function_name": "transform_special",
-                "file": "poc/transformer.py",
-                "line_start": 3,
-                "line_end": 8,
-                "description": "Transforms special data by normalizing, processing, and scaling."
-            },
-            {
-                "id": "transformer.normalize",
-                "function_name": "normalize",
-                "file": "poc/transformer.py",
-                "line_start": 10,
-                "line_end": 13,
-                "description": "Normalizes data by dividing each element by the maximum value."
-            },
-            {
-                "id": "transformer.scale",
-                "function_name": "scale",
-                "file": "poc/transformer.py",
-                "line_start": 15,
-                "line_end": 17,
-                "description": "Scales data elements by a given factor."
-            }
-        ],
-        "edges": [
-            {
-                "id": "transformer.e0",
-                "source": "transformer.transform_special",
-                "target": "transformer.normalize"
-            },
-            {
-                "id": "transformer.e1",
-                "source": "transformer.transform_special",
-                "target": "processor.process_data"
-            },
-            {
-                "id": "transformer.e2",
-                "source": "transformer.transform_special",
-                "target": "transformer.scale"
-            }
-        ]
-    },
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/main.py": {
-        "nodes": [
-            {
-                "id": "main.main",
-                "function_name": "main",
-                "file": "poc/main.py",
-                "line_start": 11,
-                "line_end": 48,
-                "description": "Main entry point orchestrating workflow based on user choice."
-            }
-        ],
-        "edges": [
-            {
-                "id": "main.e0",
-                "source": "main.main",
-                "target": "fetcher.fetch_data"
-            },
-            {
-                "id": "main.e1",
-                "source": "main.main",
-                "target": "processor.process_data"
-            },
-            {
-                "id": "main.e2",
-                "source": "main.main",
-                "target": "analyzer.analyze_data"
-            },
-            {
-                "id": "main.e3",
-                "source": "main.main",
-                "target": "reporter.generate_report"
-            },
-            {
-                "id": "main.e4",
-                "source": "main.main",
-                "target": "validator.validate_data"
-            },
-            {
-                "id": "main.e5",
-                "source": "main.main",
-                "target": "processor.process_data"
-            },
-            {
-                "id": "main.e6",
-                "source": "main.main",
-                "target": "analyzer.analyze_data"
-            },
-            {
-                "id": "main.e7",
-                "source": "main.main",
-                "target": "aggregator.aggregate_data"
-            },
-            {
-                "id": "main.e8",
-                "source": "main.main",
-                "target": "reporter.generate_report"
-            },
-            {
-                "id": "main.e9",
-                "source": "main.main",
-                "target": "filterer.filter_even"
-            },
-            {
-                "id": "main.e10",
-                "source": "main.main",
-                "target": "processor.process_data"
-            },
-            {
-                "id": "main.e11",
-                "source": "main.main",
-                "target": "analyzer.analyze_data"
-            },
-            {
-                "id": "main.e12",
-                "source": "main.main",
-                "target": "reporter.generate_report"
-            },
-            {
-                "id": "main.e13",
-                "source": "main.main",
-                "target": "transformer.transform_special"
-            },
-            {
-                "id": "main.e14",
-                "source": "main.main",
-                "target": "analyzer.analyze_data"
-            },
-            {
-                "id": "main.e15",
-                "source": "main.main",
-                "target": "reporter.generate_report"
-            }
-        ]
-    },
-    "/Users/kyochul_jang/Desktop/Project/code-diagram/poc/fetcher.py": {
-        "nodes": [
-            {
-                "id": "fetcher.fetch_data",
-                "function_name": "fetch_data",
-                "file": "poc/fetcher.py",
-                "line_start": 4,
-                "line_end": 13,
-                "description": "Fetches data with up to `retries` attempts, returning a list of random integers on success or raising a ConnectionError on failure."
-            }
-        ],
-        "edges": []
-    }
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/image_gradcam_demo.py": {
+    "nodes": [
+      {
+        "id": "image_gradcam_demo.main",
+        "function_name": "image_gradcam_demo.main",
+        "file": "face_classification/image_gradcam_demo.py",
+        "line_start": 1,
+        "line_end": 86,
+        "description": "Script image_gradcam_demo (86 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "image_gradcam_demo.e0",
+        "source": "image_gradcam_demo.main",
+        "target": "datasets.get_labels",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e1",
+        "source": "image_gradcam_demo.main",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e2",
+        "source": "image_gradcam_demo.main",
+        "target": "inference.load_detection_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e3",
+        "source": "image_gradcam_demo.main",
+        "target": "inference.load_image",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e4",
+        "source": "image_gradcam_demo.main",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e5",
+        "source": "image_gradcam_demo.main",
+        "target": "gray_image.astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e6",
+        "source": "image_gradcam_demo.main",
+        "target": "inference.detect_faces",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e7",
+        "source": "image_gradcam_demo.main",
+        "target": "inference.apply_offsets",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e8",
+        "source": "image_gradcam_demo.main",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e9",
+        "source": "image_gradcam_demo.main",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e10",
+        "source": "image_gradcam_demo.main",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e11",
+        "source": "image_gradcam_demo.main",
+        "target": "numpy.argmax",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e12",
+        "source": "image_gradcam_demo.main",
+        "target": "model.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e13",
+        "source": "image_gradcam_demo.main",
+        "target": "grad_cam.compile_gradient_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e14",
+        "source": "image_gradcam_demo.main",
+        "target": "grad_cam.register_gradient",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e15",
+        "source": "image_gradcam_demo.main",
+        "target": "grad_cam.modify_backprop",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e16",
+        "source": "image_gradcam_demo.main",
+        "target": "grad_cam.compile_saliency_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e17",
+        "source": "image_gradcam_demo.main",
+        "target": "grad_cam.calculate_guided_gradient_CAM",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e18",
+        "source": "image_gradcam_demo.main",
+        "target": "numpy.repeat",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e19",
+        "source": "image_gradcam_demo.main",
+        "target": "inference.draw_bounding_box",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e20",
+        "source": "image_gradcam_demo.main",
+        "target": "cv2.cvtColor",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_gradcam_demo.e21",
+        "source": "image_gradcam_demo.main",
+        "target": "cv2.imwrite",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/train_gender_classifier.py": {
+    "nodes": [
+      {
+        "id": "train_gender_classifier.main",
+        "function_name": "train_gender_classifier.main",
+        "file": "face_classification/train_gender_classifier.py",
+        "line_start": 1,
+        "line_end": 72,
+        "description": "Script train_gender_classifier (72 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "train_gender_classifier.e0",
+        "source": "train_gender_classifier.main",
+        "target": "datasets.DataManager",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e1",
+        "source": "train_gender_classifier.main",
+        "target": "data_loader.get_data",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e2",
+        "source": "train_gender_classifier.main",
+        "target": "datasets.split_imdb_data",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e3",
+        "source": "train_gender_classifier.main",
+        "target": "data_augmentation.ImageGenerator",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e4",
+        "source": "train_gender_classifier.main",
+        "target": "cnn.mini_XCEPTION",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e5",
+        "source": "train_gender_classifier.main",
+        "target": "model.summary",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e6",
+        "source": "train_gender_classifier.main",
+        "target": "keras.callbacks.EarlyStopping",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e7",
+        "source": "train_gender_classifier.main",
+        "target": "keras.callbacks.ReduceLROnPlateau",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e8",
+        "source": "train_gender_classifier.main",
+        "target": "keras.callbacks.CSVLogger",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e9",
+        "source": "train_gender_classifier.main",
+        "target": "keras.callbacks.ModelCheckpoint",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e10",
+        "source": "train_gender_classifier.main",
+        "target": "model.fit_generator",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_gender_classifier.e11",
+        "source": "train_gender_classifier.main",
+        "target": "image_generator.flow",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/video_emotion_gender_demo.py": {
+    "nodes": [
+      {
+        "id": "video_emotion_gender_demo.main",
+        "function_name": "video_emotion_gender_demo.main",
+        "file": "face_classification/video_emotion_gender_demo.py",
+        "line_start": 1,
+        "line_end": 103,
+        "description": "Script video_emotion_gender_demo (103 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "video_emotion_gender_demo.e0",
+        "source": "video_emotion_gender_demo.main",
+        "target": "datasets.get_labels",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e1",
+        "source": "video_emotion_gender_demo.main",
+        "target": "inference.load_detection_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e2",
+        "source": "video_emotion_gender_demo.main",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e3",
+        "source": "video_emotion_gender_demo.main",
+        "target": "cv2.namedWindow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e4",
+        "source": "video_emotion_gender_demo.main",
+        "target": "cv2.VideoCapture",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e5",
+        "source": "video_emotion_gender_demo.main",
+        "target": "video_capture.read",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e6",
+        "source": "video_emotion_gender_demo.main",
+        "target": "cv2.cvtColor",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e7",
+        "source": "video_emotion_gender_demo.main",
+        "target": "inference.detect_faces",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e8",
+        "source": "video_emotion_gender_demo.main",
+        "target": "inference.apply_offsets",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e9",
+        "source": "video_emotion_gender_demo.main",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e10",
+        "source": "video_emotion_gender_demo.main",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e11",
+        "source": "video_emotion_gender_demo.main",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e12",
+        "source": "video_emotion_gender_demo.main",
+        "target": "numpy.argmax",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e13",
+        "source": "video_emotion_gender_demo.main",
+        "target": "emotion_classifier.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e14",
+        "source": "video_emotion_gender_demo.main",
+        "target": "gender_classifier.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e15",
+        "source": "video_emotion_gender_demo.main",
+        "target": "statistics.mode",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e16",
+        "source": "video_emotion_gender_demo.main",
+        "target": "inference.draw_bounding_box",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e17",
+        "source": "video_emotion_gender_demo.main",
+        "target": "inference.draw_text",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e18",
+        "source": "video_emotion_gender_demo.main",
+        "target": "cv2.imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e19",
+        "source": "video_emotion_gender_demo.main",
+        "target": "cv2.waitKey",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e20",
+        "source": "video_emotion_gender_demo.main",
+        "target": "video_capture.release",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_gender_demo.e21",
+        "source": "video_emotion_gender_demo.main",
+        "target": "cv2.destroyAllWindows",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/__init__.py": {
+    "nodes": [],
+    "edges": []
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/video_emotion_color_demo.py": {
+    "nodes": [
+      {
+        "id": "video_emotion_color_demo.main",
+        "function_name": "video_emotion_color_demo.main",
+        "file": "face_classification/video_emotion_color_demo.py",
+        "line_start": 1,
+        "line_end": 92,
+        "description": "Script video_emotion_color_demo (92 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "video_emotion_color_demo.e0",
+        "source": "video_emotion_color_demo.main",
+        "target": "datasets.get_labels",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e1",
+        "source": "video_emotion_color_demo.main",
+        "target": "inference.load_detection_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e2",
+        "source": "video_emotion_color_demo.main",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e3",
+        "source": "video_emotion_color_demo.main",
+        "target": "cv2.namedWindow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e4",
+        "source": "video_emotion_color_demo.main",
+        "target": "cv2.VideoCapture",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e5",
+        "source": "video_emotion_color_demo.main",
+        "target": "video_capture.read",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e6",
+        "source": "video_emotion_color_demo.main",
+        "target": "cv2.cvtColor",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e7",
+        "source": "video_emotion_color_demo.main",
+        "target": "inference.detect_faces",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e8",
+        "source": "video_emotion_color_demo.main",
+        "target": "inference.apply_offsets",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e9",
+        "source": "video_emotion_color_demo.main",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e10",
+        "source": "video_emotion_color_demo.main",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e11",
+        "source": "video_emotion_color_demo.main",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e12",
+        "source": "video_emotion_color_demo.main",
+        "target": "emotion_classifier.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e13",
+        "source": "video_emotion_color_demo.main",
+        "target": "numpy.argmax",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e14",
+        "source": "video_emotion_color_demo.main",
+        "target": "statistics.mode",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e15",
+        "source": "video_emotion_color_demo.main",
+        "target": "numpy.asarray",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e16",
+        "source": "video_emotion_color_demo.main",
+        "target": "color.astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e17",
+        "source": "video_emotion_color_demo.main",
+        "target": "color.tolist",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e18",
+        "source": "video_emotion_color_demo.main",
+        "target": "inference.draw_bounding_box",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e19",
+        "source": "video_emotion_color_demo.main",
+        "target": "inference.draw_text",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e20",
+        "source": "video_emotion_color_demo.main",
+        "target": "cv2.imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e21",
+        "source": "video_emotion_color_demo.main",
+        "target": "cv2.waitKey",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e22",
+        "source": "video_emotion_color_demo.main",
+        "target": "video_capture.release",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_emotion_color_demo.e23",
+        "source": "video_emotion_color_demo.main",
+        "target": "cv2.destroyAllWindows",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/video_gradcam_demo.py": {
+    "nodes": [
+      {
+        "id": "video_gradcam_demo.main",
+        "function_name": "video_gradcam_demo.main",
+        "file": "face_classification/video_gradcam_demo.py",
+        "line_start": 1,
+        "line_end": 93,
+        "description": "Script video_gradcam_demo (93 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "video_gradcam_demo.e0",
+        "source": "video_gradcam_demo.main",
+        "target": "datasets.get_class_to_arg",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e1",
+        "source": "video_gradcam_demo.main",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e2",
+        "source": "video_gradcam_demo.main",
+        "target": "grad_cam.compile_gradient_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e3",
+        "source": "video_gradcam_demo.main",
+        "target": "grad_cam.register_gradient",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e4",
+        "source": "video_gradcam_demo.main",
+        "target": "grad_cam.modify_backprop",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e5",
+        "source": "video_gradcam_demo.main",
+        "target": "grad_cam.compile_saliency_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e6",
+        "source": "video_gradcam_demo.main",
+        "target": "inference.load_detection_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e7",
+        "source": "video_gradcam_demo.main",
+        "target": "cv2.namedWindow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e8",
+        "source": "video_gradcam_demo.main",
+        "target": "cv2.VideoCapture",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e9",
+        "source": "video_gradcam_demo.main",
+        "target": "video_capture.read",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e10",
+        "source": "video_gradcam_demo.main",
+        "target": "cv2.cvtColor",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e11",
+        "source": "video_gradcam_demo.main",
+        "target": "inference.detect_faces",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e12",
+        "source": "video_gradcam_demo.main",
+        "target": "inference.apply_offsets",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e13",
+        "source": "video_gradcam_demo.main",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e14",
+        "source": "video_gradcam_demo.main",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e15",
+        "source": "video_gradcam_demo.main",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e16",
+        "source": "video_gradcam_demo.main",
+        "target": "grad_cam.calculate_guided_gradient_CAM",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e17",
+        "source": "video_gradcam_demo.main",
+        "target": "numpy.repeat",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e18",
+        "source": "video_gradcam_demo.main",
+        "target": "inference.draw_bounding_box",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e19",
+        "source": "video_gradcam_demo.main",
+        "target": "cv2.imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "video_gradcam_demo.e20",
+        "source": "video_gradcam_demo.main",
+        "target": "cv2.waitKey",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/train_emotion_classifier.py": {
+    "nodes": [
+      {
+        "id": "train_emotion_classifier.main",
+        "function_name": "train_emotion_classifier.main",
+        "file": "face_classification/train_emotion_classifier.py",
+        "line_start": 1,
+        "line_end": 73,
+        "description": "Script train_emotion_classifier (73 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "train_emotion_classifier.e0",
+        "source": "train_emotion_classifier.main",
+        "target": "keras.preprocessing.image.ImageDataGenerator",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e1",
+        "source": "train_emotion_classifier.main",
+        "target": "cnn.mini_XCEPTION",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e2",
+        "source": "train_emotion_classifier.main",
+        "target": "model.summary",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e3",
+        "source": "train_emotion_classifier.main",
+        "target": "keras.callbacks.CSVLogger",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e4",
+        "source": "train_emotion_classifier.main",
+        "target": "keras.callbacks.EarlyStopping",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e5",
+        "source": "train_emotion_classifier.main",
+        "target": "keras.callbacks.ReduceLROnPlateau",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e6",
+        "source": "train_emotion_classifier.main",
+        "target": "keras.callbacks.ModelCheckpoint",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e7",
+        "source": "train_emotion_classifier.main",
+        "target": "datasets.DataManager",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e8",
+        "source": "train_emotion_classifier.main",
+        "target": "data_loader.get_data",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e9",
+        "source": "train_emotion_classifier.main",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e10",
+        "source": "train_emotion_classifier.main",
+        "target": "datasets.split_data",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e11",
+        "source": "train_emotion_classifier.main",
+        "target": "model.fit_generator",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "train_emotion_classifier.e12",
+        "source": "train_emotion_classifier.main",
+        "target": "data_generator.flow",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/image_emotion_gender_demo.py": {
+    "nodes": [
+      {
+        "id": "image_emotion_gender_demo.main",
+        "function_name": "image_emotion_gender_demo.main",
+        "file": "face_classification/image_emotion_gender_demo.py",
+        "line_start": 1,
+        "line_end": 83,
+        "description": "Script image_emotion_gender_demo (83 lines)"
+      }
+    ],
+    "edges": [
+      {
+        "id": "image_emotion_gender_demo.e0",
+        "source": "image_emotion_gender_demo.main",
+        "target": "datasets.get_labels",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e1",
+        "source": "image_emotion_gender_demo.main",
+        "target": "inference.load_detection_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e2",
+        "source": "image_emotion_gender_demo.main",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e3",
+        "source": "image_emotion_gender_demo.main",
+        "target": "inference.load_image",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e4",
+        "source": "image_emotion_gender_demo.main",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e5",
+        "source": "image_emotion_gender_demo.main",
+        "target": "gray_image.astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e6",
+        "source": "image_emotion_gender_demo.main",
+        "target": "inference.detect_faces",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e7",
+        "source": "image_emotion_gender_demo.main",
+        "target": "inference.apply_offsets",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e8",
+        "source": "image_emotion_gender_demo.main",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e9",
+        "source": "image_emotion_gender_demo.main",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e10",
+        "source": "image_emotion_gender_demo.main",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e11",
+        "source": "image_emotion_gender_demo.main",
+        "target": "gender_classifier.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e12",
+        "source": "image_emotion_gender_demo.main",
+        "target": "numpy.argmax",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e13",
+        "source": "image_emotion_gender_demo.main",
+        "target": "emotion_classifier.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e14",
+        "source": "image_emotion_gender_demo.main",
+        "target": "inference.draw_bounding_box",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e15",
+        "source": "image_emotion_gender_demo.main",
+        "target": "inference.draw_text",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e16",
+        "source": "image_emotion_gender_demo.main",
+        "target": "cv2.cvtColor",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "image_emotion_gender_demo.e17",
+        "source": "image_emotion_gender_demo.main",
+        "target": "cv2.imwrite",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/web/faces.py": {
+    "nodes": [
+      {
+        "id": "faces.index",
+        "function_name": "index",
+        "file": "face_classification/web/faces.py",
+        "line_start": 9,
+        "line_end": 10,
+        "description": "Function index (2 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "faces.upload",
+        "function_name": "upload",
+        "file": "face_classification/web/faces.py",
+        "line_start": 13,
+        "line_end": 20,
+        "description": "Function upload (8 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "faces.bad_request",
+        "function_name": "bad_request",
+        "file": "face_classification/web/faces.py",
+        "line_start": 23,
+        "line_end": 24,
+        "description": "Function bad_request (2 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "faces.not_found",
+        "function_name": "not_found",
+        "file": "face_classification/web/faces.py",
+        "line_start": 27,
+        "line_end": 28,
+        "description": "Function not_found (2 lines)",
+        "node_type": "function"
+      }
+    ],
+    "edges": [
+      {
+        "id": "faces.e0",
+        "source": "faces.index",
+        "target": "flask.redirect",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e1",
+        "source": "faces.index",
+        "target": "app.route",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e2",
+        "source": "faces.upload",
+        "target": "read",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e3",
+        "source": "faces.upload",
+        "target": "emotion_gender_processor.process_image",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e4",
+        "source": "faces.upload",
+        "target": "flask.send_file",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e5",
+        "source": "faces.upload",
+        "target": "flask.abort",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e6",
+        "source": "faces.upload",
+        "target": "app.route",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e7",
+        "source": "faces.bad_request",
+        "target": "flask.make_response",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e8",
+        "source": "faces.bad_request",
+        "target": "flask.jsonify",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e9",
+        "source": "faces.bad_request",
+        "target": "app.errorhandler",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e10",
+        "source": "faces.not_found",
+        "target": "flask.make_response",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e11",
+        "source": "faces.not_found",
+        "target": "flask.jsonify",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e12",
+        "source": "faces.not_found",
+        "target": "app.errorhandler",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e13",
+        "source": "faces.upload",
+        "target": "eg_processor.process_image",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "faces.e14",
+        "source": "faces.main",
+        "target": "flask.Flask",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "faces.e15",
+        "source": "faces.main",
+        "target": "app.run",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/web/emotion_gender_processor.py": {
+    "nodes": [
+      {
+        "id": "emotion_gender_processor.process_image",
+        "function_name": "process_image",
+        "file": "face_classification/web/emotion_gender_processor.py",
+        "line_start": 18,
+        "line_end": 94,
+        "description": "Function process_image (77 lines)",
+        "node_type": "function"
+      }
+    ],
+    "edges": [
+      {
+        "id": "emotion_gender_processor.e0",
+        "source": "emotion_gender_processor.process_image",
+        "target": "datasets.get_labels",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e1",
+        "source": "emotion_gender_processor.process_image",
+        "target": "inference.load_detection_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e2",
+        "source": "emotion_gender_processor.process_image",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e3",
+        "source": "emotion_gender_processor.process_image",
+        "target": "numpy.fromstring",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e4",
+        "source": "emotion_gender_processor.process_image",
+        "target": "cv2.imdecode",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e5",
+        "source": "emotion_gender_processor.process_image",
+        "target": "cv2.cvtColor",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e6",
+        "source": "emotion_gender_processor.process_image",
+        "target": "inference.detect_faces",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e7",
+        "source": "emotion_gender_processor.process_image",
+        "target": "inference.apply_offsets",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e8",
+        "source": "emotion_gender_processor.process_image",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e9",
+        "source": "emotion_gender_processor.process_image",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e10",
+        "source": "emotion_gender_processor.process_image",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e11",
+        "source": "emotion_gender_processor.process_image",
+        "target": "gender_classifier.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e12",
+        "source": "emotion_gender_processor.process_image",
+        "target": "numpy.argmax",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e13",
+        "source": "emotion_gender_processor.process_image",
+        "target": "emotion_classifier.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e14",
+        "source": "emotion_gender_processor.process_image",
+        "target": "inference.draw_bounding_box",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e15",
+        "source": "emotion_gender_processor.process_image",
+        "target": "inference.draw_text",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e16",
+        "source": "emotion_gender_processor.process_image",
+        "target": "cv2.imwrite",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "emotion_gender_processor.e17",
+        "source": "emotion_gender_processor.process_image",
+        "target": "np.fromstring",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "emotion_gender_processor.e18",
+        "source": "emotion_gender_processor.process_image",
+        "target": "np.expand_dims",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "emotion_gender_processor.e19",
+        "source": "emotion_gender_processor.process_image",
+        "target": "np.argmax",
+        "edge_type": "method_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/web/__init__.py": {
+    "nodes": [],
+    "edges": []
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/utils/datasets.py": {
+    "nodes": [
+      {
+        "id": "datasets.DataManager",
+        "function_name": "DataManager",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 9,
+        "line_end": 102,
+        "description": "Class DataManager (94 lines, 5 methods)",
+        "node_type": "class"
+      },
+      {
+        "id": "datasets.DataManager.__init__",
+        "function_name": "DataManager.__init__",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 12,
+        "line_end": 28,
+        "description": "Method __init__ (17 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "datasets.DataManager.get_data",
+        "function_name": "DataManager.get_data",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 30,
+        "line_end": 37,
+        "description": "Method get_data (8 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "datasets.DataManager._load_imdb",
+        "function_name": "DataManager._load_imdb",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 39,
+        "line_end": 57,
+        "description": "Method _load_imdb (19 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "datasets.DataManager._load_fer2013",
+        "function_name": "DataManager._load_fer2013",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 59,
+        "line_end": 72,
+        "description": "Method _load_fer2013 (14 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "datasets.DataManager._load_KDEF",
+        "function_name": "DataManager._load_KDEF",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 74,
+        "line_end": 102,
+        "description": "Method _load_KDEF (29 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "datasets.get_labels",
+        "function_name": "get_labels",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 105,
+        "line_end": 114,
+        "description": "Function get_labels (10 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "datasets.get_class_to_arg",
+        "function_name": "get_class_to_arg",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 117,
+        "line_end": 126,
+        "description": "Function get_class_to_arg (10 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "datasets.split_imdb_data",
+        "function_name": "split_imdb_data",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 129,
+        "line_end": 137,
+        "description": "Function split_imdb_data (9 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "datasets.split_data",
+        "function_name": "split_data",
+        "file": "face_classification/utils/datasets.py",
+        "line_start": 140,
+        "line_end": 149,
+        "description": "Function split_data (10 lines)",
+        "node_type": "function"
+      }
+    ],
+    "edges": [
+      {
+        "id": "datasets.e0",
+        "source": "datasets.DataManager.__init__",
+        "target": "Exception",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e1",
+        "source": "datasets.DataManager.get_data",
+        "target": "datasets.DataManager._load_imdb",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e2",
+        "source": "datasets.DataManager.get_data",
+        "target": "datasets.DataManager._load_fer2013",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e3",
+        "source": "datasets.DataManager.get_data",
+        "target": "datasets.DataManager._load_KDEF",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e4",
+        "source": "datasets.DataManager._load_imdb",
+        "target": "scipy.io.loadmat",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e5",
+        "source": "datasets.DataManager._load_imdb",
+        "target": "numpy.isnan",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e6",
+        "source": "datasets.DataManager._load_imdb",
+        "target": "numpy.logical_not",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e7",
+        "source": "datasets.DataManager._load_imdb",
+        "target": "numpy.logical_and",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e8",
+        "source": "datasets.DataManager._load_imdb",
+        "target": "tolist",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e9",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "pandas.read_csv",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e10",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "tolist",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e11",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "reshape",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e12",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "numpy.asarray",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e13",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e14",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "face.astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e15",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e16",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "as_matrix",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e17",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "pandas.get_dummies",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e18",
+        "source": "datasets.DataManager._load_KDEF",
+        "target": "datasets.get_class_to_arg",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e19",
+        "source": "datasets.DataManager._load_KDEF",
+        "target": "numpy.zeros",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e20",
+        "source": "datasets.DataManager._load_KDEF",
+        "target": "cv2.imread",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e21",
+        "source": "datasets.DataManager._load_KDEF",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e22",
+        "source": "datasets.DataManager._load_KDEF",
+        "target": "basename",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e23",
+        "source": "datasets.DataManager._load_KDEF",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e24",
+        "source": "datasets.get_labels",
+        "target": "Exception",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e25",
+        "source": "datasets.get_class_to_arg",
+        "target": "Exception",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "datasets.e26",
+        "source": "datasets.DataManager._load_imdb",
+        "target": "np.isnan",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "datasets.e27",
+        "source": "datasets.DataManager._load_imdb",
+        "target": "np.logical_not",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "datasets.e28",
+        "source": "datasets.DataManager._load_imdb",
+        "target": "np.logical_and",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "datasets.e29",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "pd.read_csv",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "datasets.e30",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "np.asarray",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "datasets.e31",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "np.expand_dims",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "datasets.e32",
+        "source": "datasets.DataManager._load_fer2013",
+        "target": "pd.get_dummies",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "datasets.e33",
+        "source": "datasets.DataManager._load_KDEF",
+        "target": "np.zeros",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "datasets.e34",
+        "source": "datasets.DataManager._load_KDEF",
+        "target": "np.expand_dims",
+        "edge_type": "method_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/utils/__init__.py": {
+    "nodes": [],
+    "edges": []
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/utils/preprocessor.py": {
+    "nodes": [
+      {
+        "id": "preprocessor.preprocess_input",
+        "function_name": "preprocess_input",
+        "file": "face_classification/utils/preprocessor.py",
+        "line_start": 5,
+        "line_end": 11,
+        "description": "Function preprocess_input (7 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "preprocessor._imread",
+        "function_name": "_imread",
+        "file": "face_classification/utils/preprocessor.py",
+        "line_start": 14,
+        "line_end": 15,
+        "description": "Function _imread (2 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "preprocessor._imresize",
+        "function_name": "_imresize",
+        "file": "face_classification/utils/preprocessor.py",
+        "line_start": 18,
+        "line_end": 19,
+        "description": "Function _imresize (2 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "preprocessor.to_categorical",
+        "function_name": "to_categorical",
+        "file": "face_classification/utils/preprocessor.py",
+        "line_start": 22,
+        "line_end": 27,
+        "description": "Function to_categorical (6 lines)",
+        "node_type": "function"
+      }
+    ],
+    "edges": [
+      {
+        "id": "preprocessor.e0",
+        "source": "preprocessor.preprocess_input",
+        "target": "x.astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "preprocessor.e1",
+        "source": "preprocessor._imread",
+        "target": "scipy.misc.imread",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "preprocessor.e2",
+        "source": "preprocessor._imresize",
+        "target": "scipy.misc.imresize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "preprocessor.e3",
+        "source": "preprocessor.to_categorical",
+        "target": "numpy.asarray",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "preprocessor.e4",
+        "source": "preprocessor.to_categorical",
+        "target": "numpy.zeros",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "preprocessor.e5",
+        "source": "preprocessor.to_categorical",
+        "target": "numpy.arange",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "preprocessor.e6",
+        "source": "preprocessor.to_categorical",
+        "target": "np.asarray",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "preprocessor.e7",
+        "source": "preprocessor.to_categorical",
+        "target": "np.zeros",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "preprocessor.e8",
+        "source": "preprocessor.to_categorical",
+        "target": "np.arange",
+        "edge_type": "method_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/utils/grad_cam.py": {
+    "nodes": [
+      {
+        "id": "grad_cam.reset_optimizer_weights",
+        "function_name": "reset_optimizer_weights",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 15,
+        "line_end": 18,
+        "description": "Function reset_optimizer_weights (4 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.target_category_loss",
+        "function_name": "target_category_loss",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 21,
+        "line_end": 22,
+        "description": "Function target_category_loss (2 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.target_category_loss_output_shape",
+        "function_name": "target_category_loss_output_shape",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 25,
+        "line_end": 26,
+        "description": "Function target_category_loss_output_shape (2 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.normalize",
+        "function_name": "normalize",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 29,
+        "line_end": 31,
+        "description": "Function normalize (3 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.load_image",
+        "function_name": "load_image",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 34,
+        "line_end": 37,
+        "description": "Function load_image (4 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.register_gradient",
+        "function_name": "register_gradient",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 40,
+        "line_end": 47,
+        "description": "Function register_gradient (8 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam._GuidedBackProp",
+        "function_name": "_GuidedBackProp",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 43,
+        "line_end": 47,
+        "description": "Function _GuidedBackProp (5 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.compile_saliency_function",
+        "function_name": "compile_saliency_function",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 50,
+        "line_end": 55,
+        "description": "Function compile_saliency_function (6 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.modify_backprop",
+        "function_name": "modify_backprop",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 58,
+        "line_end": 79,
+        "description": "Function modify_backprop (22 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.deprocess_image",
+        "function_name": "deprocess_image",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 82,
+        "line_end": 102,
+        "description": "Function deprocess_image (21 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.compile_gradient_function",
+        "function_name": "compile_gradient_function",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 105,
+        "line_end": 119,
+        "description": "Function compile_gradient_function (15 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.calculate_gradient_weighted_CAM",
+        "function_name": "calculate_gradient_weighted_CAM",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 122,
+        "line_end": 141,
+        "description": "Function calculate_gradient_weighted_CAM (20 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.calculate_guided_gradient_CAM",
+        "function_name": "calculate_guided_gradient_CAM",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 144,
+        "line_end": 151,
+        "description": "Function calculate_guided_gradient_CAM (8 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "function_name": "calculate_guided_gradient_CAM_v2",
+        "file": "face_classification/utils/grad_cam.py",
+        "line_start": 155,
+        "line_end": 167,
+        "description": "Function calculate_guided_gradient_CAM_v2 (13 lines)",
+        "node_type": "function"
+      }
+    ],
+    "edges": [
+      {
+        "id": "grad_cam.e0",
+        "source": "grad_cam.reset_optimizer_weights",
+        "target": "h5py.File",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e1",
+        "source": "grad_cam.reset_optimizer_weights",
+        "target": "model.close",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e2",
+        "source": "grad_cam.target_category_loss",
+        "target": "tensorflow.multiply",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e3",
+        "source": "grad_cam.target_category_loss",
+        "target": "keras.backend.one_hot",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e4",
+        "source": "grad_cam.normalize",
+        "target": "keras.backend.mean",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e5",
+        "source": "grad_cam.normalize",
+        "target": "keras.backend.square",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e6",
+        "source": "grad_cam.load_image",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e7",
+        "source": "grad_cam.load_image",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e8",
+        "source": "grad_cam._GuidedBackProp",
+        "target": "tensorflow.cast",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e9",
+        "source": "grad_cam._GuidedBackProp",
+        "target": "tensorflow.python.framework.ops.RegisterGradient",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e10",
+        "source": "grad_cam.compile_saliency_function",
+        "target": "model.get_layer",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e11",
+        "source": "grad_cam.compile_saliency_function",
+        "target": "keras.backend.gradients",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e12",
+        "source": "grad_cam.compile_saliency_function",
+        "target": "keras.backend.function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e13",
+        "source": "grad_cam.compile_saliency_function",
+        "target": "keras.backend.learning_phase",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e14",
+        "source": "grad_cam.modify_backprop",
+        "target": "tensorflow.get_default_graph",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e15",
+        "source": "grad_cam.modify_backprop",
+        "target": "graph.gradient_override_map",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e16",
+        "source": "grad_cam.modify_backprop",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e17",
+        "source": "grad_cam.deprocess_image",
+        "target": "numpy.ndim",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e18",
+        "source": "grad_cam.deprocess_image",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e19",
+        "source": "grad_cam.deprocess_image",
+        "target": "x.mean",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e20",
+        "source": "grad_cam.deprocess_image",
+        "target": "x.std",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e21",
+        "source": "grad_cam.deprocess_image",
+        "target": "numpy.clip",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e22",
+        "source": "grad_cam.deprocess_image",
+        "target": "keras.backend.image_dim_ordering",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e23",
+        "source": "grad_cam.deprocess_image",
+        "target": "x.transpose",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e24",
+        "source": "grad_cam.deprocess_image",
+        "target": "astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e25",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "keras.models.Sequential",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e26",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "grad_cam.target_category_loss",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e27",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "keras.layers.core.Lambda",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e28",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "get_layer",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e29",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "grad_cam.normalize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e30",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "keras.backend.gradients",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e31",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "keras.backend.function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e32",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "keras.backend.learning_phase",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e33",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "gradient_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e34",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "numpy.mean",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e35",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "numpy.ones",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e36",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e37",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "numpy.maximum",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e38",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "numpy.minimum",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e39",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "cv2.applyColorMap",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e40",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "numpy.uint8",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e41",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "numpy.float32",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e42",
+        "source": "grad_cam.calculate_guided_gradient_CAM",
+        "target": "grad_cam.calculate_gradient_weighted_CAM",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e43",
+        "source": "grad_cam.calculate_guided_gradient_CAM",
+        "target": "saliency_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e44",
+        "source": "grad_cam.calculate_guided_gradient_CAM",
+        "target": "grad_cam.deprocess_image",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e45",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "grad_cam.calculate_gradient_weighted_CAM",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e46",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e47",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "cv2.resize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e48",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "heatmap.astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e49",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "saliency_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e50",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "saliency.astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e51",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "grad_cam.deprocess_image",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e52",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e53",
+        "source": "grad_cam.target_category_loss",
+        "target": "tf.multiply",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e54",
+        "source": "grad_cam.target_category_loss",
+        "target": "K.one_hot",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e55",
+        "source": "grad_cam.normalize",
+        "target": "K.mean",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e56",
+        "source": "grad_cam.normalize",
+        "target": "K.square",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e57",
+        "source": "grad_cam.load_image",
+        "target": "np.expand_dims",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e58",
+        "source": "grad_cam._GuidedBackProp",
+        "target": "tf.cast",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e59",
+        "source": "grad_cam._GuidedBackProp",
+        "target": "ops.RegisterGradient",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e60",
+        "source": "grad_cam.compile_saliency_function",
+        "target": "K.gradients",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e61",
+        "source": "grad_cam.compile_saliency_function",
+        "target": "K.function",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e62",
+        "source": "grad_cam.compile_saliency_function",
+        "target": "K.learning_phase",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e63",
+        "source": "grad_cam.modify_backprop",
+        "target": "tf.get_default_graph",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e64",
+        "source": "grad_cam.deprocess_image",
+        "target": "np.ndim",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e65",
+        "source": "grad_cam.deprocess_image",
+        "target": "np.squeeze",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e66",
+        "source": "grad_cam.deprocess_image",
+        "target": "np.clip",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e67",
+        "source": "grad_cam.deprocess_image",
+        "target": "K.image_dim_ordering",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e68",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "K.gradients",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e69",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "K.function",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e70",
+        "source": "grad_cam.compile_gradient_function",
+        "target": "K.learning_phase",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e71",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "np.mean",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e72",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "np.ones",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e73",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "np.maximum",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e74",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "np.minimum",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e75",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "np.uint8",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e76",
+        "source": "grad_cam.calculate_gradient_weighted_CAM",
+        "target": "np.float32",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e77",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "np.squeeze",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e78",
+        "source": "grad_cam.calculate_guided_gradient_CAM_v2",
+        "target": "np.expand_dims",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "grad_cam.e79",
+        "source": "grad_cam.main",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e80",
+        "source": "grad_cam.main",
+        "target": "grad_cam.load_image",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e81",
+        "source": "grad_cam.main",
+        "target": "model.predict",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e82",
+        "source": "grad_cam.main",
+        "target": "numpy.argmax",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e83",
+        "source": "grad_cam.main",
+        "target": "grad_cam.compile_gradient_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e84",
+        "source": "grad_cam.main",
+        "target": "grad_cam.register_gradient",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e85",
+        "source": "grad_cam.main",
+        "target": "grad_cam.modify_backprop",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e86",
+        "source": "grad_cam.main",
+        "target": "grad_cam.compile_saliency_function",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e87",
+        "source": "grad_cam.main",
+        "target": "grad_cam.calculate_guided_gradient_CAM",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "grad_cam.e88",
+        "source": "grad_cam.main",
+        "target": "cv2.imwrite",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/utils/inference.py": {
+    "nodes": [
+      {
+        "id": "inference.load_image",
+        "function_name": "load_image",
+        "file": "face_classification/utils/inference.py",
+        "line_start": 6,
+        "line_end": 8,
+        "description": "Function load_image (3 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "inference.load_detection_model",
+        "function_name": "load_detection_model",
+        "file": "face_classification/utils/inference.py",
+        "line_start": 10,
+        "line_end": 12,
+        "description": "Function load_detection_model (3 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "inference.detect_faces",
+        "function_name": "detect_faces",
+        "file": "face_classification/utils/inference.py",
+        "line_start": 14,
+        "line_end": 15,
+        "description": "Function detect_faces (2 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "inference.draw_bounding_box",
+        "function_name": "draw_bounding_box",
+        "file": "face_classification/utils/inference.py",
+        "line_start": 17,
+        "line_end": 19,
+        "description": "Function draw_bounding_box (3 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "inference.apply_offsets",
+        "function_name": "apply_offsets",
+        "file": "face_classification/utils/inference.py",
+        "line_start": 21,
+        "line_end": 24,
+        "description": "Function apply_offsets (4 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "inference.draw_text",
+        "function_name": "draw_text",
+        "file": "face_classification/utils/inference.py",
+        "line_start": 26,
+        "line_end": 31,
+        "description": "Function draw_text (6 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "inference.get_colors",
+        "function_name": "get_colors",
+        "file": "face_classification/utils/inference.py",
+        "line_start": 33,
+        "line_end": 36,
+        "description": "Function get_colors (4 lines)",
+        "node_type": "function"
+      }
+    ],
+    "edges": [
+      {
+        "id": "inference.e0",
+        "source": "inference.load_image",
+        "target": "keras.preprocessing.image.load_img",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e1",
+        "source": "inference.load_image",
+        "target": "keras.preprocessing.image.img_to_array",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e2",
+        "source": "inference.load_detection_model",
+        "target": "cv2.CascadeClassifier",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e3",
+        "source": "inference.detect_faces",
+        "target": "detection_model.detectMultiScale",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e4",
+        "source": "inference.draw_bounding_box",
+        "target": "cv2.rectangle",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e5",
+        "source": "inference.draw_text",
+        "target": "cv2.putText",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e6",
+        "source": "inference.get_colors",
+        "target": "tolist",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e7",
+        "source": "inference.get_colors",
+        "target": "hsv",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e8",
+        "source": "inference.get_colors",
+        "target": "numpy.linspace",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e9",
+        "source": "inference.get_colors",
+        "target": "numpy.asarray",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "inference.e10",
+        "source": "inference.load_image",
+        "target": "image.load_img",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "inference.e11",
+        "source": "inference.load_image",
+        "target": "image.img_to_array",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "inference.e12",
+        "source": "inference.get_colors",
+        "target": "np.linspace",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "inference.e13",
+        "source": "inference.get_colors",
+        "target": "np.asarray",
+        "edge_type": "method_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/utils/data_augmentation.py": {
+    "nodes": [
+      {
+        "id": "data_augmentation.ImageGenerator",
+        "function_name": "ImageGenerator",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 11,
+        "line_end": 235,
+        "description": "Class ImageGenerator (225 lines, 14 methods)",
+        "node_type": "class"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.__init__",
+        "function_name": "ImageGenerator.__init__",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 21,
+        "line_end": 59,
+        "description": "Method __init__ (39 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator._do_random_crop",
+        "function_name": "ImageGenerator._do_random_crop",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 61,
+        "line_end": 81,
+        "description": "Method _do_random_crop (21 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.do_random_rotation",
+        "function_name": "ImageGenerator.do_random_rotation",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 83,
+        "line_end": 103,
+        "description": "Method do_random_rotation (21 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator._gray_scale",
+        "function_name": "ImageGenerator._gray_scale",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 105,
+        "line_end": 106,
+        "description": "Method _gray_scale (2 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.saturation",
+        "function_name": "ImageGenerator.saturation",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 108,
+        "line_end": 114,
+        "description": "Method saturation (7 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.brightness",
+        "function_name": "ImageGenerator.brightness",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 116,
+        "line_end": 120,
+        "description": "Method brightness (5 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.contrast",
+        "function_name": "ImageGenerator.contrast",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 122,
+        "line_end": 128,
+        "description": "Method contrast (7 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.lighting",
+        "function_name": "ImageGenerator.lighting",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 130,
+        "line_end": 137,
+        "description": "Method lighting (8 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.horizontal_flip",
+        "function_name": "ImageGenerator.horizontal_flip",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 139,
+        "line_end": 144,
+        "description": "Method horizontal_flip (6 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.vertical_flip",
+        "function_name": "ImageGenerator.vertical_flip",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 146,
+        "line_end": 151,
+        "description": "Method vertical_flip (6 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.transform",
+        "function_name": "ImageGenerator.transform",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 153,
+        "line_end": 168,
+        "description": "Method transform (16 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.preprocess_images",
+        "function_name": "ImageGenerator.preprocess_images",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 170,
+        "line_end": 171,
+        "description": "Method preprocess_images (2 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator.flow",
+        "function_name": "ImageGenerator.flow",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 173,
+        "line_end": 231,
+        "description": "Method flow (59 lines)",
+        "node_type": "method"
+      },
+      {
+        "id": "data_augmentation.ImageGenerator._wrap_in_dictionary",
+        "function_name": "ImageGenerator._wrap_in_dictionary",
+        "file": "face_classification/utils/data_augmentation.py",
+        "line_start": 233,
+        "line_end": 235,
+        "description": "Method _wrap_in_dictionary (3 lines)",
+        "node_type": "method"
+      }
+    ],
+    "edges": [
+      {
+        "id": "data_augmentation.e0",
+        "source": "data_augmentation.ImageGenerator._do_random_crop",
+        "target": "uniform",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e1",
+        "source": "data_augmentation.ImageGenerator._do_random_crop",
+        "target": "numpy.array",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e2",
+        "source": "data_augmentation.ImageGenerator._do_random_crop",
+        "target": "numpy.rollaxis",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e3",
+        "source": "data_augmentation.ImageGenerator._do_random_crop",
+        "target": "affine_transform",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e4",
+        "source": "data_augmentation.ImageGenerator._do_random_crop",
+        "target": "numpy.stack",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e5",
+        "source": "data_augmentation.ImageGenerator.do_random_rotation",
+        "target": "uniform",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e6",
+        "source": "data_augmentation.ImageGenerator.do_random_rotation",
+        "target": "numpy.array",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e7",
+        "source": "data_augmentation.ImageGenerator.do_random_rotation",
+        "target": "numpy.rollaxis",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e8",
+        "source": "data_augmentation.ImageGenerator.do_random_rotation",
+        "target": "affine_transform",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e9",
+        "source": "data_augmentation.ImageGenerator.do_random_rotation",
+        "target": "numpy.stack",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e10",
+        "source": "data_augmentation.ImageGenerator._gray_scale",
+        "target": "image_array.dot",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e11",
+        "source": "data_augmentation.ImageGenerator.saturation",
+        "target": "data_augmentation.ImageGenerator._gray_scale",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e12",
+        "source": "data_augmentation.ImageGenerator.saturation",
+        "target": "numpy.clip",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e13",
+        "source": "data_augmentation.ImageGenerator.brightness",
+        "target": "numpy.clip",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e14",
+        "source": "data_augmentation.ImageGenerator.contrast",
+        "target": "mean",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e15",
+        "source": "data_augmentation.ImageGenerator.contrast",
+        "target": "data_augmentation.ImageGenerator._gray_scale",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e16",
+        "source": "data_augmentation.ImageGenerator.contrast",
+        "target": "numpy.ones_like",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e17",
+        "source": "data_augmentation.ImageGenerator.contrast",
+        "target": "numpy.clip",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e18",
+        "source": "data_augmentation.ImageGenerator.lighting",
+        "target": "numpy.cov",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e19",
+        "source": "data_augmentation.ImageGenerator.lighting",
+        "target": "image_array.reshape",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e20",
+        "source": "data_augmentation.ImageGenerator.lighting",
+        "target": "eigh",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e21",
+        "source": "data_augmentation.ImageGenerator.lighting",
+        "target": "randn",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e22",
+        "source": "data_augmentation.ImageGenerator.lighting",
+        "target": "eigen_vectors.dot",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e23",
+        "source": "data_augmentation.ImageGenerator.lighting",
+        "target": "numpy.clip",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e24",
+        "source": "data_augmentation.ImageGenerator.transform",
+        "target": "jitter",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e25",
+        "source": "data_augmentation.ImageGenerator.transform",
+        "target": "data_augmentation.ImageGenerator.lighting",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e26",
+        "source": "data_augmentation.ImageGenerator.transform",
+        "target": "data_augmentation.ImageGenerator.horizontal_flip",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e27",
+        "source": "data_augmentation.ImageGenerator.transform",
+        "target": "data_augmentation.ImageGenerator.vertical_flip",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e28",
+        "source": "data_augmentation.ImageGenerator.preprocess_images",
+        "target": "preprocessor.preprocess_input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e29",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "Exception",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e30",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "imread",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e31",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "imresize",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e32",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "data_augmentation.ImageGenerator._do_random_crop",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e33",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "image_array.astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e34",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "data_augmentation.ImageGenerator.transform",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e35",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "assign_boxes",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e36",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "astype",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e37",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "cv2.cvtColor",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e38",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e39",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "numpy.asarray",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e40",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "preprocessor.to_categorical",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e41",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "data_augmentation.ImageGenerator.preprocess_images",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e42",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "data_augmentation.ImageGenerator._wrap_in_dictionary",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "data_augmentation.e43",
+        "source": "data_augmentation.ImageGenerator._do_random_crop",
+        "target": "np.array",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e44",
+        "source": "data_augmentation.ImageGenerator._do_random_crop",
+        "target": "np.rollaxis",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e45",
+        "source": "data_augmentation.ImageGenerator._do_random_crop",
+        "target": "np.stack",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e46",
+        "source": "data_augmentation.ImageGenerator.do_random_rotation",
+        "target": "np.array",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e47",
+        "source": "data_augmentation.ImageGenerator.do_random_rotation",
+        "target": "np.rollaxis",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e48",
+        "source": "data_augmentation.ImageGenerator.do_random_rotation",
+        "target": "np.stack",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e49",
+        "source": "data_augmentation.ImageGenerator.saturation",
+        "target": "np.clip",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e50",
+        "source": "data_augmentation.ImageGenerator.brightness",
+        "target": "np.clip",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e51",
+        "source": "data_augmentation.ImageGenerator.contrast",
+        "target": "np.ones_like",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e52",
+        "source": "data_augmentation.ImageGenerator.contrast",
+        "target": "np.clip",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e53",
+        "source": "data_augmentation.ImageGenerator.lighting",
+        "target": "np.cov",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e54",
+        "source": "data_augmentation.ImageGenerator.lighting",
+        "target": "np.clip",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e55",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "np.expand_dims",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "data_augmentation.e56",
+        "source": "data_augmentation.ImageGenerator.flow",
+        "target": "np.asarray",
+        "edge_type": "method_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/utils/visualizer.py": {
+    "nodes": [
+      {
+        "id": "visualizer.make_mosaic",
+        "function_name": "make_mosaic",
+        "file": "face_classification/utils/visualizer.py",
+        "line_start": 8,
+        "line_end": 24,
+        "description": "Function make_mosaic (17 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "visualizer.make_mosaic_v2",
+        "function_name": "make_mosaic_v2",
+        "file": "face_classification/utils/visualizer.py",
+        "line_start": 27,
+        "line_end": 50,
+        "description": "Function make_mosaic_v2 (24 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "visualizer.pretty_imshow",
+        "function_name": "pretty_imshow",
+        "file": "face_classification/utils/visualizer.py",
+        "line_start": 53,
+        "line_end": 65,
+        "description": "Function pretty_imshow (13 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "visualizer.normal_imshow",
+        "function_name": "normal_imshow",
+        "file": "face_classification/utils/visualizer.py",
+        "line_start": 68,
+        "line_end": 80,
+        "description": "Function normal_imshow (13 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "visualizer.display_image",
+        "function_name": "display_image",
+        "file": "face_classification/utils/visualizer.py",
+        "line_start": 83,
+        "line_end": 99,
+        "description": "Function display_image (17 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "visualizer.draw_mosaic",
+        "function_name": "draw_mosaic",
+        "file": "face_classification/utils/visualizer.py",
+        "line_start": 102,
+        "line_end": 126,
+        "description": "Function draw_mosaic (25 lines)",
+        "node_type": "function"
+      }
+    ],
+    "edges": [
+      {
+        "id": "visualizer.e0",
+        "source": "visualizer.make_mosaic",
+        "target": "numpy.ma.masked_all",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e1",
+        "source": "visualizer.make_mosaic",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e2",
+        "source": "visualizer.make_mosaic_v2",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e3",
+        "source": "visualizer.make_mosaic_v2",
+        "target": "numpy.empty",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e4",
+        "source": "visualizer.pretty_imshow",
+        "target": "mpl_toolkits.axes_grid1.make_axes_locatable",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e5",
+        "source": "visualizer.pretty_imshow",
+        "target": "divider.append_axes",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e6",
+        "source": "visualizer.pretty_imshow",
+        "target": "axis.imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e7",
+        "source": "visualizer.pretty_imshow",
+        "target": "matplotlib.pyplot.colorbar",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e8",
+        "source": "visualizer.normal_imshow",
+        "target": "axis.imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e9",
+        "source": "visualizer.normal_imshow",
+        "target": "matplotlib.pyplot.axis",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e10",
+        "source": "visualizer.display_image",
+        "target": "Exception",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e11",
+        "source": "visualizer.display_image",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e12",
+        "source": "visualizer.display_image",
+        "target": "matplotlib.pyplot.figure",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e13",
+        "source": "visualizer.display_image",
+        "target": "numpy.argmax",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e14",
+        "source": "visualizer.display_image",
+        "target": "visualizer.pretty_imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e15",
+        "source": "visualizer.display_image",
+        "target": "matplotlib.pyplot.gca",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e16",
+        "source": "visualizer.display_image",
+        "target": "matplotlib.pyplot.imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e17",
+        "source": "visualizer.draw_mosaic",
+        "target": "Exception",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e18",
+        "source": "visualizer.draw_mosaic",
+        "target": "matplotlib.pyplot.subplots",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e19",
+        "source": "visualizer.draw_mosaic",
+        "target": "figure.set_size_inches",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e20",
+        "source": "visualizer.draw_mosaic",
+        "target": "numpy.argmax",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e21",
+        "source": "visualizer.draw_mosaic",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e22",
+        "source": "visualizer.draw_mosaic",
+        "target": "axis",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e23",
+        "source": "visualizer.draw_mosaic",
+        "target": "imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e24",
+        "source": "visualizer.draw_mosaic",
+        "target": "set_title",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e25",
+        "source": "visualizer.draw_mosaic",
+        "target": "matplotlib.pyplot.tight_layout",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e26",
+        "source": "visualizer.make_mosaic",
+        "target": "ma.masked_all",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e27",
+        "source": "visualizer.make_mosaic",
+        "target": "np.squeeze",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e28",
+        "source": "visualizer.make_mosaic_v2",
+        "target": "np.squeeze",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e29",
+        "source": "visualizer.make_mosaic_v2",
+        "target": "np.empty",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e30",
+        "source": "visualizer.pretty_imshow",
+        "target": "plt.colorbar",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e31",
+        "source": "visualizer.normal_imshow",
+        "target": "plt.axis",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e32",
+        "source": "visualizer.display_image",
+        "target": "np.squeeze",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e33",
+        "source": "visualizer.display_image",
+        "target": "plt.figure",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e34",
+        "source": "visualizer.display_image",
+        "target": "np.argmax",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e35",
+        "source": "visualizer.display_image",
+        "target": "plt.gca",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e36",
+        "source": "visualizer.display_image",
+        "target": "plt.imshow",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e37",
+        "source": "visualizer.draw_mosaic",
+        "target": "plt.subplots",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e38",
+        "source": "visualizer.draw_mosaic",
+        "target": "np.argmax",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e39",
+        "source": "visualizer.draw_mosaic",
+        "target": "np.squeeze",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e40",
+        "source": "visualizer.draw_mosaic",
+        "target": "plt.tight_layout",
+        "edge_type": "method_call"
+      },
+      {
+        "id": "visualizer.e41",
+        "source": "visualizer.main",
+        "target": "utils.utils.get_labels",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e42",
+        "source": "visualizer.main",
+        "target": "visualizer.pretty_imshow",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e43",
+        "source": "visualizer.main",
+        "target": "matplotlib.pyplot.gca",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e44",
+        "source": "visualizer.main",
+        "target": "visualizer.make_mosaic",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e45",
+        "source": "visualizer.main",
+        "target": "matplotlib.pyplot.show",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e46",
+        "source": "visualizer.main",
+        "target": "keras.models.load_model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e47",
+        "source": "visualizer.main",
+        "target": "get_weights",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e48",
+        "source": "visualizer.main",
+        "target": "numpy.squeeze",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e49",
+        "source": "visualizer.main",
+        "target": "numpy.rollaxis",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e50",
+        "source": "visualizer.main",
+        "target": "numpy.expand_dims",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "visualizer.e51",
+        "source": "visualizer.main",
+        "target": "matplotlib.pyplot.figure",
+        "edge_type": "function_call"
+      }
+    ]
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/models/__init__.py": {
+    "nodes": [],
+    "edges": []
+  },
+  "/Users/yeonjoon-mac/Desktop/Workspace/code-diagram/study_1/face_classification/models/cnn.py": {
+    "nodes": [
+      {
+        "id": "cnn.simple_CNN",
+        "function_name": "simple_CNN",
+        "file": "face_classification/models/cnn.py",
+        "line_start": 14,
+        "line_end": 56,
+        "description": "Function simple_CNN (43 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "cnn.simpler_CNN",
+        "function_name": "simpler_CNN",
+        "file": "face_classification/models/cnn.py",
+        "line_start": 59,
+        "line_end": 108,
+        "description": "Function simpler_CNN (50 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "cnn.tiny_XCEPTION",
+        "function_name": "tiny_XCEPTION",
+        "file": "face_classification/models/cnn.py",
+        "line_start": 111,
+        "line_end": 204,
+        "description": "Function tiny_XCEPTION (94 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "cnn.mini_XCEPTION",
+        "function_name": "mini_XCEPTION",
+        "file": "face_classification/models/cnn.py",
+        "line_start": 207,
+        "line_end": 300,
+        "description": "Function mini_XCEPTION (94 lines)",
+        "node_type": "function"
+      },
+      {
+        "id": "cnn.big_XCEPTION",
+        "function_name": "big_XCEPTION",
+        "file": "face_classification/models/cnn.py",
+        "line_start": 303,
+        "line_end": 345,
+        "description": "Function big_XCEPTION (43 lines)",
+        "node_type": "function"
+      }
+    ],
+    "edges": [
+      {
+        "id": "cnn.e0",
+        "source": "cnn.simple_CNN",
+        "target": "keras.models.Sequential",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e1",
+        "source": "cnn.simple_CNN",
+        "target": "keras.layers.Convolution2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e2",
+        "source": "cnn.simple_CNN",
+        "target": "keras.layers.BatchNormalization",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e3",
+        "source": "cnn.simple_CNN",
+        "target": "keras.layers.Activation",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e4",
+        "source": "cnn.simple_CNN",
+        "target": "keras.layers.AveragePooling2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e5",
+        "source": "cnn.simple_CNN",
+        "target": "keras.layers.Dropout",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e6",
+        "source": "cnn.simple_CNN",
+        "target": "keras.layers.GlobalAveragePooling2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e7",
+        "source": "cnn.simpler_CNN",
+        "target": "keras.models.Sequential",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e8",
+        "source": "cnn.simpler_CNN",
+        "target": "keras.layers.Convolution2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e9",
+        "source": "cnn.simpler_CNN",
+        "target": "keras.layers.BatchNormalization",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e10",
+        "source": "cnn.simpler_CNN",
+        "target": "keras.layers.Activation",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e11",
+        "source": "cnn.simpler_CNN",
+        "target": "keras.layers.Dropout",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e12",
+        "source": "cnn.simpler_CNN",
+        "target": "keras.layers.Flatten",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e13",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.regularizers.l2",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e14",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.layers.Input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e15",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.layers.Conv2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e16",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.layers.BatchNormalization",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e17",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.layers.Activation",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e18",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.layers.SeparableConv2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e19",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.layers.MaxPooling2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e20",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.layers.GlobalAveragePooling2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e21",
+        "source": "cnn.tiny_XCEPTION",
+        "target": "keras.models.Model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e22",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.regularizers.l2",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e23",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.layers.Input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e24",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.layers.Conv2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e25",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.layers.BatchNormalization",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e26",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.layers.Activation",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e27",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.layers.SeparableConv2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e28",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.layers.MaxPooling2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e29",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.layers.GlobalAveragePooling2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e30",
+        "source": "cnn.mini_XCEPTION",
+        "target": "keras.models.Model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e31",
+        "source": "cnn.big_XCEPTION",
+        "target": "keras.layers.Input",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e32",
+        "source": "cnn.big_XCEPTION",
+        "target": "keras.layers.Conv2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e33",
+        "source": "cnn.big_XCEPTION",
+        "target": "keras.layers.BatchNormalization",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e34",
+        "source": "cnn.big_XCEPTION",
+        "target": "keras.layers.Activation",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e35",
+        "source": "cnn.big_XCEPTION",
+        "target": "keras.layers.SeparableConv2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e36",
+        "source": "cnn.big_XCEPTION",
+        "target": "keras.layers.MaxPooling2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e37",
+        "source": "cnn.big_XCEPTION",
+        "target": "keras.layers.GlobalAveragePooling2D",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e38",
+        "source": "cnn.big_XCEPTION",
+        "target": "keras.models.Model",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e39",
+        "source": "cnn.main",
+        "target": "cnn.simple_CNN",
+        "edge_type": "function_call"
+      },
+      {
+        "id": "cnn.e40",
+        "source": "cnn.main",
+        "target": "model.summary",
+        "edge_type": "function_call"
+      }
+    ]
+  }
 }
