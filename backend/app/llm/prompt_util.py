@@ -71,8 +71,24 @@ PROMPT_CODE_TO_CG = """
 """
 
 PROMPT_CODE_TO_CFG = """
-    You are a SOFTWARE ENGINEERING EXPERT. You are given a Python function.
-    Please generate a Control Flow Graph (CFG) for the provided code.
+    You are tasked with analyzing the provided code and generating a Control Flow Graph (CFG) description in JSON format to help users easily understand the structure and logic of the code.
+
+    When creating the CFG description, please adhere strictly to the following guidelines:
+
+    1. Identify all control flow structures explicitly:
+      - Clearly specify conditional statements (if, else if, else).
+      - Clearly indicate loops (for, while, do-while).
+
+    2. Structure clearly:
+      - Use nodes to represent code blocks or segments.
+      - Describe clearly how control transfers from one node to another using edges.
+
+    3. Detail Branching and Loops:
+      - For conditions, explicitly state the condition being evaluated and indicate which node is taken when true or false.
+      - For loops, explicitly indicate the entry point, loop condition check, loop body, and exit point.
+
+    4. Include an Entry and Exit node:
+      - Clearly mark the start (Entry) and end (Exit) of the control flow.
 
     INPUT:
     - The function code with line numbers:
@@ -80,7 +96,7 @@ PROMPT_CODE_TO_CFG = """
     - The File Name:
     {file_name}
 
-    - Example output format (JSON):
+    OUTPUT Format(JSON):
     {{
         "nodes": [
             {{
@@ -123,16 +139,6 @@ PROMPT_CODE_TO_CFG = """
             // ... more edges ...
         ]
     }}
-
-    OUTPUT:
-    - The output must strictly follow the provided JSON format. No additional text or comments should be included.
-    - Each node should represent a basic block, statement, or control structure (e.g., condition, loop, return).
-    - Each node must have line numbers indicating the start and end of the code block it represents.
-    - Edges must represent possible control flow transitions (e.g., normal, true/false for branches, loop back).
-    - Only include nodes and edges for code declared in this function.
-    - Only visualize essential control flow relevant to the main logic of the function.
-    - Omit nodes and edges for logging, debugging, or non-essential comments.
-    - The graph should accurately represent the essential control flow structure.
 """
 
 PROMPT_INLINE_CODE_EXPLANATION = """
