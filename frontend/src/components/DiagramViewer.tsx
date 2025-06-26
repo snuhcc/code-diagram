@@ -79,6 +79,7 @@ export default function DiagramViewer() {
   const [currentStreamController, setCurrentStreamController] = useState<AbortController | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set()); // 빈 Set으로 시작
   const [fadeOpacity, setFadeOpacity] = useState(60); // 음영 처리 투명도 (0-100)
+  const [isSnippetCollapsed, setIsSnippetCollapsed] = useState(false); // 코드 스니펫 collapse 상태
 
   // 최신 nodes를 참조하기 위한 ref (toggleCollapse가 안정적이게 유지)
   const nodesRef = useRef<Node[]>([]);
@@ -1804,19 +1805,64 @@ export default function DiagramViewer() {
       {/* Snippet display - 메인 ReactFlow 외부로 이동 */}
       {(hoverId && snippet) || (selectedNodeId && selectedSnippet) ? (
         <div
-          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg p-4 overflow-y-auto overflow-x-auto font-mono"
+          className="fixed z-50 top-4 right-4 min-w-[320px] max-w-[40vw] min-h-[40px] max-h-[80vh] bg-gray-50 text-slate-800 text-xs rounded-lg shadow-lg overflow-hidden font-mono"
           style={{
             // 선택된(snippet 고정) 경우에는 스크롤·복사 등 인터랙션을 허용하고
             // 단순 호버 프리뷰일 때는 포인터 이벤트를 차단해 깜빡임 방지
             pointerEvents: selectedNodeId ? 'auto' : 'none',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#cbd5e1 #f1f5f9',
           }}
         >
-          <pre 
-            className="hljs m-0 p-0 bg-transparent overflow-visible whitespace-pre-wrap break-words"
-            dangerouslySetInnerHTML={{ __html: selectedNodeId && selectedSnippet ? selectedSnippet : snippet }}
-          />
+          {/* 헤더 바 */}
+          <div 
+            className="flex items-center justify-between p-3 bg-gray-100 border-b border-gray-200 cursor-pointer"
+            onClick={() => setIsSnippetCollapsed(!isSnippetCollapsed)}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 font-medium">Code Snippet</span>
+              {selectedNodeId && (
+                <span className="text-xs text-gray-500">
+                  (pinned)
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="flex items-center justify-center w-5 h-5 text-gray-500 hover:text-gray-700 transition-colors"
+              style={{
+                transform: isSnippetCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }}
+              aria-label={isSnippetCollapsed ? 'Expand' : 'Collapse'}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path 
+                  d="M3 4.5L6 7.5L9 4.5" 
+                  stroke="currentColor" 
+                  strokeWidth="1.5" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                />
+              </svg>
+            </button>
+          </div>
+          
+          {/* 코드 내용 */}
+          {!isSnippetCollapsed && (
+            <div 
+              className="p-4 overflow-y-auto overflow-x-auto"
+              style={{
+                maxHeight: 'calc(80vh - 50px)', // 헤더 높이를 제외한 최대 높이
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#cbd5e1 #f1f5f9',
+              }}
+            >
+              <pre 
+                className="hljs m-0 p-0 bg-transparent overflow-visible whitespace-pre-wrap break-words"
+                dangerouslySetInnerHTML={{ __html: selectedNodeId && selectedSnippet ? selectedSnippet : snippet }}
+              />
+            </div>
+          )}
         </div>
       ) : null}
       
