@@ -1,7 +1,7 @@
 import '@/app/globals.css';
 import type { ReactNode } from 'react';
 
-export const metadata = { title: 'CodeFlow' };
+export const metadata = { title: 'CodeVoyager' };
 
 export default function RootLayout({ children }:{ children:ReactNode }) {
   return (
