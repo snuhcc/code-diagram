@@ -151,12 +151,12 @@ PROMPT_INLINE_CODE_EXPLANATION = """
     - Explanation level (1-10): {explanation_level}
 
     OUTPUT:
-    - The output must be korean.
+    - The output must be ENGLISH.
     - The output must follow this exact format: 
-        "xx~xx 줄에 대한 설명: 
-        aa~bb 줄은 설명 내용입니다.\n
-        cc~dd 줄은 설명 내용입니다.\n
-        ee~ff 줄은 설명 내용입니다."
+        "Explanation for lines xx~xx:
+        Lines aa~bb: [description].\n
+        Lines cc~dd: [description].\n
+        Lines ee~ff: [description]."
     - Adjust the explanation depth based on the explanation level:
       * Level 1-2: Very brief, single sentence explanation
       * Level 3-4: Brief explanation with key points

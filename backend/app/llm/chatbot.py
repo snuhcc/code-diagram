@@ -61,7 +61,7 @@ class ChatbotState(TypedDict, total=False):
     answer: str | None
     highlight: list
 
-SYSTEM_PROMPT = "당신은 친절하고 유능한 Python 소프트웨어 전문가 입니다. 사용자의 질문에 정확하고 간결하게 한국어로 답변하세요."
+SYSTEM_PROMPT = "당신은 친절하고 유능한 Python 소프트웨어 전문가 입니다. 사용자의 질문에 정확하고 간결하게 영어로 답변하세요."
 
 GRAPH_SYSTEM_PROMPT = """당신은 코드 분석 전문가입니다. 주어진 Call Graph 데이터를 분석하여 사용자의 질문에 맞는 함수들을 찾아주세요.
 
@@ -74,7 +74,7 @@ Call Graph 데이터 형식:
 - nodes: 각 함수의 정보 (id, function_name, file, line_start, line_end, description)
 - edges: 함수 간 호출 관계 (source -> target)
 
-답변은 한국어로 작성하고, 찾은 함수들의 ID는 반드시 정확히 기재해주세요."""
+답변은 영어로 작성하고, 찾은 함수들의 ID는 반드시 정확히 기재해주세요."""
 
 def load_call_graph_data():
     """
@@ -185,7 +185,7 @@ INPUT:
 
 OUTPUT:
 - 답변은 Markdown 형식으로 간결하고 명확하게 작성해주세요.
-- 사용자의 질문에 대한 답변은 한국어로 작성해주세요.
+- 사용자의 질문에 대한 답변은 영어로 작성해주세요.
 - 사용자가 이유를 묻거나 설명을 요청하지 않는다면, 관련된 함수들의 ID들만 정확하게 나열해주세요.
 """.format(
         call_graph_json=json.dumps(call_graph_data, ensure_ascii=False, indent=2),
