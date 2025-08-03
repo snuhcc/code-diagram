@@ -1,4 +1,4 @@
-# Code-Voyager
+# CodeVoyager: An Interactive Tool for Rapid Code Comprehension through LLM-Assisted Graph Navigation
 
 @Yeonjoon
 @Kyochul
