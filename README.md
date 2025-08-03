@@ -1,8 +1,9 @@
-# Code-Diagram
+# Code-Voyager
 
 @Yeonjoon
 @Kyochul
 @Hyungwoo
+@Minjeong
 
 ## Environment Setup
 ```bash
@@ -26,7 +27,3 @@ pnpm dev
 
 http://localhost:3000/
 ```
-
-## System Sketch (Last updated 250429)
-
-![](./image/250429_sketch.png)
